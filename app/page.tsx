@@ -48,10 +48,10 @@ export default function Home() {
           
           {/* Side panel - Realtime Chat */}
           <div className={`transition-all duration-300 flex flex-col ${isChatCollapsed ? 'w-12' : 'w-full lg:w-2/5'}`}>
-            <div className="border-b border-border p-3 bg-muted/30 flex items-center justify-between">
+            <div className="border-b border-border p-2 bg-muted/30 flex items-center justify-between">
               {!isChatCollapsed && (
                 <div>
-                  <h2 className="text-sm font-semibold">AI Assistant</h2>
+                  <h2 className="text-xs font-semibold">AI Assistant</h2>
                   <p className="text-xs text-muted-foreground">Chat with your AI assistant</p>
                 </div>
               )}
@@ -60,10 +60,10 @@ export default function Home() {
                   variant="ghost"
                   size="sm"
                   onClick={() => setIsChatCollapsed(!isChatCollapsed)}
-                  className="h-6 w-6 p-0"
+                  className="h-5 w-5 p-0"
                   title={isChatCollapsed ? "Expand chat (Ctrl+B)" : "Collapse chat (Ctrl+B)"}
                 >
-                  {isChatCollapsed ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                  {isChatCollapsed ? <ChevronLeft className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
                 </Button>
               </div>
             </div>

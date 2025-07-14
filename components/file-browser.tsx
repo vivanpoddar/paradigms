@@ -162,8 +162,8 @@ export function FileBrowser() {
       {/* Left Side - File List */}
       <div className={`transition-all duration-300 border-r border-border flex flex-col ${isFileListCollapsed ? 'w-12' : 'w-2/5'}`}>
         <Card className="h-full rounded-none border-0 flex flex-col">
-          <CardHeader className="border-b flex-shrink-0">
-            <CardTitle className="flex items-center justify-between">
+          <CardHeader className="border-b flex-shrink-0 p-2">
+            <CardTitle className="flex items-center justify-between text-sm">
               {!isFileListCollapsed && "Your Files"}
               {isFileListCollapsed && (
                 <div className="flex justify-center w-full">
@@ -171,21 +171,22 @@ export function FileBrowser() {
                     variant="ghost"
                     size="sm"
                     onClick={() => setIsFileListCollapsed(!isFileListCollapsed)}
-                    className="h-8 w-8 p-0"
+                    className="h-6 w-6 p-0"
                     title={isFileListCollapsed ? "Expand file list (Ctrl+E)" : "Collapse file list (Ctrl+E)"}
                   >
-                    {isFileListCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+                    {isFileListCollapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
                   </Button>
                 </div>
               )}
               {!isFileListCollapsed && (
-                <div className="flex gap-2">
+                <div className="flex gap-1">
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => setShowUpload(!showUpload)}
+                    className="h-7 text-xs"
                   >
-                    <Plus className="h-4 w-4 mr-1" />
+                    <Plus className="h-3 w-3 mr-1" />
                     Upload
                   </Button>
                   <Button
@@ -193,6 +194,7 @@ export function FileBrowser() {
                     size="sm"
                     onClick={() => userId && loadFiles(userId)}
                     disabled={loading}
+                    className="h-7 text-xs"
                   >
                     {loading ? 'Loading...' : 'Refresh'}
                   </Button>
@@ -200,10 +202,10 @@ export function FileBrowser() {
                     variant="ghost"
                     size="sm"
                     onClick={() => setIsFileListCollapsed(!isFileListCollapsed)}
-                    className="h-8 w-8 p-0"
+                    className="h-6 w-6 p-0"
                     title={isFileListCollapsed ? "Expand file list (Ctrl+E)" : "Collapse file list (Ctrl+E)"}
                   >
-                    {isFileListCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+                    {isFileListCollapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
                   </Button>
                 </div>
               )}
@@ -290,32 +292,33 @@ export function FileBrowser() {
       {/* Right Side - File Display */}
       <div className="flex-1 flex flex-col">
         <Card className="h-full rounded-none border-0 flex flex-col">
-          <CardHeader className="border-b flex-shrink-0">
-            <CardTitle>
+          <CardHeader className="border-b flex-shrink-0 p-2">
+            <CardTitle className="text-sm">
               {selectedFile ? selectedFile.name : 'Select a file to view'}
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0 flex-1 flex flex-col">
             {selectedFile ? (
               <div className="flex-1 flex flex-col">
-                
-                <div className="flex-1 p-2 overflow-auto">
+                <div className="flex-1 overflow-auto">
                   {fileContent ? (
                     (selectedFile.metadata.mimetype || '').startsWith('image/') ? (
-                      <img
-                        src={fileContent}
-                        alt={selectedFile.name}
-                        className="max-w-full h-auto rounded"
-                      />
+                      <div className="p-2">
+                        <img
+                          src={fileContent}
+                          alt={selectedFile.name}
+                          className="max-w-full h-auto rounded"
+                        />
+                      </div>
                     ) : selectedFile.metadata.mimetype === 'application/pdf' ? (
                       <iframe
                         src={fileContent}
-                        className="w-full h-full min-h-[600px] border-0 rounded"
+                        className="w-full h-full border-0"
                         title={selectedFile.name}
                       />
                     ) : (selectedFile.metadata.mimetype || '').startsWith('text/') ||
                        selectedFile.metadata.mimetype === 'application/json' ? (
-                      <pre className="whitespace-pre-wrap text-sm font-mono bg-muted/30 p-4 rounded overflow-auto min-h-0 flex-1">
+                      <pre className="whitespace-pre-wrap text-sm font-mono bg-muted/30 p-4 rounded overflow-auto min-h-0 flex-1 m-2">
                         {fileContent}
                       </pre>
                     ) : (
