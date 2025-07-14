@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { File, FileText, Image, Download, Plus, ChevronLeft, ChevronRight } from "lucide-react";
+import { File, FileText, Image, Download, Plus, ChevronLeft, ChevronRight, Folder } from "lucide-react";
 import { FileUpload } from "@/components/file-upload";
 
 const supabase = createClient();
@@ -38,6 +38,21 @@ export function FileBrowser() {
       }
     };
     loadUserFiles();
+  }, []);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey) {
+        if (e.key === 'e' || e.key === 'E') {
+          e.preventDefault();
+          setIsFileListCollapsed(prev => !prev);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
   const loadFiles = async (userUuid: string) => {
@@ -150,38 +165,71 @@ export function FileBrowser() {
           <CardHeader className="border-b flex-shrink-0">
             <CardTitle className="flex items-center justify-between">
               {!isFileListCollapsed && "Your Files"}
-              <div className="flex gap-2">
-                {!isFileListCollapsed && (
-                  <>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setShowUpload(!showUpload)}
-                    >
-                      <Plus className="h-4 w-4 mr-1" />
-                      Upload
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => userId && loadFiles(userId)}
-                      disabled={loading}
-                    >
-                      {loading ? 'Loading...' : 'Refresh'}
-                    </Button>
-                  </>
-                )}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setIsFileListCollapsed(!isFileListCollapsed)}
-                  className="h-8 w-8 p-0"
-                >
-                  {isFileListCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-                </Button>
-              </div>
+              {isFileListCollapsed && (
+                <div className="flex justify-center w-full">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setIsFileListCollapsed(!isFileListCollapsed)}
+                    className="h-8 w-8 p-0"
+                    title={isFileListCollapsed ? "Expand file list (Ctrl+E)" : "Collapse file list (Ctrl+E)"}
+                  >
+                    {isFileListCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+                  </Button>
+                </div>
+              )}
+              {!isFileListCollapsed && (
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowUpload(!showUpload)}
+                  >
+                    <Plus className="h-4 w-4 mr-1" />
+                    Upload
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => userId && loadFiles(userId)}
+                    disabled={loading}
+                  >
+                    {loading ? 'Loading...' : 'Refresh'}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setIsFileListCollapsed(!isFileListCollapsed)}
+                    className="h-8 w-8 p-0"
+                    title={isFileListCollapsed ? "Expand file list (Ctrl+E)" : "Collapse file list (Ctrl+E)"}
+                  >
+                    {isFileListCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+                  </Button>
+                </div>
+              )}
             </CardTitle>
           </CardHeader>
+          {isFileListCollapsed && (
+            <div 
+              className="flex-1 flex flex-col items-center justify-start pt-4 cursor-pointer hover:bg-muted/50 transition-colors"
+              onClick={() => setIsFileListCollapsed(false)}
+              title={`Click to expand file list (${files.length} files) - Ctrl+E`}
+            >
+              <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                <div className="relative">
+                  <Folder className="h-5 w-5" />
+                  {files.length > 0 && (
+                    <span className="absolute -top-2 -right-2 bg-primary text-primary-foreground text-xs rounded-full h-4 w-4 flex items-center justify-center">
+                      {files.length > 9 ? '9+' : files.length}
+                    </span>
+                  )}
+                </div>
+                <div className="collapsed-panel-text">
+                  Files
+                </div>
+              </div>
+            </div>
+          )}
           {!isFileListCollapsed && (
             <CardContent className="p-0 flex-1 flex flex-col">
               {showUpload && (

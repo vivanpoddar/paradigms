@@ -66,3 +66,21 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer utilities {
+  .writing-mode-vertical-rl {
+    writing-mode: vertical-rl;
+  }
+  
+  .text-orientation-mixed {
+    text-orientation: mixed;
+  }
+  
+  .collapsed-panel-text {
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    transform: rotate(180deg);
+    font-size: 0.75rem;
+    color: hsl(var(--muted-foreground));
+  }
+}

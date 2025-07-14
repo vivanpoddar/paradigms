@@ -6,7 +6,7 @@ import { RealtimeChat } from "@/components/realtime-chat";
 import { createClient } from "@/lib/supabase/client";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, MessageCircle } from "lucide-react";
 
 export default function Home() {
   const [user, setUser] = useState<any>(null);
@@ -19,6 +19,21 @@ export default function Home() {
       setUser(user);
     };
     getUser();
+  }, []);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey) {
+        if (e.key === 'b' || e.key === 'B') {
+          e.preventDefault();
+          setIsChatCollapsed(prev => !prev);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
   
   return (
@@ -36,27 +51,36 @@ export default function Home() {
             <div className="border-b border-border p-3 bg-muted/30 flex items-center justify-between">
               {!isChatCollapsed && (
                 <div>
-                  <h2 className="text-sm font-semibold">Team Chat</h2>
-                  <p className="text-xs text-muted-foreground">Collaborate on files</p>
+                  <h2 className="text-sm font-semibold">AI Assistant</h2>
+                  <p className="text-xs text-muted-foreground">Chat with your AI assistant</p>
                 </div>
               )}
               <div className="flex items-center gap-2">
-                {!isChatCollapsed && (
-                  <>
-                    <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                    <span className="text-xs text-muted-foreground">Online</span>
-                  </>
-                )}
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => setIsChatCollapsed(!isChatCollapsed)}
                   className="h-6 w-6 p-0"
+                  title={isChatCollapsed ? "Expand chat (Ctrl+B)" : "Collapse chat (Ctrl+B)"}
                 >
                   {isChatCollapsed ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                 </Button>
               </div>
             </div>
+            {isChatCollapsed && (
+              <div 
+                className="flex-1 flex flex-col items-center justify-start pt-4 cursor-pointer hover:bg-muted/50 transition-colors"
+                onClick={() => setIsChatCollapsed(false)}
+                title="Click to expand chat (Ctrl+B)"
+              >
+                <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                  <MessageCircle className="h-5 w-5" />
+                  <div className="collapsed-panel-text">
+                    Chat
+                  </div>
+                </div>
+              </div>
+            )}
             {!isChatCollapsed && (
               <div className="flex-1 min-h-0">
                 <RealtimeChat 
