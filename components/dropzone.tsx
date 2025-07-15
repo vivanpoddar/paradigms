@@ -72,6 +72,7 @@ const DropzoneContent = ({ className }: { className?: string }) => {
     maxFileSize,
     maxFiles,
     isSuccess,
+    parseResults,
   } = useDropzoneContext()
 
   const exceedMaxFiles = files.length > maxFiles
@@ -85,11 +86,26 @@ const DropzoneContent = ({ className }: { className?: string }) => {
 
   if (isSuccess) {
     return (
-      <div className={cn('flex flex-row items-center gap-x-2 justify-center', className)}>
-        <CheckCircle size={16} className="text-primary" />
-        <p className="text-primary text-sm">
-          Successfully uploaded {files.length} file{files.length > 1 ? 's' : ''}
-        </p>
+      <div className={cn('flex flex-col gap-y-2', className)}>
+        <div className="flex flex-row items-center gap-x-2 justify-center">
+          <CheckCircle size={16} className="text-primary" />
+          <p className="text-primary text-sm">
+            Successfully uploaded and parsed {files.length} file{files.length > 1 ? 's' : ''}
+          </p>
+        </div>
+        {Object.keys(parseResults).length > 0 && (
+          <div className="text-left">
+            <p className="text-sm font-medium mb-2">Parse Results:</p>
+            {Object.entries(parseResults).map(([fileName, result]) => (
+              <div key={fileName} className="mb-2 p-2 bg-muted rounded">
+                <p className="text-xs font-medium">{fileName}</p>
+                <p className="text-xs text-muted-foreground">
+                  {result.documents?.length || 0} document(s) parsed
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     )
   }

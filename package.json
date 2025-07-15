@@ -13,15 +13,18 @@
     "@radix-ui/react-slot": "^1.2.3",
     "@supabase/ssr": "^0.6.1",
     "@supabase/supabase-js": "^2.51.0",
+    "@types/uuid": "^10.0.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "llamaindex": "^0.11.18",
     "lucide-react": "^0.511.0",
     "next": "latest",
     "next-themes": "^0.4.6",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-dropzone": "^14.3.8",
-    "tailwind-merge": "^3.3.0"
+    "tailwind-merge": "^3.3.0",
+    "uuid": "^11.1.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",

@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/client'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { type FileError, type FileRejection, useDropzone } from 'react-dropzone'
+import { ParsedDocumentResponse } from '@/lib/types/parsed-documents'
 
 const supabase = createClient()
 
@@ -67,6 +68,7 @@ const useSupabaseUpload = (options: UseSupabaseUploadOptions) => {
   const [loading, setLoading] = useState<boolean>(false)
   const [errors, setErrors] = useState<{ name: string; message: string }[]>([])
   const [successes, setSuccesses] = useState<string[]>([])
+  const [parseResults, setParseResults] = useState<{ [fileName: string]: ParsedDocumentResponse }>({})
   const [userId, setUserId] = useState<string | null>(null)
 
   // Get current user ID on mount
@@ -141,19 +143,74 @@ const useSupabaseUpload = (options: UseSupabaseUploadOptions) => {
 
     const responses = await Promise.all(
       filesToUpload.map(async (file) => {
-        // Upload path: bucketName/userUUID/filename
-        const uploadPath = `${userId}/${file.name}`
-        
-        const { error } = await supabase.storage
-          .from(bucketName)
-          .upload(uploadPath, file, {
-            cacheControl: cacheControl.toString(),
-            upsert,
+        try {
+          // Upload path: bucketName/userUUID/filename
+          const uploadPath = `${userId}/${file.name}`
+          
+          const { error } = await supabase.storage
+            .from(bucketName)
+            .upload(uploadPath, file, {
+              cacheControl: cacheControl.toString(),
+              upsert,
+            })
+          
+          if (error) {
+            return { name: file.name, message: error.message, parseResult: null }
+          }
+
+          // After successful upload, send to backend for LlamaParse processing
+          const parseResponse = await fetch('/api/parse', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              fileName: file.name,
+              bucketName,
+              uploadPath,
+              userId,
+            }),
           })
-        if (error) {
-          return { name: file.name, message: error.message }
-        } else {
-          return { name: file.name, message: undefined }
+
+          if (!parseResponse.ok) {
+            let errorMessage = `Parse error: ${parseResponse.status} ${parseResponse.statusText}`
+            try {
+              const errorData = await parseResponse.json()
+              errorMessage = `Parse error: ${errorData.error}`
+            } catch (jsonError) {
+              // If response is not JSON, try to get text
+              try {
+                const errorText = await parseResponse.text()
+                errorMessage = `Parse error: ${errorText.substring(0, 200)}...`
+              } catch (textError) {
+                errorMessage = `Parse error: ${parseResponse.status} ${parseResponse.statusText}`
+              }
+            }
+            return { name: file.name, message: errorMessage, parseResult: null }
+          }
+
+          let parseResult
+          try {
+            parseResult = await parseResponse.json()
+          } catch (jsonError) {
+            const responseText = await parseResponse.text()
+            console.error('Failed to parse response as JSON:', responseText.substring(0, 200))
+            return { name: file.name, message: `Parse error: Invalid JSON response`, parseResult: null }
+          }
+          
+          // Store parse result
+          setParseResults(prev => ({
+            ...prev,
+            [file.name]: parseResult
+          }))
+
+          return { name: file.name, message: undefined, parseResult }
+        } catch (error) {
+          return { 
+            name: file.name, 
+            message: error instanceof Error ? error.message : 'Unknown error',
+            parseResult: null 
+          }
         }
       })
     )
@@ -201,6 +258,7 @@ const useSupabaseUpload = (options: UseSupabaseUploadOptions) => {
     errors,
     setErrors,
     onUpload,
+    parseResults,
     maxFileSize: maxFileSize,
     maxFiles: maxFiles,
     allowedMimeTypes,
