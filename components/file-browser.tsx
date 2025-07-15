@@ -94,7 +94,7 @@ export function FileBrowser() {
       }
 
       // Handle different file types
-      const mimetype = file.metadata.mimetype || 'application/octet-stream';
+      const mimetype = file.metadata?.mimetype || 'application/octet-stream';
       if (mimetype.startsWith('text/') || 
           mimetype === 'application/json') {
         const text = await data.text();
@@ -128,7 +128,7 @@ export function FileBrowser() {
         return;
       }
 
-      const blob = new Blob([data], { type: file.metadata.mimetype || 'application/octet-stream' });
+      const blob = new Blob([data], { type: file.metadata?.mimetype || 'application/octet-stream' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -259,13 +259,13 @@ export function FileBrowser() {
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3 flex-1 min-w-0">
-                          {getFileIcon(file.metadata.mimetype)}
+                          {getFileIcon(file.metadata?.mimetype || '')}
                           <div className="flex flex-col min-w-0">
                             <span className="truncate text-sm font-medium">
                               {file.name}
                             </span>
                             <span className="text-xs text-muted-foreground">
-                              {formatFileSize(file.metadata.size || 0)}
+                              {formatFileSize(file.metadata?.size || 0)}
                             </span>
                           </div>
                         </div>
@@ -302,7 +302,7 @@ export function FileBrowser() {
               <div className="flex-1 flex flex-col">
                 <div className="flex-1 overflow-auto">
                   {fileContent ? (
-                    (selectedFile.metadata.mimetype || '').startsWith('image/') ? (
+                    (selectedFile.metadata?.mimetype || '').startsWith('image/') ? (
                       <div className="p-2">
                         <img
                           src={fileContent}
@@ -310,14 +310,14 @@ export function FileBrowser() {
                           className="max-w-full h-auto rounded"
                         />
                       </div>
-                    ) : selectedFile.metadata.mimetype === 'application/pdf' ? (
+                    ) : selectedFile.metadata?.mimetype === 'application/pdf' ? (
                       <iframe
                         src={fileContent}
                         className="w-full h-full border-0"
                         title={selectedFile.name}
                       />
-                    ) : (selectedFile.metadata.mimetype || '').startsWith('text/') ||
-                       selectedFile.metadata.mimetype === 'application/json' ? (
+                    ) : (selectedFile.metadata?.mimetype || '').startsWith('text/') ||
+                       selectedFile.metadata?.mimetype === 'application/json' ? (
                       <pre className="whitespace-pre-wrap text-sm font-mono bg-muted/30 p-4 rounded overflow-auto min-h-0 flex-1 m-2">
                         {fileContent}
                       </pre>
