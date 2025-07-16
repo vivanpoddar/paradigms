@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { File, FileText, Image, Download, Plus, ChevronLeft, ChevronRight, Folder } from "lucide-react";
 import { FileUpload } from "@/components/file-upload";
+import { PdfViewerWithOverlay } from "@/components/pdf-viewer-with-overlay";
 
 const supabase = createClient();
 
@@ -158,7 +159,7 @@ export function FileBrowser() {
   };
 
   return (
-    <div className="flex h-full w-full">
+    <div className="flex h-full">
       {/* Left Side - File List */}
       <div className={`transition-all duration-300 border-r border-border flex flex-col ${isFileListCollapsed ? 'w-12' : 'w-2/5'}`}>
         <Card className="h-full rounded-none border-0 flex flex-col">
@@ -300,7 +301,7 @@ export function FileBrowser() {
           <CardContent className="p-0 flex-1 flex flex-col">
             {selectedFile ? (
               <div className="flex-1 flex flex-col">
-                <div className="flex-1 overflow-auto">
+                <div className="flex-1 h-[90vh] overflow-auto">
                   {fileContent ? (
                     (selectedFile.metadata?.mimetype || '').startsWith('image/') ? (
                       <div className="p-2">
@@ -311,14 +312,13 @@ export function FileBrowser() {
                         />
                       </div>
                     ) : selectedFile.metadata?.mimetype === 'application/pdf' ? (
-                      <iframe
-                        src={fileContent}
-                        className="w-full h-full border-0"
-                        title={selectedFile.name}
+                      <PdfViewerWithOverlay
+                        pdfUrl={fileContent}
+                        className="h-full"
                       />
                     ) : (selectedFile.metadata?.mimetype || '').startsWith('text/') ||
                        selectedFile.metadata?.mimetype === 'application/json' ? (
-                      <pre className="whitespace-pre-wrap text-sm font-mono bg-muted/30 p-4 rounded overflow-auto min-h-0 flex-1 m-2">
+                      <pre className="whitespace-pre-wrap text-sm font-mono bg-muted/30 p-4 rounded overflow-auto min-h-0 h-[90vh] flex-1 m-2">
                         {fileContent}
                       </pre>
                     ) : (
