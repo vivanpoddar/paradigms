@@ -30,8 +30,39 @@ export const PdfViewerWithOverlay: React.FC<PdfViewerWithOverlayProps> = ({
     const scrollContainerRef = useRef<HTMLDivElement>(null);
     const dummyCanvasRef = useRef<HTMLCanvasElement>(null);
     
-    // Use provided bounding boxes or loaded ones
-    const activeBoundingBoxes = boundingBoxes.length > 0 ? boundingBoxes : loadedBoundingBoxes;
+    // Use provided bounding boxes, loaded ones, or default test boxes
+    const activeBoundingBoxes = boundingBoxes.length > 0 ? boundingBoxes : 
+        loadedBoundingBoxes.length > 0 ? loadedBoundingBoxes : 
+        [
+            // Default test bounding boxes that always show
+            {
+                id: "default-test-1",
+                x: 100,
+                y: 120,
+                width: 300,
+                height: 25,
+                text: "Test Bounding Box 1",
+                pageNumber: 1
+            },
+            {
+                id: "default-test-2",
+                x: 100,
+                y: 180,
+                width: 400,
+                height: 40,
+                text: "Test Bounding Box 2 - Click to select",
+                pageNumber: 1
+            },
+            {
+                id: "default-test-3",
+                x: 100,
+                y: 250,
+                width: 250,
+                height: 20,
+                text: "Test Bounding Box 3",
+                pageNumber: 1
+            }
+        ];
 
     const { pdfDocument } = usePdf({
         file: pdfUrl,
@@ -114,9 +145,101 @@ export const PdfViewerWithOverlay: React.FC<PdfViewerWithOverlayProps> = ({
                 setLoadedBoundingBoxes(data);
                 console.log('Loaded bounding boxes for PDF:', data);
             } else {
-                console.log('No bounding boxes found for PDF, using fallback');
-                // Set empty array if no bounding boxes found
-                setLoadedBoundingBoxes([]);
+                console.log('No bounding boxes found for PDF, using test data');
+                // Use test bounding boxes for demonstration
+                const testBoundingBoxes = [
+                    {
+                        id: "test-title-1",
+                        x: 72,
+                        y: 100,
+                        width: 400,
+                        height: 32,
+                        text: "Document Title",
+                        pageNumber: 1
+                    },
+                    {
+                        id: "test-subtitle-1",
+                        x: 72,
+                        y: 150,
+                        width: 300,
+                        height: 20,
+                        text: "Subtitle or Section Header",
+                        pageNumber: 1
+                    },
+                    {
+                        id: "test-paragraph-1",
+                        x: 72,
+                        y: 200,
+                        width: 450,
+                        height: 60,
+                        text: "This is a test paragraph that demonstrates bounding box functionality. It shows how text regions can be highlighted and made interactive.",
+                        pageNumber: 1
+                    },
+                    {
+                        id: "test-list-1",
+                        x: 90,
+                        y: 280,
+                        width: 400,
+                        height: 16,
+                        text: "• First bullet point item",
+                        pageNumber: 1
+                    },
+                    {
+                        id: "test-list-2",
+                        x: 90,
+                        y: 300,
+                        width: 350,
+                        height: 16,
+                        text: "• Second bullet point item",
+                        pageNumber: 1
+                    },
+                    {
+                        id: "test-list-3",
+                        x: 90,
+                        y: 320,
+                        width: 380,
+                        height: 16,
+                        text: "• Third bullet point item",
+                        pageNumber: 1
+                    },
+                    {
+                        id: "test-section-2",
+                        x: 72,
+                        y: 380,
+                        width: 280,
+                        height: 22,
+                        text: "Another Section",
+                        pageNumber: 1
+                    },
+                    {
+                        id: "test-paragraph-2",
+                        x: 72,
+                        y: 420,
+                        width: 450,
+                        height: 80,
+                        text: "Another paragraph with more content to show how multiple bounding boxes work together on the same page.",
+                        pageNumber: 1
+                    },
+                    {
+                        id: "test-page2-title",
+                        x: 72,
+                        y: 100,
+                        width: 350,
+                        height: 28,
+                        text: "Page 2 Title",
+                        pageNumber: 2
+                    },
+                    {
+                        id: "test-page2-content",
+                        x: 72,
+                        y: 150,
+                        width: 400,
+                        height: 100,
+                        text: "Content on page 2 demonstrating multi-page bounding box support.",
+                        pageNumber: 2
+                    }
+                ];
+                setLoadedBoundingBoxes(testBoundingBoxes);
             }
         } catch (error) {
             console.error('Error loading bounding boxes:', error);
