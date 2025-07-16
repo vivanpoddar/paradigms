@@ -1,0 +1,65 @@
+[
+  {
+    "id": "example-1",
+    "x": 100,
+    "y": 150,
+    "width": 200,
+    "height": 25,
+    "text": "Sample Title Text",
+    "pageNumber": 1
+  },
+  {
+    "id": "example-2",
+    "x": 120,
+    "y": 200,
+    "width": 350,
+    "height": 18,
+    "text": "This is an example paragraph with some longer text content.",
+    "pageNumber": 1
+  },
+  {
+    "id": "example-3",
+    "x": 120,
+    "y": 230,
+    "width": 280,
+    "height": 18,
+    "text": "Another line of text in the document.",
+    "pageNumber": 1
+  },
+  {
+    "id": "example-4",
+    "x": 150,
+    "y": 300,
+    "width": 180,
+    "height": 20,
+    "text": "Subsection Header",
+    "pageNumber": 1
+  },
+  {
+    "id": "example-5",
+    "x": 120,
+    "y": 340,
+    "width": 320,
+    "height": 16,
+    "text": "More example text content to demonstrate bounding boxes",
+    "pageNumber": 1
+  },
+  {
+    "id": "example-6",
+    "x": 100,
+    "y": 450,
+    "width": 150,
+    "height": 22,
+    "text": "Page 2 Content",
+    "pageNumber": 2
+  },
+  {
+    "id": "example-7",
+    "x": 120,
+    "y": 490,
+    "width": 280,
+    "height": 18,
+    "text": "This text appears on the second page of the PDF.",
+    "pageNumber": 2
+  }
+]
