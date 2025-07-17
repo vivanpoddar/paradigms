@@ -1,7 +1,6 @@
 import { createClient } from '@/lib/supabase/client'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { type FileError, type FileRejection, useDropzone } from 'react-dropzone'
-import { ParsedDocumentResponse } from '@/lib/types/parsed-documents'
 
 const supabase = createClient()
 
@@ -68,10 +67,10 @@ const useSupabaseUpload = (options: UseSupabaseUploadOptions) => {
   const [loading, setLoading] = useState<boolean>(false)
   const [errors, setErrors] = useState<{ name: string; message: string }[]>([])
   const [successes, setSuccesses] = useState<string[]>([])
-  const [parseResults, setParseResults] = useState<{ [fileName: string]: ParsedDocumentResponse }>({})
+  const [parseResults, setParseResults] = useState<{ [fileName: string]: any }>({})
   const [userId, setUserId] = useState<string | null>(null)
 
-  // Get current user ID on mount
+  // Get current user ID on mountwhere
   useEffect(() => {
     const getCurrentUser = async () => {
       const { data: { user } } = await supabase.auth.getUser()
