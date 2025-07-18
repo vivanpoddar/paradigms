@@ -314,7 +314,7 @@ export function FileBrowser() {
                     ) : selectedFile.metadata?.mimetype === 'application/pdf' ? (
                       <PdfViewerWithOverlay
                         pdfUrl={fileContent}
-                        className="h-full"
+                        className="h-[91vh]"
                       />
                     ) : (selectedFile.metadata?.mimetype || '').startsWith('text/') ||
                        selectedFile.metadata?.mimetype === 'application/json' ? (
