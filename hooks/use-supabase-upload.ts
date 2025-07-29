@@ -91,13 +91,11 @@ const useSupabaseUpload = (options: UseSupabaseUploadOptions) => {
 
   const onDrop = useCallback(
     (acceptedFiles: File[], fileRejections: FileRejection[]) => {
-      const validFiles = acceptedFiles
-        .filter((file) => !files.find((x) => x.name === file.name))
-        .map((file) => {
-          ;(file as FileWithPreview).preview = URL.createObjectURL(file)
-          ;(file as FileWithPreview).errors = []
-          return file as FileWithPreview
-        })
+      const validFiles = acceptedFiles.map((file) => {
+        ;(file as FileWithPreview).preview = URL.createObjectURL(file)
+        ;(file as FileWithPreview).errors = []
+        return file as FileWithPreview
+      })
 
       const invalidFiles = fileRejections.map(({ file, errors }) => {
         ;(file as FileWithPreview).preview = URL.createObjectURL(file)
@@ -105,7 +103,10 @@ const useSupabaseUpload = (options: UseSupabaseUploadOptions) => {
         return file as FileWithPreview
       })
 
-      const newFiles = [...files, ...validFiles, ...invalidFiles]
+      // Remove existing files with the same names and add new files
+      const existingFileNames = [...validFiles, ...invalidFiles].map(f => f.name)
+      const filteredExistingFiles = files.filter(file => !existingFileNames.includes(file.name))
+      const newFiles = [...filteredExistingFiles, ...validFiles, ...invalidFiles]
 
       setFiles(newFiles)
     },

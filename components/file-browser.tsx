@@ -1,4 +1,3 @@
-
 'use client'
 
 import { createClient } from "@/lib/supabase/client";
@@ -314,7 +313,8 @@ export function FileBrowser() {
                     ) : selectedFile.metadata?.mimetype === 'application/pdf' ? (
                       <PdfViewerWithOverlay
                         pdfUrl={fileContent}
-                        className="h-[91vh]"
+                        user={userId ?? ""}
+                        fileName={selectedFile.name}
                       />
                     ) : (selectedFile.metadata?.mimetype || '').startsWith('text/') ||
                        selectedFile.metadata?.mimetype === 'application/json' ? (
@@ -350,3 +350,4 @@ export function FileBrowser() {
     </div>
   );
 }
+

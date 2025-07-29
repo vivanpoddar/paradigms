@@ -31,13 +31,15 @@ interface BoundingBox {
 interface PdfViewerWithOverlayProps {
     pdfUrl: string;
     boundingBoxes?: BoundingBox[];
-    className?: string;
+    user?: string; // Optional user ID for fetching bounding boxes
+    fileName?: string;
 }
 
 export const PdfViewerWithOverlay: React.FC<PdfViewerWithOverlayProps> = ({ 
     pdfUrl, 
+    user,
     boundingBoxes = [], 
-    className = "" 
+    fileName = "" 
 }) => {
     const [apiBoundingBoxes, setApiBoundingBoxes] = React.useState<BoundingBox[]>([]);
     const [selectedBoxes, setSelectedBoxes] = React.useState<Map<string, { box: BoundingBox; position: { x: number; y: number }; isVisible: boolean }>>(new Map());
@@ -75,7 +77,13 @@ export const PdfViewerWithOverlay: React.FC<PdfViewerWithOverlayProps> = ({
     React.useEffect(() => {
         const fetchBoundingBoxes = async () => {
             try {
-                const response = await fetch('/api/bounding-boxes');
+                const params = new URLSearchParams();
+                if (user) params.append('userId', user);
+                if (fileName) {
+                    const baseFileName = fileName.replace(/\.[^/.]+$/, '');
+                    params.append('filename', baseFileName);
+                }
+                const response = await fetch(`/api/bounding-boxes?${params.toString()}`);
                 if (response.ok) {
                     const data = await response.json();
                     console.log('Fetched bounding boxes:', data);
@@ -108,10 +116,10 @@ export const PdfViewerWithOverlay: React.FC<PdfViewerWithOverlayProps> = ({
                             className="absolute border-2 border-blue-500 bg-blue-500/10 pointer-events-auto cursor-pointer hover:bg-blue-500/20 transition-colors"
                             style={{
                                 position: 'absolute',
-                                left: `${(box.x / 595) * 100}%`, // Use actual PDF coordinates
-                                top: `${(box.y / 842) * 100}%`,
-                                width: `${(box.width / 595) * 100}%`,
-                                height: `${(box.height / 842) * 100}%`,
+                                left: `${(box.x / renderPageProps.width) * 26}%`,
+                                top: `${(box.y / renderPageProps.height) * 26}%`,
+                                width: `${(box.width / renderPageProps.width) * 26}%`,
+                                height: `${(box.height / renderPageProps.height) * 26}%`,
                                 zIndex: 1000,
                             }}
                             title={box.text}
@@ -163,7 +171,7 @@ export const PdfViewerWithOverlay: React.FC<PdfViewerWithOverlayProps> = ({
     const { EnterFullScreen } = fullScreenPluginInstance;
 
     return (
-        <div className={`relative ${className}`}>
+        <div>
             <Worker workerUrl='https://unpkg.com/pdfjs-dist@3.4.120/build/pdf.worker.min.js'>
                 <div
                     className="bg-white dark:bg-black"

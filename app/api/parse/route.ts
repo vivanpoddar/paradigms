@@ -4,6 +4,9 @@ import { writeFile, unlink } from 'fs/promises'
 import { join } from 'path'
 import { tmpdir } from 'os'
 import { randomUUID } from 'crypto'
+import fs from 'fs'
+import FormData from 'form-data'
+import fetch from 'node-fetch'
 
 export async function POST(request: NextRequest) {
   try {
@@ -39,144 +42,165 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       )
     }
-
-    // Create a temporary file for LlamaParse
-    const tempFileName = `${randomUUID()}-${fileName}`
-    const tempFilePath = join(tmpdir(), tempFileName)
     
+    // Declare temp file paths for cleanup
+    let tempFilePath: string | undefined = undefined;
+    let parsedTempFilePath: string | undefined = undefined;
+
     try {
       // Convert blob to buffer and write to temporary file
-      const buffer = Buffer.from(await fileData.arrayBuffer())
-      await writeFile(tempFilePath, buffer)
-
-      // Use direct API approach with improved error handling (based on test.ts)
-      console.log(`Parsing document: ${fileName}`)
+      const arrayBuffer = await fileData.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
       
-      // Step 1: Upload file and create job
-      const formData = new FormData();
-      formData.append('file', new Blob([buffer], { type: 'application/pdf' }), fileName);
-      formData.append('language', 'en');
-      formData.append('resultType', 'json');
+      // Create a temporary file for the uploaded PDF
+      const tempFileName = `${randomUUID()}-${fileName}`;
+      tempFilePath = join(tmpdir(), tempFileName);
+      await writeFile(tempFilePath, buffer);
 
-      const uploadResponse = await fetch('https://api.cloud.llamaindex.ai/api/parsing/upload', {
-        method: 'POST',
+      let key = process.env.MATHPIX_API_KEY;
+      let appId = "paradigm_75df0a_93d146"
+
+      let options = {
+        "conversion_formats": { "md": true },
+        "math_inline_delimiters": ["$", "$"],
+        "rm_spaces": true
+      }
+      
+      const fileContent = fs.createReadStream(tempFilePath);
+
+      const formData = new FormData();
+      formData.append("file", fileContent);
+      formData.append("options_json", JSON.stringify(options));
+
+      const response = await fetch("https://api.mathpix.com/v3/pdf", {
+        method: "POST",
         headers: {
-          'Authorization': `Bearer ${process.env.LLAMA_CLOUD_API_KEY}`,
+          "app_id": appId,
+          "app_key": key ? key : ""
         },
         body: formData
       });
 
-      if (!uploadResponse.ok) {
-        const errorText = await uploadResponse.text();
-        throw new Error(`LlamaParse API error: ${uploadResponse.status} ${uploadResponse.statusText} - ${errorText}`);
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Error uploading file to Mathpix API:", errorText);
+        throw new Error(`Mathpix API error: ${response.status} ${response.statusText}`);
       }
 
-      const uploadResult = await uploadResponse.json();
-      console.log('Upload result:', uploadResult);
+      type MathpixResponse = {
+        pdf_id: string;
+        status?: string;
+        [key: string]: any;
+      };
 
-      if (!uploadResult.id) {
-        throw new Error('No job ID returned from LlamaParse API');
-      }
+      const data = (await response.json()) as MathpixResponse;
+      console.log("Response Data:", JSON.stringify(data, null, 2));
+      const pdfId: string = data.pdf_id;
 
-      const jobId = uploadResult.id;
-      console.log('Job ID:', jobId);
+      if (pdfId) {
+        const pollForCompletion = async (pdfId: string, retries = 20, delayMs = 500): Promise<MathpixResponse | null> => {
+          for (let i = 0; i < retries; i++) {
+            console.log(`Polling attempt ${i + 1}...`);
+            const response = await fetch(`https://api.mathpix.com/v3/pdf/${pdfId}.lines.json`, {
+              method: "GET",
+              headers: {
+                "app_id": appId,
+                "app_key": key ? key : ""
+              }
+            });
 
-      // Step 2: Poll for job completion
-      let jobComplete = false;
-      let attempts = 0;
-      const maxAttempts = 30; // 5 minutes with 10 second intervals
-      let parsedResult;
+            const data = (await response.json()) as MathpixResponse;
 
-      while (!jobComplete && attempts < maxAttempts) {
-        await new Promise(resolve => setTimeout(resolve, 10000)); // Wait 10 seconds
-        
-        const statusResponse = await fetch(`https://api.cloud.llamaindex.ai/api/parsing/job/${jobId}`, {
-          headers: {
-            'Authorization': `Bearer ${process.env.LLAMA_CLOUD_API_KEY}`,
-          }
-        });
-
-        if (!statusResponse.ok) {
-          throw new Error(`Failed to check job status: ${statusResponse.status}`);
-        }
-
-        const status = await statusResponse.json();
-        console.log(`Attempt ${attempts + 1}: Job status:`, status.status);
-
-        if (status.status === 'SUCCESS') {
-          jobComplete = true;
-          console.log('Job completed successfully!');
-          
-          // Step 3: Get the result
-          const resultResponse = await fetch(`https://api.cloud.llamaindex.ai/api/parsing/job/${jobId}/result/json`, {
-            headers: {
-              'Authorization': `Bearer ${process.env.LLAMA_CLOUD_API_KEY}`,
+            if (data.status === "completed") {
+              console.log("Job completed. PDF Data:", JSON.stringify(data, null, 2));
+              return data; // Return the completed data
+            } else if (data.status === "error") {
+              console.error("Job failed with error:", data);
+              return null;
+            } else if (data.status === undefined) {
+              console.log("Job status is undefined. Printing final result...");
+              console.log("Final Result:", JSON.stringify(data, null, 2));
+              return data;
+            } else {
+              console.log("Job not completed yet. Current status:", data.status);
             }
-          });
 
-          if (!resultResponse.ok) {
-            throw new Error(`Failed to get parsed result: ${resultResponse.status}`);
+            // Wait for the specified delay before the next attempt
+            await new Promise(resolve => setTimeout(resolve, delayMs));
           }
 
-          parsedResult = await resultResponse.json();
-          console.log('Final JSON result received');
+          console.error("Job did not complete within the expected time.");
+          return null;
+        };
 
-        } else if (status.status === 'ERROR') {
-          throw new Error(`Parsing job failed: ${status.error || 'Unknown error'}`);
+        const result = await pollForCompletion(pdfId);
+        if (result) {
+          console.log("Final Result:", JSON.stringify(result, null, 2));
+
+          if (result && Array.isArray(result.pages)) {
+            let itemCount = 0;
+            result.pages.forEach((page: any, pageIndex: number) => {
+              if (Array.isArray(page.lines)) {
+                page.lines.forEach((line: any, lineIndex: number) => {
+                  // Print as [item number]: [pages.lines.text]
+                  console.log(`[${itemCount}]: ${line.text}`);
+                  itemCount++;
+                });
+              }
+            });
+          }
+
+          const linesDataJson = JSON.stringify(result, null, 2);
+
+          // Save parsed results to Supabase "documents" bucket
+          const parsedFileName = `${fileName.replace(/\.[^/.]+$/, '')}_parsed.json`;
+          const parsedFilePath = `${userId}/${parsedFileName}`;
+
+          // Write the parsed result to a temporary file
+          parsedTempFilePath = join(tmpdir(), `${randomUUID()}-${parsedFileName}`);
+          await writeFile(parsedTempFilePath, linesDataJson);
+
+          const fileStream = fs.createReadStream(parsedTempFilePath);
+
+          const { data: uploadLinesData, error: uploadError } = await supabase.storage
+            .from('documents')
+            .upload(parsedFilePath, fileStream, {
+              contentType: 'application/json',
+              upsert: true, // This will overwrite if file already exists
+              duplex: 'half'
+            });
+
+          // Clean up the temporary parsed file
+          await unlink(parsedTempFilePath);
+
+          if (uploadError) {
+            console.error('Supabase upload error:', uploadError);
+            return NextResponse.json(
+              { error: `Failed to save parsed document: ${uploadError.message}` },
+              { status: 500 }
+            );
+          }
+
+          // Success: return the upload data or a success message
+          return NextResponse.json(
+            { message: 'File parsed and uploaded successfully', parsedFilePath },
+            { status: 200 }
+          );
         }
-
-        attempts++;
+      } else {
+        console.error("Cannot proceed without a valid pdf_id.");
       }
-
-      if (attempts >= maxAttempts) {
-        throw new Error('Parsing job timed out after 5 minutes');
-      }
-
-      if (!parsedResult) {
-        throw new Error('No parsed result received');
-      }
-
-      console.log(`Successfully parsed ${fileName}`);
-
-      // Clean up temporary file
-      await unlink(tempFilePath);
-
-      // Return the parsed result
-        // Save parsed results to Supabase "documents" bucket
-    const parsedFileName = `${fileName.replace(/\.[^/.]+$/, '')}_parsed.json`
-    const parsedFilePath = `${userId}/${parsedFileName}`
-
-    const jsonResult = JSON.stringify(parsedResult, null, 2)
-
-    console.log("jsonResult:" + jsonResult)
-
-    const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('documents')
-        .upload(parsedFilePath, jsonResult, {
-            contentType: 'application/json',
-            upsert: true // This will overwrite if file already exists
-        })
-
-    if (uploadError) {
-        console.error('Supabase upload error:', uploadError)
-        return NextResponse.json(
-            { error: `Failed to save parsed document: ${uploadError.message}` },
-            { status: 500 }
-        )
-    }
-
-    // Success: return the upload data or a success message
-    return NextResponse.json(
-      { message: 'File parsed and uploaded successfully', parsedFilePath },
-      { status: 200 }
-    )
 
     } catch (parseError) {
-      console.error('LlamaParse error:', parseError)
       
-      // Clean up temporary file if it exists
+      // Clean up temporary files if they exist
       try {
-        await unlink(tempFilePath)
+        if (typeof tempFilePath !== 'undefined') {
+          await unlink(tempFilePath);
+        }
+        if (typeof parsedTempFilePath !== 'undefined') {
+          await unlink(parsedTempFilePath);
+        }
       } catch (unlinkError) {
         console.error('Error cleaning up temp file:', unlinkError)
       }
