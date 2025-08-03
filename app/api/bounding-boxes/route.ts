@@ -20,7 +20,7 @@ export async function GET(request: Request) {
     console.log("Before constructing parsedFilename");
     // Construct the parsed filename
     console.log("userid: " + userId);
-    const parsedFilename = `${userId}/${filename}_parsed.json`;
+    const parsedFilename = `${userId}/${filename}_parsed_.json`;
     console.log("parsed file: " + parsedFilename)
     
     // Download the parsed file from Supabase storage
@@ -36,7 +36,7 @@ export async function GET(request: Request) {
     // Convert blob to text and parse JSON
     const text = await data.text();
     const parsedData = JSON.parse(text);
-    
+    console.log("Parsed data:", parsedData);
     // Transform the data from pages.lines.region structure to our expected format
     const boundingBoxes: Array<{
       id: string;
@@ -50,10 +50,12 @@ export async function GET(request: Request) {
     
     if (parsedData.pages && Array.isArray(parsedData.pages)) {
       parsedData.pages.forEach((page: any, pageIndex: number) => {
+        console.log("Page index: " + page.page)
         if (page.lines && Array.isArray(page.lines)) {
           page.lines.forEach((line: any, lineIndex: number) => {
             if ((line.type === 'text' || line.type === 'simple_cell') && line.region) {
               const region = line.region;
+              console.log(region)
               boundingBoxes.push({
                 id: region.id || `page-${pageIndex + 1}-line-${lineIndex}`,
                 x: region.top_left_x || 0,
@@ -61,7 +63,7 @@ export async function GET(request: Request) {
                 width: region.width || 0,
                 height: region.height || 0,
                 text: region.text || line.text || `Line ${lineIndex + 1}`,
-                pageNumber: pageIndex + 1
+                pageNumber: pageIndex + 1 // Page numbers are 1-based in the response
               });
             }
           });

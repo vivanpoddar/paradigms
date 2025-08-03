@@ -7,6 +7,8 @@ import { randomUUID } from 'crypto'
 import fs from 'fs'
 import FormData from 'form-data'
 import fetch from 'node-fetch'
+import { GoogleGenAI } from "@google/genai";
+import { readFile } from 'fs/promises';
 
 export async function POST(request: NextRequest) {
   try {
@@ -94,7 +96,6 @@ export async function POST(request: NextRequest) {
       };
 
       const data = (await response.json()) as MathpixResponse;
-      console.log("Response Data:", JSON.stringify(data, null, 2));
       const pdfId: string = data.pdf_id;
 
       if (pdfId) {
@@ -112,14 +113,12 @@ export async function POST(request: NextRequest) {
             const data = (await response.json()) as MathpixResponse;
 
             if (data.status === "completed") {
-              console.log("Job completed. PDF Data:", JSON.stringify(data, null, 2));
               return data; // Return the completed data
             } else if (data.status === "error") {
               console.error("Job failed with error:", data);
               return null;
             } else if (data.status === undefined) {
               console.log("Job status is undefined. Printing final result...");
-              console.log("Final Result:", JSON.stringify(data, null, 2));
               return data;
             } else {
               console.log("Job not completed yet. Current status:", data.status);
@@ -133,55 +132,167 @@ export async function POST(request: NextRequest) {
           return null;
         };
 
+        let outputFilePath: string | undefined;
+        let parsedFilePath: string | undefined;
+        let LLMOutput: string | undefined;
+        let parsedTempFilePath: string | undefined;
+
         const result = await pollForCompletion(pdfId);
         if (result) {
-          console.log("Final Result:", JSON.stringify(result, null, 2));
+          const linesDataJson = JSON.stringify(result, null, 2);
 
           if (result && Array.isArray(result.pages)) {
             let itemCount = 0;
-            result.pages.forEach((page: any, pageIndex: number) => {
+            const formattedLines = result.pages.flatMap((page: any, pageIndex: number) => {
               if (Array.isArray(page.lines)) {
-                page.lines.forEach((line: any, lineIndex: number) => {
-                  // Print as [item number]: [pages.lines.text]
-                  console.log(`[${itemCount}]: ${line.text}`);
+                return page.lines.map((line: any, lineIndex: number) => {
+                  const formattedLine = `${itemCount} | ${line.text} | page ${pageIndex + 1}, line ${lineIndex + 1}, column ${line.column}`;
                   itemCount++;
+                  return formattedLine;
                 });
               }
-            });
-          }
-
-          const linesDataJson = JSON.stringify(result, null, 2);
-
-          // Save parsed results to Supabase "documents" bucket
-          const parsedFileName = `${fileName.replace(/\.[^/.]+$/, '')}_parsed.json`;
-          const parsedFilePath = `${userId}/${parsedFileName}`;
-
-          // Write the parsed result to a temporary file
-          parsedTempFilePath = join(tmpdir(), `${randomUUID()}-${parsedFileName}`);
-          await writeFile(parsedTempFilePath, linesDataJson);
-
-          const fileStream = fs.createReadStream(parsedTempFilePath);
-
-          const { data: uploadLinesData, error: uploadError } = await supabase.storage
-            .from('documents')
-            .upload(parsedFilePath, fileStream, {
-              contentType: 'application/json',
-              upsert: true, // This will overwrite if file already exists
-              duplex: 'half'
+              return [];
             });
 
-          // Clean up the temporary parsed file
-          await unlink(parsedTempFilePath);
+            const linesForLLM = formattedLines.join('\n');
 
-          if (uploadError) {
-            console.error('Supabase upload error:', uploadError);
-            return NextResponse.json(
-              { error: `Failed to save parsed document: ${uploadError.message}` },
-              { status: 500 }
-            );
+            const systemPrompt = `
+            You are a helpful assistant.Your task is to analyze a list of items extracted from a math homework document of a school student.Follow these steps: \n
+            1. ** Determine Joining **: First, decide if any items should be joined together because they are part of the same logical statement or context (e.g., split across multiple lines). If so, merge them into a single item.\n
+            2. **Categorize Each Item**: For each item, determine its category:\n
+              - **Q**: The item is a question that requires input or action from the reader.\n
+              - **R**: The item is relevant information needed to solve a question but does not itself require action. \n
+              - **I**: The item is irrelevant or does not contribute to solving the problem.\n \n            
+            `;
+
+            const ai = new GoogleGenAI({
+              apiKey: process.env.GEMINI_API_KEY
+            });
+
+            console.log('linesForLLM:', linesForLLM); 
+            try {
+              const response = await ai.models.generateContent({
+                model: "gemini-2.5-flash",
+                contents: `Here is the list of items:\n${linesForLLM}\n\nPlease analyze the items and provide your response.`,
+                config: {
+                  responseMimeType: "application/json",
+                  responseSchema: {
+                    type: "object",
+                    properties: {
+                      joinedGroups: {
+                        type: "array",
+                        items: {
+                          type: "array",
+                          items: {
+                            type: "string"
+                          }
+                        },
+                        description: "A group of items of the same logical statement or context (e.g., [['1','2'], ['3'], ['4','5','6']])"
+                      },
+                      categories: {
+                        type: "array",
+                        items: {
+                          type: "object",
+                          properties: {
+                            itemNumbers: {
+                              type: "string",
+                              description: "Item number (e.g., '3')"
+                            },
+                            category: {
+                              type: "string",
+                              enum: ["Q", "R", "I"],
+                              description: "Q for question, R for relevant info, I for irrelevant"
+                            }
+                          },
+                          required: ["itemNumbers", "category"]
+                        }
+                      }
+                    },
+                    required: ["joinedGroups", "categories"]
+                  },
+                  systemInstruction: systemPrompt,
+                  thinkingConfig: {
+                    thinkingBudget: 0, // Disables thinking
+                  },
+                }
+              });
+
+              console.log("LLM Response Data:", JSON.stringify(response, null, 2));
+              
+              // Extract the structured response from Gemini  
+              const responseText = response.text;
+              if (!responseText) {
+                console.error("No response text from Gemini API");
+                return NextResponse.json(
+                  { error: 'No response from LLM service' },
+                  { status: 500 }
+                );
+              }
+
+              console.log("LLM Response Message:", responseText);
+              
+              // Parse and validate the structured response
+              try {
+                const parsedResponse = JSON.parse(responseText);
+                console.log("Parsed structured response:", parsedResponse);
+                console.log("JoinedGroups:", parsedResponse.joinedGroups);
+                console.log("Categories:", parsedResponse.categories);
+              } catch (parseError) {
+                console.error("Failed to parse structured response:", parseError);
+              }
+
+              // Assign to LLMOutput for consistency
+              LLMOutput = responseText;
+
+              // Save the content to a file
+              const parsedFileName = `${fileName.replace(/\.[^/.]+$/, '')}_llm.json`;
+              parsedFilePath = `${userId}/${parsedFileName}`;
+
+              outputFilePath = join(tmpdir(), `${randomUUID()}-${parsedFileName}`);
+              await writeFile(outputFilePath, responseText, 'utf8');
+              console.log(`LLM response saved to file: ${outputFilePath}`);
+              let fileContent;
+              try {
+                fileContent = await readFile(outputFilePath); // Read as Buffer
+              } catch (error) {
+                console.error('Error reading the file at outputFilePath:', error);
+              }
+
+              // Save parsed results to Supabase "documents" bucket
+              console.log("Attempting to upload to Supabase...");
+              if (outputFilePath && parsedFilePath && fileContent) {
+                const { data: uploadLinesData, error: uploadError } = await supabase.storage
+                  .from('documents')
+                  .upload(parsedFilePath, fileContent, {
+                    contentType: 'application/json',
+                    upsert: true, // This will overwrite if file already exists
+                  });
+
+                if (uploadError) {
+                  console.error('Supabase upload error:', uploadError);
+                  return NextResponse.json(
+                    { error: `Failed to save parsed document: ${uploadError.message}` },
+                    { status: 500 }
+                  );
+                }
+
+                console.log('File uploaded successfully to Supabase.');
+                
+                // Clean up the temporary file
+                await unlink(outputFilePath);
+              } else {
+                console.error("Output file path or parsed file path is undefined.");
+              }
+
+            } catch (llmError) {
+              console.error("LLM API error:", llmError);
+              return NextResponse.json(
+                { error: `LLM API error: ${llmError instanceof Error ? llmError.message : 'Unknown LLM error'}` },
+                { status: 500 }
+              );
+            }
           }
 
-          // Success: return the upload data or a success message
           return NextResponse.json(
             { message: 'File parsed and uploaded successfully', parsedFilePath },
             { status: 200 }
@@ -189,6 +300,10 @@ export async function POST(request: NextRequest) {
         }
       } else {
         console.error("Cannot proceed without a valid pdf_id.");
+        return NextResponse.json(
+          { error: 'Failed to get valid PDF ID from Mathpix' },
+          { status: 500 }
+        );
       }
 
     } catch (parseError) {
