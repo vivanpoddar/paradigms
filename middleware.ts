@@ -15,8 +15,9 @@ export const config = {
      * - images - .svg, .png, .jpg, .jpeg, .gif, .webp
      * - json files in public directory
      * - api/bounding-boxes (bounding boxes API)
+     * - api/query (document query API)
      * Feel free to modify this pattern to include more paths.
      */
-    "/((?!_next/static|_next/image|favicon.ico|api/bounding-boxes|.*\\.(?:svg|png|jpg|jpeg|gif|webp|json)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|api/bounding-boxes|api/query|.*\\.(?:svg|png|jpg|jpeg|gif|webp|json)$).*)",
   ],
 };

@@ -86,6 +86,7 @@ export default function Home() {
                 <RealtimeChat 
                   roomName="general-chat" 
                   username={user?.email?.split('@')[0] || 'anonymous'}
+                  enableDocumentQuery={true}
                 />
               </div>
             )}

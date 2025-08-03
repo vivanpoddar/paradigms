@@ -9,14 +9,16 @@ import {
 } from '@/hooks/use-realtime-chat'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Send } from 'lucide-react'
+import { Send, BookOpen, Loader2 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { LLAMA_CLOUD_CONFIG } from '@/lib/llama-cloud-config'
 
 interface RealtimeChatProps {
   roomName: string
   username: string
   onMessage?: (messages: ChatMessage[]) => void
   messages?: ChatMessage[]
+  enableDocumentQuery?: boolean
 }
 
 /**
@@ -25,6 +27,7 @@ interface RealtimeChatProps {
  * @param username - The username of the user
  * @param onMessage - The callback function to handle the messages. Useful if you want to store the messages in a database.
  * @param messages - The messages to display in the chat. Useful if you want to display messages from a database.
+ * @param enableDocumentQuery - Whether to enable document querying using LlamaCloudIndex
  * @returns The chat component
  */
 export const RealtimeChat = ({
@@ -32,6 +35,7 @@ export const RealtimeChat = ({
   username,
   onMessage,
   messages: initialMessages = [],
+  enableDocumentQuery = false,
 }: RealtimeChatProps) => {
   const { containerRef, scrollToBottom } = useChatScroll()
 
@@ -44,6 +48,7 @@ export const RealtimeChat = ({
     username,
   })
   const [newMessage, setNewMessage] = useState('')
+  const [isQuerying, setIsQuerying] = useState(false)
 
   // Merge realtime messages with initial messages
   const allMessages = useMemo(() => {
@@ -69,15 +74,81 @@ export const RealtimeChat = ({
     scrollToBottom()
   }, [allMessages, scrollToBottom])
 
+  // Function to detect if a message should trigger document query
+  const shouldQueryDocuments = useCallback((message: string): boolean => {
+    if (!enableDocumentQuery) return false
+    
+    const lowerMessage = message.toLowerCase()
+    return LLAMA_CLOUD_CONFIG.queryTriggers.some(trigger => lowerMessage.includes(trigger))
+  }, [enableDocumentQuery])
+
+  // Function to query documents using LlamaCloudIndex
+  const queryDocuments = useCallback(async (query: string): Promise<void> => {
+    setIsQuerying(true)
+    try {
+      const response = await fetch('/api/query', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ query }),
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const data = await response.json()
+      
+      // Send the AI response as a message from a bot user
+      const botMessage: ChatMessage = {
+        id: crypto.randomUUID(),
+        content: `🤖 **Document Assistant**: ${data.response}`,
+        user: {
+          name: 'Document Assistant',
+        },
+        createdAt: new Date().toISOString(),
+      }
+
+      // Add bot message to local state (this will be broadcast to other users)
+      sendMessage(botMessage.content)
+      
+    } catch (error) {
+      console.error('Error querying documents:', error)
+      
+      // Send error message
+      const errorMessage: ChatMessage = {
+        id: crypto.randomUUID(),
+        content: `🤖 **Document Assistant**: Sorry, I encountered an error while searching the documents. Please try again.`,
+        user: {
+          name: 'Document Assistant',
+        },
+        createdAt: new Date().toISOString(),
+      }
+      
+      sendMessage(errorMessage.content)
+    } finally {
+      setIsQuerying(false)
+    }
+  }, [sendMessage])
+
   const handleSendMessage = useCallback(
-    (e: React.FormEvent) => {
+    async (e: React.FormEvent) => {
       e.preventDefault()
       if (!newMessage.trim() || !isConnected) return
 
-      sendMessage(newMessage)
+      const messageContent = newMessage.trim()
+      
+      // Send the user message first
+      sendMessage(messageContent)
       setNewMessage('')
+
+      // Check if we should query documents for this message
+      if (shouldQueryDocuments(messageContent)) {
+        await queryDocuments(messageContent)
+      }
     },
-    [newMessage, isConnected, sendMessage]
+    [newMessage, isConnected, sendMessage, queryDocuments, shouldQueryDocuments]
   )
 
   return (
@@ -114,19 +185,39 @@ export const RealtimeChat = ({
         <Input
           className={cn(
             'rounded-full bg-background text-sm transition-all duration-300',
-            isConnected && newMessage.trim() ? 'w-[calc(100%-36px)]' : 'w-full'
+            isConnected && newMessage.trim() ? 'w-[calc(100%-80px)]' : 'w-full'
           )}
           type="text"
           value={newMessage}
           onChange={(e) => setNewMessage(e.target.value)}
-          placeholder="Type a message..."
-          disabled={!isConnected}
+          placeholder={enableDocumentQuery ? "Type a message or ask about documents..." : "Type a message..."}
+          disabled={!isConnected || isQuerying}
         />
+        
+        {/* Document query button */}
+        {enableDocumentQuery && isConnected && newMessage.trim() && (
+          <Button
+            type="button"
+            variant="outline"
+            className="aspect-square rounded-full animate-in fade-in slide-in-from-right-4 duration-300"
+            onClick={() => queryDocuments(newMessage.trim())}
+            disabled={!isConnected || isQuerying}
+            title="Query documents"
+          >
+            {isQuerying ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <BookOpen className="size-4" />
+            )}
+          </Button>
+        )}
+        
+        {/* Send button */}
         {isConnected && newMessage.trim() && (
           <Button
             className="aspect-square rounded-full animate-in fade-in slide-in-from-right-4 duration-300"
             type="submit"
-            disabled={!isConnected}
+            disabled={!isConnected || isQuerying}
           >
             <Send className="size-4" />
           </Button>

@@ -151,7 +151,7 @@ const useSupabaseUpload = (options: UseSupabaseUploadOptions) => {
             .from(bucketName)
             .upload(uploadPath, file, {
               cacheControl: cacheControl.toString(),
-              upsert,
+              upsert: true,
             })
           
           if (error) {

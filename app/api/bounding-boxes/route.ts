@@ -17,11 +17,8 @@ export async function GET(request: Request) {
     // Create Supabase client
     const supabase = await createClient();
     
-    console.log("Before constructing parsedFilename");
     // Construct the parsed filename
-    console.log("userid: " + userId);
-    const parsedFilename = `${userId}/${filename}_parsed_.json`;
-    console.log("parsed file: " + parsedFilename)
+    let parsedFilename = `${userId}/${filename}_parsed.json`;
     
     // Download the parsed file from Supabase storage
     const { data, error } = await supabase.storage
@@ -34,9 +31,11 @@ export async function GET(request: Request) {
     }
     
     // Convert blob to text and parse JSON
-    const text = await data.text();
+    let text = await data.text();
     const parsedData = JSON.parse(text);
-    console.log("Parsed data:", parsedData);
+
+    parsedFilename = `${userId}/${filename}_parsed.json`
+    
     // Transform the data from pages.lines.region structure to our expected format
     const boundingBoxes: Array<{
       id: string;
@@ -48,20 +47,19 @@ export async function GET(request: Request) {
       pageNumber: number;
     }> = [];
     
-    if (parsedData.pages && Array.isArray(parsedData.pages)) {
-      parsedData.pages.forEach((page: any, pageIndex: number) => {
+    if (parsedData.page && Array.isArray(parsedData.page)) {
+      parsedData.page.forEach((page: any, pageIndex: number) => {
         console.log("Page index: " + page.page)
         if (page.lines && Array.isArray(page.lines)) {
           page.lines.forEach((line: any, lineIndex: number) => {
-            if ((line.type === 'text' || line.type === 'simple_cell') && line.region) {
+            if ((line.textType === 'Q' && line.region) && (line.type === 'text' || line.type === 'simple_cell' ) ) {
               const region = line.region;
-              console.log(region)
               boundingBoxes.push({
                 id: region.id || `page-${pageIndex + 1}-line-${lineIndex}`,
-                x: region.top_left_x || 0,
-                y: region.top_left_y || 0,
-                width: region.width || 0,
-                height: region.height || 0,
+                x: region.region.top_left_x || 0,
+                y: region.region.top_left_y || 0,
+                width: region.region.width || 0,
+                height: region.region.height || 0,
                 text: region.text || line.text || `Line ${lineIndex + 1}`,
                 pageNumber: pageIndex + 1 // Page numbers are 1-based in the response
               });
