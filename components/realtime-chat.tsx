@@ -12,6 +12,8 @@ import { Input } from '@/components/ui/input'
 import { Send, BookOpen, Loader2 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { LLAMA_CLOUD_CONFIG } from '@/lib/llama-cloud-config'
+import { useChatHistory } from '@/hooks/use-chat-history'
+import { createClient } from '@/lib/supabase/client'
 
 interface RealtimeChatProps {
   roomName: string
@@ -52,10 +54,64 @@ export const RealtimeChat = ({
   })
   const [newMessage, setNewMessage] = useState('')
   const [isQuerying, setIsQuerying] = useState(false)
+  const [userId, setUserId] = useState<string | null>(null)
+  const [loadedHistoryMessages, setLoadedHistoryMessages] = useState<ChatMessage[]>([])
 
-  // Merge realtime messages with initial messages
+  // Get user ID from Supabase
+  useEffect(() => {
+    const getUser = async () => {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        setUserId(user.id)
+      }
+    }
+    getUser()
+  }, [])
+
+  // Initialize chat history hook
+  const { saveConversation, loadConversations, isLoading: isLoadingHistory } = useChatHistory({
+    userId: userId || '',
+    selectedFileName,
+  })
+
+  // Load chat history when component mounts or when file selection changes
+  useEffect(() => {
+    const loadChatHistory = async () => {
+      if (!userId) return
+      
+      try {
+        const conversations = await loadConversations()
+        // Convert conversations to chat messages format
+        const historyMessages: ChatMessage[] = []
+        conversations.forEach((conv) => {
+          // Add user query message
+          historyMessages.push({
+            id: `${conv.id}-query`,
+            content: conv.query,
+            user: { name: username },
+            createdAt: conv.timestamp,
+          })
+          // Add bot response message
+          historyMessages.push({
+            id: `${conv.id}-response`,
+            content: `🤖 **Document Assistant**: ${conv.response}`,
+            user: { name: 'Document Assistant' },
+            createdAt: new Date(new Date(conv.timestamp).getTime() + 1000).toISOString(), // Add 1 second to ensure proper ordering
+          })
+        })
+        setLoadedHistoryMessages(historyMessages)
+      } catch (error) {
+        console.error('Failed to load chat history:', error)
+      }
+    }
+
+    loadChatHistory()
+  }, [userId, loadConversations, selectedFileName, username])
+
+  // Merge realtime messages with initial messages and loaded history
   const allMessages = useMemo(() => {
-    const mergedMessages = [...initialMessages, ...realtimeMessages]
+    const mergedMessages = [...initialMessages, ...loadedHistoryMessages, ...realtimeMessages]
     // Remove duplicates based on message id
     const uniqueMessages = mergedMessages.filter(
       (message, index, self) => index === self.findIndex((m) => m.id === message.id)
@@ -64,7 +120,7 @@ export const RealtimeChat = ({
     const sortedMessages = uniqueMessages.sort((a, b) => a.createdAt.localeCompare(b.createdAt))
 
     return sortedMessages
-  }, [initialMessages, realtimeMessages])
+  }, [initialMessages, realtimeMessages, loadedHistoryMessages])
 
   useEffect(() => {
     if (onMessage) {
@@ -76,6 +132,17 @@ export const RealtimeChat = ({
     // Scroll to bottom whenever messages change
     scrollToBottom()
   }, [allMessages, scrollToBottom])
+
+  // Save new conversations to database (query + response pairs)
+  const saveConversationToHistory = useCallback(async (query: string, response: string, metadata: Record<string, any> = {}) => {
+    if (!userId) return
+    
+    try {
+      await saveConversation(query, response, metadata)
+    } catch (error) {
+      console.error('Failed to save conversation to history:', error)
+    }
+  }, [userId, saveConversation])
 
   // Function to detect if a message should trigger document query
   const shouldQueryDocuments = useCallback((message: string): boolean => {
@@ -114,11 +181,12 @@ export const RealtimeChat = ({
       }
 
       const data = await response.json()
+      const responseText = data.response
       
       // Send the AI response as a message from a bot user
       const botMessage: ChatMessage = {
         id: crypto.randomUUID(),
-        content: `🤖 **Document Assistant**: ${data.response}`,
+        content: `🤖 **Document Assistant**: ${responseText}`,
         user: {
           name: 'Document Assistant',
         },
@@ -128,13 +196,21 @@ export const RealtimeChat = ({
       // Add bot message to local state (this will be broadcast to other users)
       sendMessage(botMessage.content)
       
+      // Save the complete conversation to database (query + response)
+      await saveConversationToHistory(query, responseText, {
+        fileName: selectedFileName,
+        messageType: 'query-response'
+      })
+      
     } catch (error) {
       console.error('Error querying documents:', error)
+      
+      const errorResponse = 'Sorry, I encountered an error while searching the documents. Please try again.'
       
       // Send error message
       const errorMessage: ChatMessage = {
         id: crypto.randomUUID(),
-        content: `🤖 **Document Assistant**: Sorry, I encountered an error while searching the documents. Please try again.`,
+        content: `🤖 **Document Assistant**: ${errorResponse}`,
         user: {
           name: 'Document Assistant',
         },
@@ -142,10 +218,17 @@ export const RealtimeChat = ({
       }
       
       sendMessage(errorMessage.content)
+      
+      // Save the error conversation to database
+      await saveConversationToHistory(query, errorResponse, {
+        fileName: selectedFileName,
+        messageType: 'query-error',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      })
     } finally {
       setIsQuerying(false)
     }
-  }, [sendMessage, selectedFileName])
+  }, [sendMessage, selectedFileName, saveConversationToHistory])
 
   const handleSendMessage = useCallback(
     async (e: React.FormEvent) => {
@@ -154,7 +237,7 @@ export const RealtimeChat = ({
 
       const messageContent = newMessage.trim()
       
-      // Send the user message first
+      // Send the user message
       sendMessage(messageContent)
       setNewMessage('')
 
@@ -168,9 +251,12 @@ export const RealtimeChat = ({
       
       if (shouldQuery) {
         console.log('🔍 Triggering document query...');
+        // The conversation will be saved in queryDocuments function
         await queryDocuments(messageContent);
       } else {
         console.log('⚠️ Not triggering document query');
+        // For non-query messages, we could optionally save them separately
+        // or handle them differently based on your requirements
       }
     },
     [newMessage, isConnected, sendMessage, queryDocuments, shouldQueryDocuments]
@@ -180,7 +266,12 @@ export const RealtimeChat = ({
     <div className="flex flex-col h-full w-full bg-background text-foreground antialiased">
       {/* Messages */}
       <div ref={containerRef} className="flex-1 overflow-y-auto p-4 space-y-4">
-        {allMessages.length === 0 ? (
+        {isLoadingHistory ? (
+          <div className="text-center text-sm text-muted-foreground">
+            <Loader2 className="inline w-4 h-4 animate-spin mr-2" />
+            Loading chat history...
+          </div>
+        ) : allMessages.length === 0 ? (
           <div className="text-center text-sm text-muted-foreground">
             No messages yet. Start the conversation!
           </div>
