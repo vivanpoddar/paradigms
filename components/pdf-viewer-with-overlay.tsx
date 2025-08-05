@@ -5,11 +5,10 @@ import { Worker } from '@react-pdf-viewer/core';
 import { Viewer } from '@react-pdf-viewer/core';
 import { RenderGoToPageProps } from '@react-pdf-viewer/page-navigation';
 import { toolbarPlugin, ToolbarSlot } from '@react-pdf-viewer/toolbar';
-import { RenderCurrentScaleProps, RenderZoomInProps, RenderZoomOutProps } from '@react-pdf-viewer/zoom';
 import { searchPlugin } from '@react-pdf-viewer/search';
 import { getFilePlugin } from '@react-pdf-viewer/get-file';
 import { fullScreenPlugin } from '@react-pdf-viewer/full-screen';
-import { Search, Download, Maximize2, ZoomIn, ZoomOut, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { Search, Download, Maximize2, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { BoundingBoxLayer, TooltipLayer } from './pdf-bounding-boxes';
 // Make sure that './pdf-bounding-boxes.tsx' exists and exports BoundingBoxLayer as a named export.
 
@@ -141,17 +140,14 @@ export const PdfViewerWithOverlay: React.FC<PdfViewerWithOverlayProps> = ({
                             {(props: ToolbarSlot) => {
                                 const {
                                     CurrentPageInput,
-                                    CurrentScale,
                                     GoToNextPage,
                                     GoToPreviousPage,
                                     NumberOfPages,
                                     ShowSearchPopover,
-                                    ZoomIn: ZoomInComponent,
-                                    ZoomOut: ZoomOutComponent,
                                 } = props;
                                 return (
                                     <div className="flex items-center gap-2 w-full">
-                                        {/* Left side - Search and Zoom controls */}
+                                        {/* Left side - Search controls */}
                                         <div className="flex items-center gap-2">
                                             <ShowSearchPopover>
                                                 {(props) => (
@@ -164,42 +160,6 @@ export const PdfViewerWithOverlay: React.FC<PdfViewerWithOverlayProps> = ({
                                                     </button>
                                                 )}
                                             </ShowSearchPopover>
-                                            
-                                            <div className="flex items-center bg-white dark:bg-black rounded-sm border border-zinc-200 dark:border-zinc-800">
-                                                <ZoomOutComponent>
-                                                    {(props: RenderZoomOutProps) => (
-                                                        <button
-                                                            className="p-2"
-                                                            onClick={props.onClick}
-                                                            title="Zoom out"
-                                                        >
-                                                            <ZoomOut className="w-4 h-4 text-gray-600 dark:text-gray-300" />
-                                                        </button>
-                                                    )}
-                                                </ZoomOutComponent>
-                                                
-                                                <div className="px-3 min-w-[60px] text-center">
-                                                    <CurrentScale>
-                                                        {(props: RenderCurrentScaleProps) => (
-                                                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                                                                {`${Math.round(props.scale * 100)}%`}
-                                                            </span>
-                                                        )}
-                                                    </CurrentScale>
-                                                </div>
-                                                
-                                                <ZoomInComponent>
-                                                    {(props: RenderZoomInProps) => (
-                                                        <button
-                                                            className="p-2"
-                                                            onClick={props.onClick}
-                                                            title="Zoom in"
-                                                        >
-                                                            <ZoomIn className="w-4 h-4 text-gray-600 dark:text-gray-300" />
-                                                        </button>
-                                                    )}
-                                                </ZoomInComponent>
-                                            </div>
                                         </div>
 
                                         {/* Center - Page navigation */}
