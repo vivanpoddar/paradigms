@@ -30,10 +30,10 @@ const BoundingBoxLayer: React.FC<PdfBoundingBoxesProps> = ({ apiBoundingBoxes, r
                     className="absolute border-2 border-blue-500 bg-blue-500/10 pointer-events-auto cursor-pointer hover:bg-blue-500/20 transition-colors"
                     style={{
                         position: 'absolute',
-                        left: `${(box.x / renderPageProps.width) * 100}%`,
-                        top: `${(box.y / renderPageProps.height) * 100}%`,
-                        width: `${(box.width / renderPageProps.width) * 100}%`,
-                        height: `${(box.height / renderPageProps.height) * 100}%`,
+                        left: `${(box.x / renderPageProps.width) * 26}%`,
+                        top: `${(box.y / renderPageProps.height) * 26}%`,
+                        width: `${(box.width / renderPageProps.width) * 26}%`,
+                        height: `${(box.height / renderPageProps.height) * 26}%`,
                         zIndex: 1000,
                     }}
                     title={box.text}

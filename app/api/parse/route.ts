@@ -59,6 +59,50 @@ export async function POST(request: NextRequest) {
       tempFilePath = join(tmpdir(), tempFileName);
       await writeFile(tempFilePath, buffer);
 
+      // Create function to add text to LlamaIndex for embedding
+      const addTextToLlamaIndex = async (extractedText: string) => {
+        try {
+          console.log('Adding extracted text to LlamaIndex for embedding...');
+          
+          const response = await fetch("https://api.cloud.llamaindex.ai/api/v1/documents", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Accept": "application/json",
+              "Authorization": `Bearer ${process.env.LLAMA_CLOUD_API_KEY}`
+            },
+            body: JSON.stringify({
+              text: extractedText,
+              metadata: {
+                fileName: fileName,
+                userId: userId,
+                uploadPath: uploadPath,
+                bucketName: bucketName,
+                processingDate: new Date().toISOString(),
+                documentType: 'math-homework',
+                source: 'mathpix-ocr'
+              },
+              project_id: "2a2234b3-7c0c-4436-b09c-db61e7e5b546",
+              pipeline_id: "f159f09f-bb0c-4414-aaeb-084c8167cdf1"
+            })
+          });
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error("Error adding text to LlamaIndex:", errorText);
+            throw new Error(`LlamaIndex text upload error: ${response.status} ${response.statusText}`);
+          }
+
+          const result = await response.json();
+          console.log("✅ Text successfully added to LlamaIndex:");
+          console.log(JSON.stringify(result, null, 2));
+          return result;
+        } catch (error) {
+          console.error("LlamaIndex text upload error:", error);
+          return null;
+        }
+      };
+
       // Upload PDF to LlamaIndex in parallel with Mathpix processing
       const uploadToLlamaIndex = async () => {
         try {
@@ -97,7 +141,7 @@ export async function POST(request: NextRequest) {
           console.log("=== END LLAMAINDEX RESPONSE ===");
 
           if (llamaResult && llamaResult.id) {
-            console.log('Adding file to paradigm pipeline...');
+            console.log('Adding file to paradigms pipeline...');
             try {
               const addToPipelineResponse = await fetch(`https://api.cloud.llamaindex.ai/api/v1/pipelines/f159f09f-bb0c-4414-aaeb-084c8167cdf1/files`, {
                 method: "PUT",
@@ -121,7 +165,7 @@ export async function POST(request: NextRequest) {
 
               if (addToPipelineResponse.ok) {
                 const pipelineResult = await addToPipelineResponse.json();
-                console.log("✅ File successfully added to paradigm pipeline:");
+                console.log("✅ File successfully added to paradigms pipeline:");
                 console.log(JSON.stringify(pipelineResult, null, 2));
               } else {
                 const errorText = await addToPipelineResponse.text();
@@ -217,6 +261,7 @@ export async function POST(request: NextRequest) {
         };
 
         let parsedData;
+        let llamaIndexResult = null; // Initialize for scope access
 
         const result = await pollForCompletion(pdfId);
         console.log(result)
@@ -224,6 +269,21 @@ export async function POST(request: NextRequest) {
           parsedData = result;
 
           if (result && Array.isArray(result.pages)) {
+            // Extract all text from Mathpix result for LlamaIndex embedding
+            const extractedText = result.pages.map((page: any, pageIndex: number) => {
+              if (Array.isArray(page.lines)) {
+                const pageText = page.lines.map((line: any) => line.text).join(' ');
+                return `Page ${pageIndex + 1}: ${pageText}`;
+              }
+              return '';
+            }).join('\n\n');
+
+            console.log('Extracted text for LlamaIndex:', extractedText);
+
+            // Add extracted text to LlamaIndex for embedding generation
+            llamaIndexResult = await addTextToLlamaIndex(extractedText);
+            console.log('LlamaIndex embedding result:', llamaIndexResult ? 'Success' : 'Failed');
+
             const formattedLines = result.pages.flatMap((page: any, pageIndex: number) => {
               let itemCount = 0;
               if (Array.isArray(page.lines)) {
@@ -430,6 +490,7 @@ export async function POST(request: NextRequest) {
               { 
                 message: 'File parsed and uploaded successfully',
                 llamaIndexUploaded: llamaUploadResult !== null,
+                llamaIndexEmbedded: llamaIndexResult !== null,
                 parsedJsonPath: parsedJsonPath
               },
               { status: 200 }

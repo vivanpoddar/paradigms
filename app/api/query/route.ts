@@ -54,7 +54,7 @@ Please respond in a helpful, action-oriented manner based on the available conte
         filters: {
           filters: [
             {
-              key: "file_name",
+              key: "fileName",
               value: fileName,
               operator: "text_match"
             }
