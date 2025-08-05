@@ -19,7 +19,11 @@ interface FileItem {
   metadata: Record<string, any>;
 }
 
-export function FileBrowser() {
+interface FileBrowserProps {
+  onFileSelect?: (fileName: string | null) => void;
+}
+
+export function FileBrowser({ onFileSelect }: FileBrowserProps = {}) {
   const [files, setFiles] = useState<FileItem[]>([]);
   const [selectedFile, setSelectedFile] = useState<FileItem | null>(null);
   const [fileContent, setFileContent] = useState<string | null>(null);
@@ -82,6 +86,9 @@ export function FileBrowser() {
     
     setSelectedFile(file);
     setFileContent(null);
+    
+    // Notify parent component about the selected file
+    onFileSelect?.(file.name);
     
     try {
       const { data, error } = await supabase.storage

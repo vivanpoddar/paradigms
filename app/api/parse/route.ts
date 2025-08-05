@@ -55,9 +55,93 @@ export async function POST(request: NextRequest) {
       const buffer = Buffer.from(arrayBuffer);
       
       // Create a temporary file for the uploaded PDF
-      const tempFileName = `${randomUUID()}-${fileName}`;
+      const tempFileName = fileName; // Use original filename without UUID
       tempFilePath = join(tmpdir(), tempFileName);
       await writeFile(tempFilePath, buffer);
+
+      // Upload PDF to LlamaIndex in parallel with Mathpix processing
+      const uploadToLlamaIndex = async () => {
+        try {
+          console.log('Uploading PDF to LlamaIndex...');
+          
+          if (!tempFilePath) {
+            throw new Error('Temp file path not available');
+          }
+          
+          const llamaFormData = new FormData();
+          const fileStream = fs.createReadStream(tempFilePath);
+          
+          llamaFormData.append("upload_file", fileStream);
+          llamaFormData.append("external_file_id", fileName);
+          llamaFormData.append("project_id", "2a2234b3-7c0c-4436-b09c-db61e7e5b546");
+          llamaFormData.append("pipeline_id", "f159f09f-bb0c-4414-aaeb-084c8167cdf1"); 
+
+          const llamaResponse = await fetch("https://api.cloud.llamaindex.ai/api/v1/files", {
+            method: "POST",
+            headers: {
+              "Accept": "application/json",
+              "Authorization": `Bearer ${process.env.LLAMA_CLOUD_API_KEY}`
+            },
+            body: llamaFormData
+          });
+
+          if (!llamaResponse.ok) {
+            const errorText = await llamaResponse.text();
+            console.error("Error uploading file to LlamaIndex API:", errorText);
+            throw new Error(`LlamaIndex API error: ${llamaResponse.status} ${llamaResponse.statusText}`);
+          }
+
+          const llamaResult = await llamaResponse.json() as { id?: string; [key: string]: any };
+          console.log("=== FULL LLAMAINDEX RESPONSE ===");
+          console.log(JSON.stringify(llamaResult, null, 2));
+          console.log("=== END LLAMAINDEX RESPONSE ===");
+
+          if (llamaResult && llamaResult.id) {
+            console.log('Adding file to paradigm pipeline...');
+            try {
+              const addToPipelineResponse = await fetch(`https://api.cloud.llamaindex.ai/api/v1/pipelines/f159f09f-bb0c-4414-aaeb-084c8167cdf1/files`, {
+                method: "PUT",
+                headers: {
+                  "Content-Type": "application/json",
+                  "Accept": "application/json",
+                  "Authorization": `Bearer ${process.env.LLAMA_CLOUD_API_KEY}`
+                },
+                body: JSON.stringify([{
+                  file_id: llamaResult.id,
+                  custom_metadata: {
+                    fileName: fileName,
+                    userId: userId,
+                    uploadPath: uploadPath,
+                    bucketName: bucketName,
+                    processingDate: new Date().toISOString(),
+                    documentType: 'math-homework'
+                  }
+                }])
+              });
+
+              if (addToPipelineResponse.ok) {
+                const pipelineResult = await addToPipelineResponse.json();
+                console.log("✅ File successfully added to paradigm pipeline:");
+                console.log(JSON.stringify(pipelineResult, null, 2));
+              } else {
+                const errorText = await addToPipelineResponse.text();
+                console.error("❌ Error adding file to pipeline:", errorText);
+              }
+            } catch (pipelineError) {
+              console.error("❌ Pipeline addition failed:", pipelineError);
+            }
+          }
+
+          return llamaResult;
+        } catch (error) {
+          console.error("LlamaIndex upload error:", error);
+          // Don't fail the entire process if LlamaIndex upload fails
+          return null;
+        }
+      };
+
+      // Start LlamaIndex upload in parallel
+      const llamaUploadPromise = uploadToLlamaIndex();
 
       let key = process.env.MATHPIX_API_KEY;
       let appId = "paradigm_75df0a_93d146"
@@ -153,6 +237,9 @@ export async function POST(request: NextRequest) {
             });
 
             const linesForLLM = formattedLines.join('\n');
+            
+            // Declare parsedJsonPath for use across scopes
+            let parsedJsonPath: string;
 
             const systemPrompt = `
             You are a helpful assistant.Your task is to analyze a list of items extracted from a math homework document of a school student. Follow these steps: \n
@@ -310,7 +397,7 @@ export async function POST(request: NextRequest) {
                 console.log(JSON.stringify(parsedJson, null, 2));
 
                 // Upload parsedJson as a JSON file to the same bucket
-                const parsedJsonPath = uploadPath.replace(/\.pdf$/i, '_parsed.json');
+                parsedJsonPath = uploadPath.replace(/\.pdf$/i, '_parsed.json');
                 const { error: uploadError } = await supabase.storage
                 .from(bucketName)
                 .upload(parsedJsonPath, JSON.stringify(parsedJson), {
@@ -334,9 +421,17 @@ export async function POST(request: NextRequest) {
               );
             }
 
+            // Wait for LlamaIndex upload to complete
+            const llamaUploadResult = await llamaUploadPromise;
+            console.log('LlamaIndex upload completed:', llamaUploadResult ? 'Success' : 'Failed');
+
             // If we reach here, everything was successful
             return NextResponse.json(
-              { message: 'File parsed and uploaded successfully' },
+              { 
+                message: 'File parsed and uploaded successfully',
+                llamaIndexUploaded: llamaUploadResult !== null,
+                parsedJsonPath: parsedJsonPath
+              },
               { status: 200 }
             );
           } else {

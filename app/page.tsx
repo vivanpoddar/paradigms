@@ -11,6 +11,7 @@ import { ChevronLeft, ChevronRight, MessageCircle } from "lucide-react";
 export default function Home() {
   const [user, setUser] = useState<any>(null);
   const [isChatCollapsed, setIsChatCollapsed] = useState(false);
+  const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
 
   useEffect(() => {
     const getUser = async () => {
@@ -43,7 +44,7 @@ export default function Home() {
         <div className="flex-1 w-full min-h-0 flex">
           {/* Main content area - File Browser */}
           <div className={`flex-1 transition-all duration-300 ${isChatCollapsed ? 'w-full' : 'lg:w-3/5'} border-r border-border`}>
-            <FileBrowser />
+            <FileBrowser onFileSelect={setSelectedFileName} />
           </div>
           
           {/* Side panel - Realtime Chat */}
@@ -87,6 +88,7 @@ export default function Home() {
                   roomName="general-chat" 
                   username={user?.email?.split('@')[0] || 'anonymous'}
                   enableDocumentQuery={true}
+                  selectedFileName={selectedFileName}
                 />
               </div>
             )}

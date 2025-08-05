@@ -3,12 +3,22 @@ import { LlamaCloudIndex, Settings,  } from "llamaindex";
 import { gemini, GEMINI_MODEL } from "@llamaindex/google";
 
 export async function POST(request: NextRequest) {
+  console.log('=== QUERY API CALLED ===');
   try {
-    const { query } = await request.json();
+    const { query, fileName } = await request.json();
+    console.log('Received query:', query);
+    console.log('Received fileName:', fileName);
 
     if (!query || typeof query !== 'string') {
       return NextResponse.json(
         { error: 'Query is required and must be a string' },
+        { status: 400 }
+      );
+    }
+
+    if (!fileName || typeof fileName !== 'string') {
+      return NextResponse.json(
+        { error: 'fileName is required and must be a string' },
         { status: 400 }
       );
     }
@@ -19,13 +29,13 @@ export async function POST(request: NextRequest) {
     });
 
     const index = new LlamaCloudIndex({
-      name: "dynamic-cuckoo-2025-08-02",
+      name: "paradigms",
       projectName: "Default",
       organizationId: "99f533dc-e4b9-4270-b176-6fe3cd20578b",
       apiKey: process.env.LLAMA_CLOUD_API_KEY,
     });
 
-    const answerQuery = async (query: string) => {
+    const answerQuery = async (query: string, fileName: string) => {
       // Enhanced query with action-oriented instructions
       const enhancedQuery = `You are an intelligent assistant that takes action based on user requests. When responding:
 1. If the user asks for information, provide comprehensive details with actionable insights
@@ -36,16 +46,29 @@ export async function POST(request: NextRequest) {
 
 User's request: ${query}
 
-Please respond in a helpful, action-oriented manner based on the available context.`;
+Please respond in a helpful, action-oriented manner based on the available context from the file: ${fileName}.`;
 
+      console.log('Creating query engine...');
       const queryEngine = index.asQueryEngine({
         similarityTopK: 5, // Get more context for better responses
+        filters: {
+          filters: [
+            {
+              key: "file_name",
+              value: fileName,
+              operator: "text_match"
+            }
+          ]
+        }
       });
+      
+      console.log('Executing query...');
       const response = await queryEngine.query({ query: enhancedQuery });
+      console.log('Query completed successfully');
       return response;
     };
 
-    const response = await answerQuery(query);
+    const response = await answerQuery(query, fileName);
 
     console.log('Query response:', response);
 
@@ -54,7 +77,14 @@ Please respond in a helpful, action-oriented manner based on the available conte
       response: response.message.content
     });
   } catch (error) {
-    console.error('Error in query route:', error);
+    console.error('=== ERROR IN QUERY ROUTE ===');
+    console.error('Error type:', typeof error);
+    console.error('Error name:', error instanceof Error ? error.name : 'Unknown');
+    console.error('Error message:', error instanceof Error ? error.message : String(error));
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+    console.error('Full error object:', error);
+    console.error('=== END ERROR LOG ===');
+    
     return NextResponse.json(
       { error: 'An unexpected error occurred', details: error instanceof Error ? error.message : String(error) },
       { status: 500 }

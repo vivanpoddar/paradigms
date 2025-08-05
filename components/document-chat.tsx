@@ -2,12 +2,13 @@ import { RealtimeChat } from "@/components/realtime-chat";
 
 interface DocumentChatProps {
   username: string;
+  selectedFileName?: string | null;
 }
 
 /**
  * Example component showing how to use RealtimeChat with document querying enabled
  */
-export const DocumentChat = ({ username }: DocumentChatProps) => {
+export const DocumentChat = ({ username, selectedFileName }: DocumentChatProps) => {
   return (
     <div className="h-full w-full">
       <div className="p-4 border-b">
@@ -23,6 +24,7 @@ export const DocumentChat = ({ username }: DocumentChatProps) => {
           roomName="document-chat"
           username={username}
           enableDocumentQuery={true}
+          selectedFileName={selectedFileName}
         />
       </div>
     </div>

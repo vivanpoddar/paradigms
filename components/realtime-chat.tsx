@@ -19,6 +19,7 @@ interface RealtimeChatProps {
   onMessage?: (messages: ChatMessage[]) => void
   messages?: ChatMessage[]
   enableDocumentQuery?: boolean
+  selectedFileName?: string | null
 }
 
 /**
@@ -28,6 +29,7 @@ interface RealtimeChatProps {
  * @param onMessage - The callback function to handle the messages. Useful if you want to store the messages in a database.
  * @param messages - The messages to display in the chat. Useful if you want to display messages from a database.
  * @param enableDocumentQuery - Whether to enable document querying using LlamaCloudIndex
+ * @param selectedFileName - The name of the currently selected file to query against
  * @returns The chat component
  */
 export const RealtimeChat = ({
@@ -36,6 +38,7 @@ export const RealtimeChat = ({
   onMessage,
   messages: initialMessages = [],
   enableDocumentQuery = false,
+  selectedFileName = null,
 }: RealtimeChatProps) => {
   const { containerRef, scrollToBottom } = useChatScroll()
 
@@ -76,24 +79,36 @@ export const RealtimeChat = ({
 
   // Function to detect if a message should trigger document query
   const shouldQueryDocuments = useCallback((message: string): boolean => {
-    if (!enableDocumentQuery) return false
+    if (!enableDocumentQuery || !selectedFileName) return false
     
     const lowerMessage = message.toLowerCase()
     return LLAMA_CLOUD_CONFIG.queryTriggers.some(trigger => lowerMessage.includes(trigger))
-  }, [enableDocumentQuery])
+  }, [enableDocumentQuery, selectedFileName])
 
   // Function to query documents using LlamaCloudIndex
   const queryDocuments = useCallback(async (query: string): Promise<void> => {
+    console.log('=== QUERY DOCUMENTS CALLED ===');
+    console.log('Query:', query);
+    console.log('Selected file:', selectedFileName);
+    
+    if (!selectedFileName) {
+      console.log('❌ No file selected for querying')
+      return
+    }
+    
+    console.log('✅ Starting query with file:', selectedFileName);
     setIsQuerying(true)
     try {
+      console.log('📤 Sending request to /api/query');
       const response = await fetch('/api/query', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ query }),
+        body: JSON.stringify({ query, fileName: selectedFileName }),
       })
 
+      console.log('📥 Response status:', response.status);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)
       }
@@ -130,7 +145,7 @@ export const RealtimeChat = ({
     } finally {
       setIsQuerying(false)
     }
-  }, [sendMessage])
+  }, [sendMessage, selectedFileName])
 
   const handleSendMessage = useCallback(
     async (e: React.FormEvent) => {
@@ -144,8 +159,18 @@ export const RealtimeChat = ({
       setNewMessage('')
 
       // Check if we should query documents for this message
-      if (shouldQueryDocuments(messageContent)) {
-        await queryDocuments(messageContent)
+      const shouldQuery = shouldQueryDocuments(messageContent);
+      console.log('=== MESSAGE SENT ===');
+      console.log('Message:', messageContent);
+      console.log('Should query documents:', shouldQuery);
+      console.log('Selected file:', selectedFileName);
+      console.log('Enable document query:', enableDocumentQuery);
+      
+      if (shouldQuery) {
+        console.log('🔍 Triggering document query...');
+        await queryDocuments(messageContent);
+      } else {
+        console.log('⚠️ Not triggering document query');
       }
     },
     [newMessage, isConnected, sendMessage, queryDocuments, shouldQueryDocuments]
@@ -190,7 +215,13 @@ export const RealtimeChat = ({
           type="text"
           value={newMessage}
           onChange={(e) => setNewMessage(e.target.value)}
-          placeholder={enableDocumentQuery ? "Type a message or ask about documents..." : "Type a message..."}
+          placeholder={
+            enableDocumentQuery 
+              ? selectedFileName 
+                ? `Ask about ${selectedFileName}...` 
+                : "Select a file to query documents..." 
+              : "Type a message..."
+          }
           disabled={!isConnected || isQuerying}
         />
         
