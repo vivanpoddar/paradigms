@@ -46,12 +46,14 @@ export async function GET(request: Request) {
       text: string;
       pageNumber: number;
     }> = [];
+
+    console.log('Parsed data:', parsedData);
     
     if (parsedData.page && Array.isArray(parsedData.page)) {
       parsedData.page.forEach((page: any, pageIndex: number) => {
-        console.log("Page index: " + page.page)
         if (page.lines && Array.isArray(page.lines)) {
           page.lines.forEach((line: any, lineIndex: number) => {
+            console.log(line.textType, line.region, line.type);
             if ((line.textType === 'Q' && line.region) && (line.type === 'text' || line.type === 'simple_cell' ) ) {
               const region = line.region;
               boundingBoxes.push({

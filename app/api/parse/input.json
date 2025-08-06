@@ -1,0 +1,1837 @@
+{
+  "pages": [
+    {
+      "image_id": "2025_07_29_8b540c7e1f5c0385f93cg-1",
+      "page": 1,
+      "lines": [
+        {
+          "cnt": [
+            [
+              118,
+              169
+            ],
+            [
+              118,
+              123
+            ],
+            [
+              403,
+              123
+            ],
+            [
+              403,
+              169
+            ]
+          ],
+          "region": {
+            "top_left_x": 117,
+            "top_left_y": 123,
+            "width": 286,
+            "height": 47
+          },
+          "line": 1,
+          "column": 0,
+          "font_size": 28,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "f42b7c1233774f7c8e035b8d39f23aa5",
+          "type": "section_header",
+          "conversion_output": false,
+          "children_ids": [
+            "51a405aff4394c4bb98eb3f7a3abacea"
+          ],
+          "text": "",
+          "text_display": ""
+        },
+        {
+          "cnt": [
+            [
+              123,
+              164
+            ],
+            [
+              123,
+              129
+            ],
+            [
+              397,
+              129
+            ],
+            [
+              397,
+              164
+            ]
+          ],
+          "region": {
+            "top_left_x": 123,
+            "top_left_y": 128,
+            "width": 275,
+            "height": 36
+          },
+          "line": 2,
+          "column": 0,
+          "font_size": 28,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "51a405aff4394c4bb98eb3f7a3abacea",
+          "type": "text",
+          "conversion_output": true,
+          "parent_id": "f42b7c1233774f7c8e035b8d39f23aa5",
+          "text": "CALCULUS BC",
+          "text_display": "\\section*{CALCULUS BC}",
+          "confidence": 1,
+          "confidence_rate": 1
+        },
+        {
+          "cnt": [
+            [
+              117,
+              213
+            ],
+            [
+              117,
+              167
+            ],
+            [
+              393,
+              167
+            ],
+            [
+              393,
+              213
+            ]
+          ],
+          "region": {
+            "top_left_x": 116,
+            "top_left_y": 166,
+            "width": 278,
+            "height": 47
+          },
+          "line": 3,
+          "column": 0,
+          "font_size": 28,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "d1b7f108d34b47719314df1a568021ed",
+          "type": "section_header",
+          "conversion_output": false,
+          "children_ids": [
+            "33c6ca043a854ddda3102e00dc6ebc4a"
+          ],
+          "text": "",
+          "text_display": ""
+        },
+        {
+          "cnt": [
+            [
+              122,
+              207
+            ],
+            [
+              122,
+              172
+            ],
+            [
+              388,
+              172
+            ],
+            [
+              388,
+              207
+            ]
+          ],
+          "region": {
+            "top_left_x": 121,
+            "top_left_y": 172,
+            "width": 267,
+            "height": 36
+          },
+          "line": 4,
+          "column": 0,
+          "font_size": 28,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "33c6ca043a854ddda3102e00dc6ebc4a",
+          "type": "text",
+          "conversion_output": true,
+          "parent_id": "d1b7f108d34b47719314df1a568021ed",
+          "text": "Particle Motion",
+          "text_display": "\n\n\\section*{Particle Motion}",
+          "confidence": 1,
+          "confidence_rate": 1
+        },
+        {
+          "cnt": [
+            [
+              122,
+              262
+            ],
+            [
+              122,
+              215
+            ],
+            [
+              1553,
+              215
+            ],
+            [
+              1553,
+              262
+            ]
+          ],
+          "region": {
+            "top_left_x": 121,
+            "top_left_y": 215,
+            "width": 1433,
+            "height": 47
+          },
+          "line": 5,
+          "column": 0,
+          "font_size": 28,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "33aba7acdaae4eceab05093e3d89b1af",
+          "type": "text",
+          "conversion_output": true,
+          "text": "Ex. A particle moves along a horizontal line so that its position at any time $t \\geq 0$ is given by",
+          "text_display": "\n\nEx. A particle moves along a horizontal line so that its position at any time $t \\geq 0$ is given by",
+          "confidence": 1,
+          "confidence_rate": 1
+        },
+        {
+          "cnt": [
+            [
+              164,
+              327
+            ],
+            [
+              164,
+              270
+            ],
+            [
+              1321,
+              270
+            ],
+            [
+              1321,
+              327
+            ]
+          ],
+          "region": {
+            "top_left_x": 163,
+            "top_left_y": 269,
+            "width": 1159,
+            "height": 58
+          },
+          "line": 6,
+          "column": 0,
+          "font_size": 28,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "97eec4a3e0344a11a5328ad5bf54018d",
+          "type": "text",
+          "conversion_output": true,
+          "text": "$s(t)=2 t^{3}-7 t^{2}+4 t+5$, where $s$ is measured in meters and $t$ in seconds.",
+          "text_display": " $s(t)=2 t^{3}-7 t^{2}+4 t+5$, where $s$ is measured in meters and $t$ in seconds.",
+          "confidence": 1,
+          "confidence_rate": 1
+        },
+        {
+          "cnt": [
+            [
+              122,
+              385
+            ],
+            [
+              122,
+              342
+            ],
+            [
+              908,
+              342
+            ],
+            [
+              908,
+              385
+            ]
+          ],
+          "region": {
+            "top_left_x": 121,
+            "top_left_y": 341,
+            "width": 788,
+            "height": 44
+          },
+          "line": 7,
+          "column": 0,
+          "font_size": 28,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "5a0331f3d1654004bb5f6b5fd771d426",
+          "type": "text",
+          "conversion_output": true,
+          "text": "(a) Find the velocity at time $t$ and at $t=1$ second.",
+          "text_display": "\n(a) Find the velocity at time $t$ and at $t=1$ second.",
+          "confidence": 1,
+          "confidence_rate": 1
+        },
+        {
+          "cnt": [
+            [
+              122,
+              646
+            ],
+            [
+              122,
+              600
+            ],
+            [
+              1184,
+              600
+            ],
+            [
+              1184,
+              646
+            ]
+          ],
+          "region": {
+            "top_left_x": 121,
+            "top_left_y": 600,
+            "width": 1064,
+            "height": 47
+          },
+          "line": 8,
+          "column": 0,
+          "font_size": 28,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "1aee916f9e22404ab70d0f3e30d21e68",
+          "type": "text",
+          "conversion_output": true,
+          "text": "(b) When is the particle at rest? Moving right? Justify your answers.",
+          "text_display": "\n(b) When is the particle at rest? Moving right? Justify your answers.",
+          "confidence": 1,
+          "confidence_rate": 1
+        },
+        {
+          "cnt": [
+            [
+              123,
+              1218
+            ],
+            [
+              123,
+              1178
+            ],
+            [
+              983,
+              1178
+            ],
+            [
+              983,
+              1218
+            ]
+          ],
+          "region": {
+            "top_left_x": 123,
+            "top_left_y": 1177,
+            "width": 860,
+            "height": 42
+          },
+          "line": 9,
+          "column": 0,
+          "font_size": 28,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "045e64a3dd174d75af1a8bd9edfd5b8c",
+          "type": "text",
+          "conversion_output": true,
+          "text": "(c) Find the acceleration at time $t$ and at $t=1$ seconds.",
+          "text_display": "\n(c) Find the acceleration at time $t$ and at $t=1$ seconds.",
+          "confidence": 1,
+          "confidence_rate": 1
+        },
+        {
+          "cnt": [
+            [
+              121,
+              1525
+            ],
+            [
+              121,
+              1479
+            ],
+            [
+              1668,
+              1479
+            ],
+            [
+              1668,
+              1525
+            ]
+          ],
+          "region": {
+            "top_left_x": 120,
+            "top_left_y": 1478,
+            "width": 1549,
+            "height": 47
+          },
+          "line": 10,
+          "column": 0,
+          "font_size": 28,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "70658a681bfd4300b74931bfcd9e4788",
+          "type": "text",
+          "conversion_output": true,
+          "text": "(d) Find the displacement of the particle between $t=0$ and $t=1.7$ seconds. Explain the meaning of",
+          "text_display": "\n(d) Find the displacement of the particle between $t=0$ and $t=1.7$ seconds. Explain the meaning of",
+          "confidence": 1,
+          "confidence_rate": 1
+        },
+        {
+          "cnt": [
+            [
+              169,
+              1571
+            ],
+            [
+              169,
+              1530
+            ],
+            [
+              373,
+              1530
+            ],
+            [
+              373,
+              1571
+            ]
+          ],
+          "region": {
+            "top_left_x": 169,
+            "top_left_y": 1530,
+            "width": 204,
+            "height": 41
+          },
+          "line": 11,
+          "column": 0,
+          "font_size": 28,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "44adbd4c7f8f4681abf1f3d4226e7cb9",
+          "type": "text",
+          "conversion_output": true,
+          "text": "your answer.",
+          "text_display": " your answer.",
+          "confidence": 1,
+          "confidence_rate": 1
+        },
+        {
+          "cnt": [
+            [
+              122,
+              1877
+            ],
+            [
+              122,
+              1831
+            ],
+            [
+              1347,
+              1831
+            ],
+            [
+              1347,
+              1877
+            ]
+          ],
+          "region": {
+            "top_left_x": 121,
+            "top_left_y": 1830,
+            "width": 1227,
+            "height": 47
+          },
+          "line": 12,
+          "column": 0,
+          "font_size": 28,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "e3ecf0f0705e42098f4eb955e63259d0",
+          "type": "text",
+          "conversion_output": true,
+          "text": "(e) Find the distance traveled by the particle between $t=0$ and $t=1.7$ seconds.",
+          "text_display": "\n(e) Find the distance traveled by the particle between $t=0$ and $t=1.7$ seconds.",
+          "confidence": 1,
+          "confidence_rate": 1
+        }
+      ],
+      "page_height": 2750,
+      "page_width": 2125,
+      "languages_detected": []
+    },
+    {
+      "image_id": "2025_07_29_8b540c7e1f5c0385f93cg-2",
+      "page": 2,
+      "lines": [
+        {
+          "cnt": [
+            [
+              121,
+              169
+            ],
+            [
+              121,
+              123
+            ],
+            [
+              367,
+              123
+            ],
+            [
+              367,
+              169
+            ]
+          ],
+          "region": {
+            "top_left_x": 120,
+            "top_left_y": 123,
+            "width": 248,
+            "height": 47
+          },
+          "line": 1,
+          "column": 0,
+          "font_size": 35,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "fcaea77a04f041a599bc2ddb0d872ed8",
+          "type": "text",
+          "conversion_output": true,
+          "text": "Ex. (continued)",
+          "text_display": "\n\nEx. (continued)",
+          "confidence": 1,
+          "confidence_rate": 1
+        },
+        {
+          "cnt": [
+            [
+              118,
+              218
+            ],
+            [
+              118,
+              172
+            ],
+            [
+              1432,
+              172
+            ],
+            [
+              1432,
+              218
+            ]
+          ],
+          "region": {
+            "top_left_x": 117,
+            "top_left_y": 172,
+            "width": 1316,
+            "height": 47
+          },
+          "line": 2,
+          "column": 0,
+          "font_size": 35,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "7827a9ced7fa471c82c0185ec3fe4637",
+          "type": "text",
+          "conversion_output": true,
+          "text": "A particle moves along a horizontal line so that its position at any time $t \\geq 0$ is given",
+          "text_display": "\nA particle moves along a horizontal line so that its position at any time $t \\geq 0$ is given",
+          "confidence": 1,
+          "confidence_rate": 1
+        },
+        {
+          "cnt": [
+            [
+              119,
+              285
+            ],
+            [
+              119,
+              225
+            ],
+            [
+              1339,
+              225
+            ],
+            [
+              1339,
+              285
+            ]
+          ],
+          "region": {
+            "top_left_x": 119,
+            "top_left_y": 224,
+            "width": 1220,
+            "height": 61
+          },
+          "line": 3,
+          "column": 0,
+          "font_size": 35,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "adcff22fdb3d401a9ec84e554ef49587",
+          "type": "text",
+          "conversion_output": true,
+          "text": "by $s(t)=2 t^{3}-7 t^{2}+4 t+5$, where $s$ is measured in meters and $t$ in seconds.",
+          "text_display": " by $s(t)=2 t^{3}-7 t^{2}+4 t+5$, where $s$ is measured in meters and $t$ in seconds.",
+          "confidence": 1,
+          "confidence_rate": 1
+        },
+        {
+          "cnt": [
+            [
+              122,
+              385
+            ],
+            [
+              122,
+              342
+            ],
+            [
+              1022,
+              342
+            ],
+            [
+              1022,
+              385
+            ]
+          ],
+          "region": {
+            "top_left_x": 121,
+            "top_left_y": 341,
+            "width": 901,
+            "height": 44
+          },
+          "line": 4,
+          "column": 0,
+          "font_size": 35,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "4335a16f05a648e2b0e0e0a8e2154671",
+          "type": "text",
+          "conversion_output": true,
+          "text": "(f) When is the particle speeding up? Justify your answer.",
+          "text_display": "\n(f) When is the particle speeding up? Justify your answer.",
+          "confidence": 1,
+          "confidence_rate": 1
+        },
+        {
+          "cnt": [
+            [
+              122,
+              428
+            ],
+            [
+              122,
+              385
+            ],
+            [
+              1147,
+              385
+            ],
+            [
+              1147,
+              428
+            ]
+          ],
+          "region": {
+            "top_left_x": 121,
+            "top_left_y": 384,
+            "width": 1026,
+            "height": 45
+          },
+          "line": 5,
+          "column": 0,
+          "font_size": 35,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "2b4cba5755324548baf0d1095ab7e51e",
+          "type": "text",
+          "conversion_output": true,
+          "text": "(Hint: Since speed is the absolute value of velocity, the particle is:",
+          "text_display": "\n(Hint: Since speed is the absolute value of velocity, the particle is:",
+          "confidence": 1,
+          "confidence_rate": 1
+        },
+        {
+          "cnt": [
+            [
+              211,
+              473
+            ],
+            [
+              211,
+              427
+            ],
+            [
+              1773,
+              427
+            ],
+            [
+              1773,
+              473
+            ]
+          ],
+          "region": {
+            "top_left_x": 211,
+            "top_left_y": 426,
+            "width": 1562,
+            "height": 47
+          },
+          "line": 6,
+          "column": 0,
+          "font_size": 35,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "c0a815ac10644b32a228f5e585f689c9",
+          "type": "text",
+          "conversion_output": true,
+          "text": "1) Speeding up when the velocity and acceleration have the same sign (both positive or both negative)",
+          "text_display": "\n1) Speeding up when the velocity and acceleration have the same sign (both positive or both negative)",
+          "confidence": 1,
+          "confidence_rate": 1
+        },
+        {
+          "cnt": [
+            [
+              205,
+              516
+            ],
+            [
+              205,
+              470
+            ],
+            [
+              1812,
+              470
+            ],
+            [
+              1812,
+              516
+            ]
+          ],
+          "region": {
+            "top_left_x": 204,
+            "top_left_y": 470,
+            "width": 1608,
+            "height": 47
+          },
+          "line": 7,
+          "column": 0,
+          "font_size": 35,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "271ce2d4c50d4266b2a5a63b08f761ad",
+          "type": "text",
+          "conversion_output": true,
+          "text": "2) Slowing down when the velocity and acceleration have opposite signs (one positive and one negative)",
+          "text_display": "\n2) Slowing down when the velocity and acceleration have opposite signs (one positive and one negative)",
+          "confidence": 0.9951171875,
+          "confidence_rate": 0.99995425551008
+        },
+        {
+          "cnt": [
+            [
+              114,
+              575
+            ],
+            [
+              114,
+              1006
+            ],
+            [
+              539,
+              1006
+            ],
+            [
+              539,
+              575
+            ]
+          ],
+          "region": {
+            "top_left_x": 113,
+            "top_left_y": 574,
+            "width": 427,
+            "height": 432
+          },
+          "line": 8,
+          "column": 0,
+          "font_size": 35,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "b628f43b25ed4e24bc982e85b465c673",
+          "type": "column",
+          "conversion_output": false,
+          "children_ids": [
+            "cb6a5d7db47f4fa9bbefa988252a02a4",
+            "6707cdc80a594b98aeaa719057cecf86"
+          ],
+          "text": "",
+          "text_display": ""
+        },
+        {
+          "cnt": [
+            [
+              119,
+              936
+            ],
+            [
+              119,
+              581
+            ],
+            [
+              531,
+              581
+            ],
+            [
+              531,
+              936
+            ]
+          ],
+          "region": {
+            "top_left_x": 119,
+            "top_left_y": 581,
+            "width": 413,
+            "height": 356
+          },
+          "line": 9,
+          "column": 1,
+          "font_size": 35,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "cb6a5d7db47f4fa9bbefa988252a02a4",
+          "type": "chart",
+          "conversion_output": true,
+          "parent_id": "b628f43b25ed4e24bc982e85b465c673",
+          "text": "",
+          "text_display": "\n![](https://cdn.mathpix.com/cropped/2025_07_29_8b540c7e1f5c0385f93cg-2.jpg?height=356&width=413&top_left_y=581&top_left_x=119)",
+          "subtype": "analytical"
+        },
+        {
+          "cnt": [
+            [
+              169,
+              999
+            ],
+            [
+              169,
+              953
+            ],
+            [
+              416,
+              953
+            ],
+            [
+              416,
+              999
+            ]
+          ],
+          "region": {
+            "top_left_x": 169,
+            "top_left_y": 952,
+            "width": 248,
+            "height": 47
+          },
+          "line": 10,
+          "column": 1,
+          "font_size": 35,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "6707cdc80a594b98aeaa719057cecf86",
+          "type": "text",
+          "conversion_output": true,
+          "parent_id": "b628f43b25ed4e24bc982e85b465c673",
+          "text": "Graph of Speed",
+          "text_display": "\n\nGraph of Speed",
+          "confidence": 1,
+          "confidence_rate": 1
+        },
+        {
+          "cnt": [
+            [
+              669,
+              564
+            ],
+            [
+              669,
+              1008
+            ],
+            [
+              1095,
+              1008
+            ],
+            [
+              1095,
+              564
+            ]
+          ],
+          "region": {
+            "top_left_x": 669,
+            "top_left_y": 563,
+            "width": 427,
+            "height": 446
+          },
+          "line": 11,
+          "column": 0,
+          "font_size": 35,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "fcd96cd420c648288e08b49469d39727",
+          "type": "column",
+          "conversion_output": false,
+          "children_ids": [
+            "21663f294d8244e0874177f0e8fae5ca",
+            "258b78ce6c814620804ddeb75624629b"
+          ],
+          "text": "",
+          "text_display": ""
+        },
+        {
+          "cnt": [
+            [
+              675,
+              926
+            ],
+            [
+              675,
+              571
+            ],
+            [
+              1087,
+              571
+            ],
+            [
+              1087,
+              926
+            ]
+          ],
+          "region": {
+            "top_left_x": 674,
+            "top_left_y": 570,
+            "width": 413,
+            "height": 356
+          },
+          "line": 12,
+          "column": 2,
+          "font_size": 35,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "21663f294d8244e0874177f0e8fae5ca",
+          "type": "chart",
+          "conversion_output": true,
+          "parent_id": "fcd96cd420c648288e08b49469d39727",
+          "text": "",
+          "text_display": "\n![](https://cdn.mathpix.com/cropped/2025_07_29_8b540c7e1f5c0385f93cg-2.jpg?height=356&width=413&top_left_y=570&top_left_x=674)",
+          "subtype": "analytical"
+        },
+        {
+          "cnt": [
+            [
+              718,
+              1000
+            ],
+            [
+              718,
+              957
+            ],
+            [
+              1000,
+              957
+            ],
+            [
+              1000,
+              1000
+            ]
+          ],
+          "region": {
+            "top_left_x": 718,
+            "top_left_y": 956,
+            "width": 283,
+            "height": 45
+          },
+          "line": 13,
+          "column": 2,
+          "font_size": 35,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "258b78ce6c814620804ddeb75624629b",
+          "type": "text",
+          "conversion_output": true,
+          "parent_id": "fcd96cd420c648288e08b49469d39727",
+          "text": "Graph of Velocity",
+          "text_display": "\n\nGraph of Velocity",
+          "confidence": 1,
+          "confidence_rate": 1
+        },
+        {
+          "cnt": [
+            [
+              118,
+              1087
+            ],
+            [
+              118,
+              1044
+            ],
+            [
+              1910,
+              1044
+            ],
+            [
+              1910,
+              1087
+            ]
+          ],
+          "region": {
+            "top_left_x": 117,
+            "top_left_y": 1043,
+            "width": 1793,
+            "height": 44
+          },
+          "line": 14,
+          "column": 0,
+          "font_size": 35,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "3dc3ab11ae2441e2bbefbd532d8949a6",
+          "type": "text",
+          "conversion_output": true,
+          "text": "To answer part (f), draw a double sign chart, showing both the signs of the velocity and the signs of the acceleration.",
+          "text_display": "\n\nTo answer part (f), draw a double sign chart, showing both the signs of the velocity and the signs of the acceleration.",
+          "confidence": 0.9926791191101074,
+          "confidence_rate": 0.9999407452229804
+        },
+        {
+          "cnt": [
+            [
+              123,
+              1198
+            ],
+            [
+              123,
+              1133
+            ],
+            [
+              1254,
+              1133
+            ],
+            [
+              1254,
+              1198
+            ]
+          ],
+          "region": {
+            "top_left_x": 123,
+            "top_left_y": 1132,
+            "width": 1131,
+            "height": 67
+          },
+          "line": 15,
+          "column": 0,
+          "font_size": 35,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "b3c4dfb85ccb4b3cb62dc64675c0a3bd",
+          "type": "text",
+          "conversion_output": true,
+          "text": "$v(t)=6 t^{2}-14 t+4=2\\left(3 t^{2}-7 t+2\\right)=2(3 t-1)(t-2)=0$ when $t=$",
+          "text_display": "\n$v(t)=6 t^{2}-14 t+4=2\\left(3 t^{2}-7 t+2\\right)=2(3 t-1)(t-2)=0$ when $t=$",
+          "confidence": 1,
+          "confidence_rate": 1
+        },
+        {
+          "cnt": [
+            [
+              123,
+              1264
+            ],
+            [
+              123,
+              1208
+            ],
+            [
+              614,
+              1208
+            ],
+            [
+              614,
+              1264
+            ]
+          ],
+          "region": {
+            "top_left_x": 123,
+            "top_left_y": 1207,
+            "width": 491,
+            "height": 58
+          },
+          "line": 16,
+          "column": 0,
+          "font_size": 35,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "a80e75deca6e466ca2027b06561eec5b",
+          "type": "text",
+          "conversion_output": true,
+          "text": "$a(t)=12 t-14=0$ when $t=$",
+          "text_display": "\n$a(t)=12 t-14=0$ when $t=$",
+          "confidence": 1,
+          "confidence_rate": 1
+        },
+        {
+          "cnt": [
+            [
+              123,
+              1454
+            ],
+            [
+              123,
+              1321
+            ],
+            [
+              207,
+              1321
+            ],
+            [
+              207,
+              1454
+            ]
+          ],
+          "region": {
+            "top_left_x": 123,
+            "top_left_y": 1321,
+            "width": 85,
+            "height": 134
+          },
+          "line": 17,
+          "column": 0,
+          "font_size": 35,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "49c649ee2adc47f28c0cc0f06455dc4e",
+          "type": "text",
+          "conversion_output": true,
+          "text": "$\\frac{v(t)}{a(t)}$",
+          "text_display": "\n$\\frac{v(t)}{a(t)}$",
+          "confidence": 1,
+          "confidence_rate": 1
+        }
+      ],
+      "page_height": 2750,
+      "page_width": 2125,
+      "languages_detected": []
+    },
+    {
+      "image_id": "2025_07_29_8b540c7e1f5c0385f93cg-3",
+      "page": 3,
+      "lines": [
+        {
+          "cnt": [
+            [
+              118,
+              175
+            ],
+            [
+              118,
+              129
+            ],
+            [
+              1769,
+              129
+            ],
+            [
+              1769,
+              175
+            ]
+          ],
+          "region": {
+            "top_left_x": 117,
+            "top_left_y": 128,
+            "width": 1652,
+            "height": 47
+          },
+          "line": 1,
+          "column": 0,
+          "font_size": 35,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "88bb830ff6b340848476ce709771a507",
+          "type": "text",
+          "conversion_output": true,
+          "text": "Ex. (Multiple Choice) A particle moves along the $x$-axis so that at any time $t \\geq 0$, its velocity is given by",
+          "text_display": "\n\nEx. (Multiple Choice) A particle moves along the $x$-axis so that at any time $t \\geq 0$, its velocity is given by",
+          "confidence": 0.9892628192901611,
+          "confidence_rate": 0.9999085190981456
+        },
+        {
+          "cnt": [
+            [
+              123,
+              234
+            ],
+            [
+              123,
+              178
+            ],
+            [
+              1362,
+              178
+            ],
+            [
+              1362,
+              234
+            ]
+          ],
+          "region": {
+            "top_left_x": 123,
+            "top_left_y": 177,
+            "width": 1240,
+            "height": 58
+          },
+          "line": 2,
+          "column": 0,
+          "font_size": 35,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "661d3447c7e342938819284476ad1c88",
+          "type": "text",
+          "conversion_output": true,
+          "text": "$v(t)=3+4.1 \\cos (0.9 t)$. What is the acceleration of the particle at time $t=4$ ?",
+          "text_display": " $v(t)=3+4.1 \\cos (0.9 t)$. What is the acceleration of the particle at time $t=4$ ?",
+          "confidence": 1,
+          "confidence_rate": 1
+        },
+        {
+          "cnt": [
+            [
+              119,
+              295
+            ],
+            [
+              119,
+              241
+            ],
+            [
+              1567,
+              241
+            ],
+            [
+              1567,
+              295
+            ]
+          ],
+          "region": {
+            "top_left_x": 119,
+            "top_left_y": 241,
+            "width": 1448,
+            "height": 55
+          },
+          "line": 3,
+          "column": 0,
+          "font_size": 35,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "96dffa9b8c0d48329721d2eeb4d3770e",
+          "type": "multiple_choice_block",
+          "conversion_output": false,
+          "children_ids": [
+            "e29daaa6431a40df90980210d1111897",
+            "8a0d97136eae4bc88b6aa9e0db097c74",
+            "4b7405db39e642f587f8261e545954e4",
+            "39db08280da14edcb7b0bce217f1707c",
+            "04e7fd9ab40f43ac9165108755c1cb90"
+          ],
+          "text": "",
+          "text_display": ""
+        },
+        {
+          "cnt": [
+            [
+              126,
+              289
+            ],
+            [
+              126,
+              243
+            ],
+            [
+              308,
+              243
+            ],
+            [
+              308,
+              289
+            ]
+          ],
+          "region": {
+            "top_left_x": 126,
+            "top_left_y": 242,
+            "width": 182,
+            "height": 47
+          },
+          "line": 4,
+          "column": 0,
+          "font_size": 35,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "e29daaa6431a40df90980210d1111897",
+          "type": "text",
+          "conversion_output": true,
+          "parent_id": "96dffa9b8c0d48329721d2eeb4d3770e",
+          "text": "(A) -2.016",
+          "text_display": "\n(A) -2.016",
+          "confidence": 0.9990234375,
+          "confidence_rate": 0.9999302138888906
+        },
+        {
+          "cnt": [
+            [
+              492,
+              289
+            ],
+            [
+              492,
+              243
+            ],
+            [
+              679,
+              243
+            ],
+            [
+              679,
+              289
+            ]
+          ],
+          "region": {
+            "top_left_x": 491,
+            "top_left_y": 242,
+            "width": 188,
+            "height": 47
+          },
+          "line": 5,
+          "column": 0,
+          "font_size": 35,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "8a0d97136eae4bc88b6aa9e0db097c74",
+          "type": "text",
+          "conversion_output": true,
+          "parent_id": "96dffa9b8c0d48329721d2eeb4d3770e",
+          "text": "(B) -0.677",
+          "text_display": "\n(B) -0.677",
+          "confidence": 1,
+          "confidence_rate": 1
+        },
+        {
+          "cnt": [
+            [
+              801,
+              289
+            ],
+            [
+              801,
+              243
+            ],
+            [
+              955,
+              243
+            ],
+            [
+              955,
+              289
+            ]
+          ],
+          "region": {
+            "top_left_x": 800,
+            "top_left_y": 242,
+            "width": 156,
+            "height": 47
+          },
+          "line": 6,
+          "column": 0,
+          "font_size": 35,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "4b7405db39e642f587f8261e545954e4",
+          "type": "text",
+          "conversion_output": true,
+          "parent_id": "96dffa9b8c0d48329721d2eeb4d3770e",
+          "text": "(C) 1.633",
+          "text_display": "\n(C) 1.633",
+          "confidence": 1,
+          "confidence_rate": 1
+        },
+        {
+          "cnt": [
+            [
+              1123,
+              289
+            ],
+            [
+              1123,
+              243
+            ],
+            [
+              1283,
+              243
+            ],
+            [
+              1283,
+              289
+            ]
+          ],
+          "region": {
+            "top_left_x": 1123,
+            "top_left_y": 242,
+            "width": 161,
+            "height": 47
+          },
+          "line": 7,
+          "column": 0,
+          "font_size": 35,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "39db08280da14edcb7b0bce217f1707c",
+          "type": "text",
+          "conversion_output": true,
+          "parent_id": "96dffa9b8c0d48329721d2eeb4d3770e",
+          "text": "(D) 1.814",
+          "text_display": "\n(D) 1.814",
+          "confidence": 1,
+          "confidence_rate": 1
+        },
+        {
+          "cnt": [
+            [
+              1408,
+              290
+            ],
+            [
+              1408,
+              247
+            ],
+            [
+              1563,
+              247
+            ],
+            [
+              1563,
+              290
+            ]
+          ],
+          "region": {
+            "top_left_x": 1408,
+            "top_left_y": 246,
+            "width": 155,
+            "height": 45
+          },
+          "line": 8,
+          "column": 0,
+          "font_size": 35,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "04e7fd9ab40f43ac9165108755c1cb90",
+          "type": "text",
+          "conversion_output": true,
+          "parent_id": "96dffa9b8c0d48329721d2eeb4d3770e",
+          "text": "(E) 2.978",
+          "text_display": "\n(E) 2.978",
+          "confidence": 1,
+          "confidence_rate": 1
+        },
+        {
+          "cnt": [
+            [
+              118,
+              645
+            ],
+            [
+              118,
+              596
+            ],
+            [
+              554,
+              596
+            ],
+            [
+              554,
+              645
+            ]
+          ],
+          "region": {
+            "top_left_x": 117,
+            "top_left_y": 596,
+            "width": 438,
+            "height": 50
+          },
+          "line": 9,
+          "column": 0,
+          "font_size": 35,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "c0cd292c7f8c4014ab812ed1858cf569",
+          "type": "text",
+          "conversion_output": true,
+          "text": "Ex 7. (2013 AB \\#2, Calc)",
+          "text_display": "\n\nEx 7. (2013 AB \\#2, Calc)",
+          "confidence": 1,
+          "confidence_rate": 1
+        },
+        {
+          "cnt": [
+            [
+              118,
+              698
+            ],
+            [
+              118,
+              646
+            ],
+            [
+              1638,
+              646
+            ],
+            [
+              1638,
+              698
+            ]
+          ],
+          "region": {
+            "top_left_x": 117,
+            "top_left_y": 646,
+            "width": 1522,
+            "height": 52
+          },
+          "line": 10,
+          "column": 0,
+          "font_size": 35,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "dc7f576a59f142779cf6ec77259c6605",
+          "type": "text",
+          "conversion_output": true,
+          "text": "A particle moves along a straight line. For $0 \\leq t \\leq 5$, the velocity of the particle is given by",
+          "text_display": "\nA particle moves along a straight line. For $0 \\leq t \\leq 5$, the velocity of the particle is given by",
+          "confidence": 1,
+          "confidence_rate": 1
+        },
+        {
+          "cnt": [
+            [
+              123,
+              791
+            ],
+            [
+              123,
+              699
+            ],
+            [
+              549,
+              699
+            ],
+            [
+              549,
+              791
+            ]
+          ],
+          "region": {
+            "top_left_x": 123,
+            "top_left_y": 699,
+            "width": 426,
+            "height": 93
+          },
+          "line": 11,
+          "column": 0,
+          "font_size": 35,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "61be78bceec446cdbc0e8ef6f190a7a9",
+          "type": "text",
+          "conversion_output": true,
+          "text": "$v(t)=-2+\\left(t^{2}+3 t\\right)^{\\frac{6}{5}}-t^{3}$.",
+          "text_display": " $v(t)=-2+\\left(t^{2}+3 t\\right)^{\\frac{6}{5}}-t^{3}$.",
+          "confidence": 0.84619140625,
+          "confidence_rate": 0.9967934271397522
+        },
+        {
+          "cnt": [
+            [
+              121,
+              850
+            ],
+            [
+              121,
+              798
+            ],
+            [
+              1571,
+              798
+            ],
+            [
+              1571,
+              850
+            ]
+          ],
+          "region": {
+            "top_left_x": 120,
+            "top_left_y": 798,
+            "width": 1451,
+            "height": 52
+          },
+          "line": 12,
+          "column": 0,
+          "font_size": 35,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "049168d6c34c41e2bf6362aeb68ea220",
+          "type": "text",
+          "conversion_output": true,
+          "text": "(a) Find all values of $t$ in the interval $2 \\leq t \\leq 4$ for which the speed of the particle is 2 .",
+          "text_display": "\n(a) Find all values of $t$ in the interval $2 \\leq t \\leq 4$ for which the speed of the particle is 2 .",
+          "confidence": 0.9985356330871582,
+          "confidence_rate": 0.9999857725269791
+        },
+        {
+          "cnt": [
+            [
+              118,
+              1186
+            ],
+            [
+              118,
+              1134
+            ],
+            [
+              1877,
+              1134
+            ],
+            [
+              1877,
+              1186
+            ]
+          ],
+          "region": {
+            "top_left_x": 117,
+            "top_left_y": 1134,
+            "width": 1760,
+            "height": 52
+          },
+          "line": 13,
+          "column": 0,
+          "font_size": 35,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "b10e85ad1fdd41b68dfc0e110dbfda6c",
+          "type": "text",
+          "conversion_output": true,
+          "text": "(b) Write an expression involving an integral that gives the position $s(t)$. Use this expression to find the",
+          "text_display": "\n(b) Write an expression involving an integral that gives the position $s(t)$. Use this expression to find the",
+          "confidence": 1,
+          "confidence_rate": 1
+        },
+        {
+          "cnt": [
+            [
+              118,
+              1241
+            ],
+            [
+              118,
+              1187
+            ],
+            [
+              652,
+              1187
+            ],
+            [
+              652,
+              1241
+            ]
+          ],
+          "region": {
+            "top_left_x": 117,
+            "top_left_y": 1187,
+            "width": 535,
+            "height": 55
+          },
+          "line": 14,
+          "column": 0,
+          "font_size": 35,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "58e832fbc5d5441ebbfd137754c6ee07",
+          "type": "text",
+          "conversion_output": true,
+          "text": "position of the particle at $t=5$.",
+          "text_display": " position of the particle at $t=5$.",
+          "confidence": 1,
+          "confidence_rate": 1
+        },
+        {
+          "cnt": [
+            [
+              118,
+              1675
+            ],
+            [
+              118,
+              1626
+            ],
+            [
+              1844,
+              1626
+            ],
+            [
+              1844,
+              1675
+            ]
+          ],
+          "region": {
+            "top_left_x": 117,
+            "top_left_y": 1626,
+            "width": 1728,
+            "height": 50
+          },
+          "line": 15,
+          "column": 0,
+          "font_size": 35,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "d3d3d607616a481f8af97a77ddd1da78",
+          "type": "text",
+          "conversion_output": true,
+          "text": "(c) Find all times $t$ in the interval $0 \\leq t \\leq 5$ at which the particle changes direction. Justify your answer.",
+          "text_display": "\n(c) Find all times $t$ in the interval $0 \\leq t \\leq 5$ at which the particle changes direction. Justify your answer.",
+          "confidence": 1,
+          "confidence_rate": 1
+        },
+        {
+          "cnt": [
+            [
+              121,
+              2064
+            ],
+            [
+              121,
+              2013
+            ],
+            [
+              1809,
+              2013
+            ],
+            [
+              1809,
+              2064
+            ]
+          ],
+          "region": {
+            "top_left_x": 120,
+            "top_left_y": 2012,
+            "width": 1690,
+            "height": 53
+          },
+          "line": 16,
+          "column": 0,
+          "font_size": 35,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "2fb0086d7ff4447995150de8936c2857",
+          "type": "text",
+          "conversion_output": true,
+          "text": "(d) Is the speed of the particle increasing or decreasing at time $t=4$ ? Give a reason for your answer.",
+          "text_display": "\n(d) Is the speed of the particle increasing or decreasing at time $t=4$ ? Give a reason for your answer.",
+          "confidence": 1,
+          "confidence_rate": 1
+        },
+        {
+          "cnt": [
+            [
+              142,
+              2528
+            ],
+            [
+              142,
+              2481
+            ],
+            [
+              1018,
+              2481
+            ],
+            [
+              1018,
+              2528
+            ]
+          ],
+          "region": {
+            "top_left_x": 142,
+            "top_left_y": 2481,
+            "width": 876,
+            "height": 47
+          },
+          "line": 17,
+          "column": 0,
+          "font_size": 28,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "8573ba7dafe14db2a0a15aba8b9b26e2",
+          "type": "text",
+          "conversion_output": true,
+          "text": "HW \\#22: Review for Exam on HW 17-21 (25 problems)",
+          "text_display": "\n\nHW \\#22: Review for Exam on HW 17-21 (25 problems)",
+          "confidence": 1,
+          "confidence_rate": 1
+        },
+        {
+          "cnt": [
+            [
+              138,
+              2571
+            ],
+            [
+              138,
+              2525
+            ],
+            [
+              1109,
+              2525
+            ],
+            [
+              1109,
+              2571
+            ]
+          ],
+          "region": {
+            "top_left_x": 138,
+            "top_left_y": 2524,
+            "width": 971,
+            "height": 47
+          },
+          "line": 18,
+          "column": 0,
+          "font_size": 28,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "8bbaadd60f304601bd65a256ba94a72c",
+          "type": "text",
+          "conversion_output": true,
+          "text": "HW \\#23: Worksheet on Particle Motion (Due day after exam)",
+          "text_display": "\nHW \\#23: Worksheet on Particle Motion (Due day after exam)",
+          "confidence": 1,
+          "confidence_rate": 1
+        }
+      ],
+      "page_height": 2750,
+      "page_width": 2125,
+      "languages_detected": []
+    }
+  ]
+}

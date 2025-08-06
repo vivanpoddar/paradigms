@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
 
           const result = await response.json();
           console.log("✅ Text successfully added to LlamaIndex:");
-          console.log(JSON.stringify(result, null, 2));
+          //console.log(JSON.stringify(result, null, 2));
           return result;
         } catch (error) {
           console.error("LlamaIndex text upload error:", error);
@@ -136,9 +136,9 @@ export async function POST(request: NextRequest) {
           }
 
           const llamaResult = await llamaResponse.json() as { id?: string; [key: string]: any };
-          console.log("=== FULL LLAMAINDEX RESPONSE ===");
-          console.log(JSON.stringify(llamaResult, null, 2));
-          console.log("=== END LLAMAINDEX RESPONSE ===");
+          //console.log("=== FULL LLAMAINDEX RESPONSE ===");
+          //console.log(JSON.stringify(llamaResult, null, 2));
+          //console.log("=== END LLAMAINDEX RESPONSE ===");
 
           if (llamaResult && llamaResult.id) {
             console.log('Adding file to paradigms pipeline...');
@@ -165,8 +165,8 @@ export async function POST(request: NextRequest) {
 
               if (addToPipelineResponse.ok) {
                 const pipelineResult = await addToPipelineResponse.json();
-                console.log("✅ File successfully added to paradigms pipeline:");
-                console.log(JSON.stringify(pipelineResult, null, 2));
+                // console.log("✅ File successfully added to paradigms pipeline:");
+                // console.log(JSON.stringify(pipelineResult, null, 2));
               } else {
                 const errorText = await addToPipelineResponse.text();
                 console.error("❌ Error adding file to pipeline:", errorText);
@@ -229,7 +229,7 @@ export async function POST(request: NextRequest) {
       if (pdfId) {
         const pollForCompletion = async (pdfId: string, retries = 20, delayMs = 500): Promise<MathpixResponse | null> => {
           for (let i = 0; i < retries; i++) {
-            console.log(`Polling attempt ${i + 1}...`);
+            //console.log(`Polling attempt ${i + 1}...`);
             const response = await fetch(`https://api.mathpix.com/v3/pdf/${pdfId}.lines.json`, {
               method: "GET",
               headers: {
@@ -246,10 +246,10 @@ export async function POST(request: NextRequest) {
               console.error("Job failed with error:", data);
               return null;
             } else if (data.status === undefined) {
-              console.log("Job status is undefined. Printing final result...");
+              //console.log("Job status is undefined. Printing final result...");
               return data;
             } else {
-              console.log("Job not completed yet. Current status:", data.status);
+              //console.log("Job not completed yet. Current status:", data.status);
             }
 
             // Wait for the specified delay before the next attempt
@@ -264,7 +264,7 @@ export async function POST(request: NextRequest) {
         let llamaIndexResult = null; // Initialize for scope access
 
         const result = await pollForCompletion(pdfId);
-        console.log(result)
+        //console.log(result)
         if (result) {
           parsedData = result;
 
@@ -278,32 +278,35 @@ export async function POST(request: NextRequest) {
               return '';
             }).join('\n\n');
 
-            console.log('Extracted text for LlamaIndex:', extractedText);
+            //console.log('Extracted text for LlamaIndex:', extractedText);
 
             // Add extracted text to LlamaIndex for embedding generation
-            llamaIndexResult = await addTextToLlamaIndex(extractedText);
-            console.log('LlamaIndex embedding result:', llamaIndexResult ? 'Success' : 'Failed');
+            //llamaIndexResult = await addTextToLlamaIndex(extractedText);
+            //console.log('LlamaIndex embedding result:', llamaIndexResult ? 'Success' : 'Failed');
 
-            const formattedLines = result.pages.flatMap((page: any, pageIndex: number) => {
-              let itemCount = 0;
+            let itemNumber=0;
+            const formattedLines = result.pages.flatMap((page, pageIndex) => {
               if (Array.isArray(page.lines)) {
-                return page.lines.map((line: any, lineIndex: number) => {
-                  const formattedLine = `Page ${pageIndex}, Item ${itemCount} | ${line.text} | Line ${line.line}, Column ${line.column}`;
-                  itemCount++;
-                  return formattedLine;
-                });
+                return page.lines.map((line: any, lineIndex: any) => {
+                  itemNumber++;
+                  if (line && line.text !== "" && line.text != null) {
+                    return `Page ${pageIndex}, Item #${lineIndex}: ${line.text}`;
+                  }
+                  return undefined;
+                }).filter(Boolean);
               }
               return [];
             });
 
             const linesForLLM = formattedLines.join('\n');
+            console.log(linesForLLM)
             
             // Declare parsedJsonPath for use across scopes
             let parsedJsonPath: string;
 
             const systemPrompt = `
             You are a helpful assistant.Your task is to analyze a list of items extracted from a math homework document of a school student. Follow these steps: \n
-            1. ** Determine Joining **: First, decide if any items should be joined together because they are part of the same logical statement or context (e.g., split across multiple lines). If so, merge them into a single item.\n
+            1. ** Determine Joining **: First, decide if any items should be joined together because they are part of the same logical statement or context (e.g., split across multiple lines). If so, merge them into a single item. If you find answer choices ex. (A), (B), (C), (D), include them in the same group as the question.\n
             2. **Categorize Each Item**: For each group, determine its category:\n
               - **Q**: The group is a question that requires input or action from the reader. A line of text including a mathematical expression is most likely part of a question.\n
               - **R**: The group is relevant information needed to solve a question but does not itself require action. \n
@@ -322,40 +325,18 @@ export async function POST(request: NextRequest) {
                 config: {
                   responseMimeType: "application/json",
                   responseSchema: {
-                    type: "object",
-                    properties: {
-                      page: {
+                    type: "array",
+                    items: {
+                      type: "array",
+                      description: "The page of the item group.",
+                      items: {
                         type: "array",
-                        description: "Array of page objects, each representing a page in the document.",
                         items: {
-                          type: "object",
-                          properties: {
-                            joinedGroups: {
-                              type: "array",
-                              items: {
-                                type: "array",
-                                items: {
-                                  type: "string",
-                                  description: "Item Number"
-                                },
-                              },
-                              description: "A group of items of the same logical statement or context (e.g., ['0','1'], ['3'], or ['4','5','6'])."
-                            },
-                            category: {
-                              type: "array",
-                              items: {
-                                type: "string",
-                                enum: ["Q", "R", "I"],
-                                description: "Q for question or mathematical expression, R for relevant info, I for irrelevant"
-                              }
-                            }
-                          },
-                          required: ["joinedGroups", "category"],
-                          description: "Contains the joined groups and their categories for each page."
+                          type: "string",
+                          description: "The list of joined groups by their Item #, followed by the category string ('Q', 'R', or 'I'). Example: [[0,1,Q], [2,3,R], [4,I]]"
                         }
                       }
                     },
-                    required: ["page"]
                   },
                   systemInstruction: systemPrompt,
                   thinkingConfig: {
@@ -363,6 +344,8 @@ export async function POST(request: NextRequest) {
                   },
                 }
               });
+
+              console.log('LLM response:', JSON.stringify(response, null, 2));
 
               let llmData;
               try {
@@ -392,9 +375,9 @@ export async function POST(request: NextRequest) {
               };
 
               // Extract pages and joinedGroups
-              console.log(parsedData)
+              //console.log(parsedData)
               const pages = parsedData.pages;
-              const joinedGroups = llmData.page;
+              const joinedGroups = llmData;
 
               let mergeBoundingBoxes = (regions: any) => {
                 if (!regions || regions.length === 0) return null;
@@ -424,37 +407,31 @@ export async function POST(request: NextRequest) {
               };
 
               joinedGroups.forEach((page:any, pageIndex:any) => {
-                let currentPage = pageIndex
+                let currentPage = pageIndex;
                 parsedJson.page.push({ lines: [] });
-                page.joinedGroups.forEach((joinedGroup:any, lineIndex:any) => {
-                  let mergedText = "";
-                  let type = ""
-                  let textType = "";
-                  let regionsArray = [];
-                  let column = "";
-                  let line = "";
-                  for (let groupIndex = page.joinedGroups[lineIndex].length - 1; groupIndex >= 0; groupIndex--) {
-                    let group = joinedGroup[groupIndex];
-                    //console.log(`Processing page ${pageIndex + 1}, line ${lineIndex + 1}, group ${group}`);
-                    mergedText = pages[pageIndex].lines[group].text + " " + mergedText;
-                    type = pages[pageIndex].lines[group].type;
-                    textType = page.category[lineIndex]
-                    regionsArray.push(pages[pageIndex].lines[group].region)
-                    column = pages[pageIndex].lines[group].column;
-                    line = pages[pageIndex].lines[group].line;
-                  }
-                  parsedJson.page[currentPage].lines.push({
-                    "text": mergedText.trim(),
-                    "type": type,
-                    "textType": textType,
-                    "region": mergeBoundingBoxes(regionsArray),
-                    "line": line,
-                    "column": column
-                  });
+                page.forEach((group:any, groupIndex:any) => {
+                    let textType = group[group.length-1];
+                    let mergedText = "";
+                    let type = pages[pageIndex].lines[group[0]].type;
+                    let regionsArray = [];
+                    let column = pages[pageIndex].lines[group[0]].column;
+                    let line = pages[pageIndex].lines[group[0]].line;
+                    for(let i = 0; i<group.length-1; i++) {
+                        mergedText += pages[pageIndex].lines[group[i]].text + " ";
+                        regionsArray.push(pages[pageIndex].lines[group[i]].region);
+                    }
+                    parsedJson.page[currentPage].lines.push({
+                        "text": mergedText.trim(),
+                        "type": type,
+                        "textType": textType,
+                        "region": mergeBoundingBoxes(regionsArray),
+                        "line": line,
+                        "column": column
+                    });
                 })
-              });
+            })
 
-                console.log(JSON.stringify(parsedJson, null, 2));
+                //console.log(JSON.stringify(parsedJson, null, 2));
 
                 // Upload parsedJson as a JSON file to the same bucket
                 parsedJsonPath = uploadPath.replace(/\.pdf$/i, '_parsed.json');
@@ -483,7 +460,7 @@ export async function POST(request: NextRequest) {
 
             // Wait for LlamaIndex upload to complete
             const llamaUploadResult = await llamaUploadPromise;
-            console.log('LlamaIndex upload completed:', llamaUploadResult ? 'Success' : 'Failed');
+            //console.log('LlamaIndex upload completed:', llamaUploadResult ? 'Success' : 'Failed');
 
             // If we reach here, everything was successful
             return NextResponse.json(
