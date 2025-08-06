@@ -53,7 +53,13 @@ export default function Home() {
               {!isChatCollapsed && (
                 <div>
                   <h2 className="text-xs font-semibold">AI Assistant</h2>
-                  <p className="text-xs text-muted-foreground">Chat with your AI assistant</p>
+                  <p className="text-xs text-muted-foreground">
+                    {selectedFileName ? (
+                      <>Chat with <span className="font-medium">{selectedFileName}</span></>
+                    ) : (
+                      'Select a document to start chatting'
+                    )}
+                  </p>
                 </div>
               )}
               <div className="flex items-center gap-2">

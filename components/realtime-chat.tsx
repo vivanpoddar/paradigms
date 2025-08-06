@@ -80,8 +80,20 @@ export const RealtimeChat = ({
     const loadChatHistory = async () => {
       if (!userId) return
       
+      // Clear existing history when file changes
+      setLoadedHistoryMessages([])
+      
+      // Only load history if a file is selected
+      if (!selectedFileName) {
+        console.log('No file selected, chat history cleared')
+        return
+      }
+      
       try {
+        console.log('Loading chat history for file:', selectedFileName)
         const conversations = await loadConversations()
+        console.log('Loaded conversations count:', conversations.length)
+        
         // Convert conversations to chat messages format
         const historyMessages: ChatMessage[] = []
         conversations.forEach((conv) => {
@@ -101,6 +113,7 @@ export const RealtimeChat = ({
           })
         })
         setLoadedHistoryMessages(historyMessages)
+        console.log('Chat history loaded successfully, messages count:', historyMessages.length)
       } catch (error) {
         console.error('Failed to load chat history:', error)
       }
@@ -157,6 +170,7 @@ export const RealtimeChat = ({
     console.log('=== QUERY DOCUMENTS CALLED ===');
     console.log('Query:', query);
     console.log('Selected file:', selectedFileName);
+    console.log('Message history length:', allMessages.length);
     
     if (!selectedFileName) {
       console.log('❌ No file selected for querying')
@@ -172,7 +186,11 @@ export const RealtimeChat = ({
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ query, fileName: selectedFileName }),
+        body: JSON.stringify({ 
+          query, 
+          fileName: selectedFileName,
+          messageHistory: allMessages // Include message history for context
+        }),
       })
 
       console.log('📥 Response status:', response.status);
@@ -228,7 +246,7 @@ export const RealtimeChat = ({
     } finally {
       setIsQuerying(false)
     }
-  }, [sendMessage, selectedFileName, saveConversationToHistory])
+  }, [sendMessage, selectedFileName, saveConversationToHistory, allMessages])
 
   const handleSendMessage = useCallback(
     async (e: React.FormEvent) => {
@@ -272,8 +290,18 @@ export const RealtimeChat = ({
             Loading chat history...
           </div>
         ) : allMessages.length === 0 ? (
-          <div className="text-center text-sm text-muted-foreground">
-            No messages yet. Start the conversation!
+          <div className="text-center text-sm text-muted-foreground space-y-2">
+            {selectedFileName ? (
+              <>
+                <div>No previous conversations for <span className="font-medium">{selectedFileName}</span></div>
+                <div>Start by asking a question about this document!</div>
+              </>
+            ) : (
+              <>
+                <div>Select a document to view its chat history</div>
+                <div>and start asking questions about it!</div>
+              </>
+            )}
           </div>
         ) : null}
         <div className="space-y-1">
