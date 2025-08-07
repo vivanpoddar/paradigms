@@ -68,8 +68,8 @@ const BoundingBoxLayer: React.FC<PdfBoundingBoxesProps> = ({ apiBoundingBoxes, r
                 >
                     {/* Render LaTeX preview on hover or always, as desired */}
                     <div className="absolute left-0 top-full mt-2 bg-white border border-gray-300 rounded shadow-lg p-2 z-50 min-w-[120px] max-w-xs text-xs pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
-                        {/(\\\(|\\\)|\$.*\$)/.test(box.text) ? (
-                            <InlineMath math={box.text} />
+                        {/\$.*\$/.test(box.text) ? (
+                            <InlineMath math={box.text.replace(/\$/g, '')} />
                         ) : (
                             <span>{box.text}</span>
                         )}
@@ -154,7 +154,11 @@ export const TooltipLayer: React.FC<TooltipLayerProps> = ({ selectedBoxes, setSe
                     </button>
                 </div>
                 <div className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
-                    {tooltip.box.text}
+                    {/\$.*\$/.test(tooltip.box.text) ? (
+                        <InlineMath math={tooltip.box.text.replace(/\$/g, '')} />
+                    ) : (
+                        tooltip.box.text
+                    )}
                 </div>
                 <div className="mt-3 text-xs text-gray-500 dark:text-gray-400">
                     Page {tooltip.box.pageNumber} • ID: {tooltip.box.id}
