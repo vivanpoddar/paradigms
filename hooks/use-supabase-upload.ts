@@ -159,7 +159,7 @@ const useSupabaseUpload = (options: UseSupabaseUploadOptions) => {
           }
 
           // After successful upload, send to backend for LlamaParse processing
-          const parseResponse = await fetch('/api/parse', {
+          const parseResponse = await fetch('/api/mparse', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',

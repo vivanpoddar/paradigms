@@ -216,7 +216,7 @@ export async function POST(request: NextRequest) {
       };
 
       // Create LlamaIndex Documents from OCR output with metadata
-      const createLlamaIndexDocuments = async (mathpixResult: MathpixResponse): Promise<LlamaIndexDocument[]> => {
+      const createLlamaIndexDocuments = async (mathpixResult: MathpixResponse, lines: string): Promise<LlamaIndexDocument[]> => {
         try {
           console.log('🔧 Creating LlamaIndex Documents from OCR output...');
           
@@ -262,10 +262,9 @@ export async function POST(request: NextRequest) {
               textLength: pageText.length,
               boundingBoxes: pageLines.filter(line => line.region).length
             });
-
             // Create document with comprehensive metadata
             const document: LlamaIndexDocument = {
-              text: pageText,
+              text: lines,
               metadata: {
                 fileName: fileName,
                 userId: userId,
@@ -337,6 +336,8 @@ export async function POST(request: NextRequest) {
       const data = (await response.json()) as MathpixResponse;
       const pdfId: string = data.pdf_id;
 
+      let mdData = "";
+
       if (pdfId) {
         const pollForCompletion = async (pdfId: string, retries = 20, delayMs = 500): Promise<MathpixResponse | null> => {
           for (let i = 0; i < retries; i++) {
@@ -357,7 +358,19 @@ export async function POST(request: NextRequest) {
               console.error("Job failed with error:", data);
               return null;
             } else if (data.status === undefined) {
-              //console.log("Job status is undefined. Printing final result...");
+
+              // console.log(pdfId)
+
+              // const url = `https://api.mathpix.com/v3/pdf/${pdfId}.mmd`;
+              // const response = await fetch(url, {
+              //   headers: {
+              //     "app_id": "paradigm_75df0a_93d146",
+              //     "app_key": `Bearer ${process.env.MATHPIX_API_KEY}`
+              //   },
+              // });
+
+              // console.log("RESPONSE TEXT: ", response.text);
+              // mdData = await response.text();
               return data;
             } else {
               //console.log("Job not completed yet. Current status:", data.status);
@@ -375,13 +388,26 @@ export async function POST(request: NextRequest) {
         let llamaIndexResult: any[] | null = null; // Initialize for scope access
 
         const result = await pollForCompletion(pdfId);
+
+        const lines = (result?.pages ?? []).flatMap((page) => {
+          if (Array.isArray(page.lines)) {
+            return page.lines.map((line: any) => {
+              if (line && line.text !== "" && line.text != null && line.type != "table") {
+                return `${line.text}`;
+              }
+              return undefined;
+            }).filter(Boolean);
+          }
+          return [];
+        }).join('\n')
+
         //console.log(result)
         if (result) {
           parsedData = result;
 
           if (result && Array.isArray(result.pages)) {
             // Create LlamaIndex Documents from the OCR result
-            const documents = await createLlamaIndexDocuments(result);
+            const documents = await createLlamaIndexDocuments(result, lines);
             console.log(`📚 Created ${documents.length} LlamaIndex documents`);
 
             // Upload documents to LlamaIndex for embedding generation

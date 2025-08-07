@@ -60,16 +60,20 @@ export async function POST(request: NextRequest) {
 
 ${conversationContext}Current user request: ${query}
 
-Please respond in a helpful, action-oriented manner based on the available context from the file: ${fileName} and the conversation history above.`;
+Please respond in a helpful, action-oriented manner based on the available context from the file: ${fileName.replace(/\.[^.]+$/, '') + '.txt'} and the conversation history above.`;
 
       console.log('Creating query engine...');
+      const fileNameTxt = fileName.replace(/\.[^.]+$/, '') + '.txt';
+      console.log('File name for query:', fileNameTxt);
+      
+      // Only handle OCR-processed documents with .txt extension
       const queryEngine = index.asQueryEngine({
-        similarityTopK: 5, // Get more context for better responses
+        similarityTopK: 5,
         filters: {
           filters: [
             {
-              key: "fileName",
-              value: fileName,
+              key: "file_name",
+              value: fileNameTxt,
               operator: "text_match"
             }
           ]
