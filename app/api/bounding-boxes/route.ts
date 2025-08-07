@@ -53,17 +53,16 @@ export async function GET(request: Request) {
       parsedData.page.forEach((page: any, pageIndex: number) => {
         if (page.lines && Array.isArray(page.lines)) {
           page.lines.forEach((line: any, lineIndex: number) => {
-            console.log(line.textType, line.region, line.type);
-            if ((line.textType === 'Q' && line.region) && (line.type === 'text' || line.type === 'simple_cell' ) ) {
-              const region = line.region;
+            if ((line.textType === 'Q' && line.region && line.region.region) && (line.type === 'text' || line.type === 'simple_cell' ) ) {
+              const region = line.region.region;
               boundingBoxes.push({
-                id: region.id || `page-${pageIndex + 1}-line-${lineIndex}`,
-                x: region.region.top_left_x || 0,
-                y: region.region.top_left_y || 0,
-                width: region.region.width || 0,
-                height: region.region.height || 0,
-                text: region.text || line.text || `Line ${lineIndex + 1}`,
-                pageNumber: pageIndex + 1 // Page numbers are 1-based in the response
+                id: `page-${pageIndex + 1}-line-${lineIndex}`,
+                x: region.top_left_x || 0,
+                y: region.top_left_y || 0,
+                width: region.width || 0,
+                height: region.height || 0,
+                text: line.text || `Line ${lineIndex + 1}`,
+                pageNumber: pageIndex +1 // Page numbers are 1-based in the response
               });
             }
           });

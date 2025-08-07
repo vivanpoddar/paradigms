@@ -281,15 +281,15 @@ export async function POST(request: NextRequest) {
             //console.log('Extracted text for LlamaIndex:', extractedText);
 
             // Add extracted text to LlamaIndex for embedding generation
-            //llamaIndexResult = await addTextToLlamaIndex(extractedText);
-            //console.log('LlamaIndex embedding result:', llamaIndexResult ? 'Success' : 'Failed');
+            llamaIndexResult = await addTextToLlamaIndex(extractedText);
+            console.log('LlamaIndex embedding result:', llamaIndexResult ? 'Success' : 'Failed');
 
             let itemNumber=0;
             const formattedLines = result.pages.flatMap((page, pageIndex) => {
               if (Array.isArray(page.lines)) {
                 return page.lines.map((line: any, lineIndex: any) => {
                   itemNumber++;
-                  if (line && line.text !== "" && line.text != null) {
+                  if (line && line.text !== "" && line.text != null && line.type != "table") {
                     return `Page ${pageIndex}, Item #${lineIndex}: ${line.text}`;
                   }
                   return undefined;
@@ -306,9 +306,10 @@ export async function POST(request: NextRequest) {
 
             const systemPrompt = `
             You are a helpful assistant.Your task is to analyze a list of items extracted from a math homework document of a school student. Follow these steps: \n
-            1. ** Determine Joining **: First, decide if any items should be joined together because they are part of the same logical statement or context (e.g., split across multiple lines). If so, merge them into a single item. If you find answer choices ex. (A), (B), (C), (D), include them in the same group as the question.\n
+            1. ** Determine Joining **: First, decide if any items should be joined together because they are part of the same logical statement or context (e.g., split across multiple lines). If so, merge them into a group. \n
+            Do not treat answer choices (e.g., A, B, C, D) as separate groups by themselves. Instead, always include answer choices in the same group as their corresponding question.\n
             2. **Categorize Each Item**: For each group, determine its category:\n
-              - **Q**: The group is a question that requires input or action from the reader. A line of text including a mathematical expression is most likely part of a question.\n
+              - **Q**: The group requires input or action from the reader, most commonly a question.\n
               - **R**: The group is relevant information needed to solve a question but does not itself require action. \n
               - **I**: The group is irrelevant or does not contribute to solving the problem.           
             `;
@@ -410,26 +411,26 @@ export async function POST(request: NextRequest) {
                 let currentPage = pageIndex;
                 parsedJson.page.push({ lines: [] });
                 page.forEach((group:any, groupIndex:any) => {
-                    let textType = group[group.length-1];
-                    let mergedText = "";
-                    let type = pages[pageIndex].lines[group[0]].type;
-                    let regionsArray = [];
-                    let column = pages[pageIndex].lines[group[0]].column;
-                    let line = pages[pageIndex].lines[group[0]].line;
-                    for(let i = 0; i<group.length-1; i++) {
-                        mergedText += pages[pageIndex].lines[group[i]].text + " ";
-                        regionsArray.push(pages[pageIndex].lines[group[i]].region);
-                    }
-                    parsedJson.page[currentPage].lines.push({
-                        "text": mergedText.trim(),
-                        "type": type,
-                        "textType": textType,
-                        "region": mergeBoundingBoxes(regionsArray),
-                        "line": line,
-                        "column": column
-                    });
+                  let textType = group[group.length - 1];
+                  let mergedText = "";
+                  let type = pages[pageIndex].lines[group[0]].type;
+                  let regionsArray = [];
+                  let column = pages[pageIndex].lines[group[0]].column;
+                  let line = pages[pageIndex].lines[group[0]].line;
+                  for (let i = 0; i < group.length - 1; i++) {
+                    mergedText += pages[pageIndex].lines[group[i]].text + " ";
+                    regionsArray.push(pages[pageIndex].lines[group[i]].region);
+                  }
+                  parsedJson.page[currentPage].lines.push({
+                    "text": mergedText.trim(),
+                    "type": type,
+                    "textType": textType,
+                    "region": mergeBoundingBoxes(regionsArray),
+                    "line": line,
+                    "column": column
+                  });
                 })
-            })
+              })
 
                 //console.log(JSON.stringify(parsedJson, null, 2));
 
