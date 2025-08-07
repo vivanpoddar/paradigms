@@ -3,12 +3,66 @@ import { createClient } from '@/lib/supabase/server'
 import { writeFile, unlink } from 'fs/promises'
 import { join } from 'path'
 import { tmpdir } from 'os'
-import { randomUUID } from 'crypto'
 import fs from 'fs'
 import FormData from 'form-data'
 import fetch from 'node-fetch'
 import { GoogleGenAI } from "@google/genai";
-import { readFile } from 'fs/promises';
+
+// Type definitions for Mathpix OCR response
+interface MathpixLine {
+  text: string;
+  type?: string;
+  region?: {
+    top_left_x: number;
+    top_left_y: number;
+    width: number;
+    height: number;
+  };
+  confidence?: number;
+  line?: string;
+  column?: string;
+}
+
+interface MathpixPage {
+  lines: MathpixLine[];
+}
+
+interface MathpixResponse {
+  pdf_id: string;
+  status?: string;
+  pages?: MathpixPage[];
+  [key: string]: any;
+}
+
+interface LlamaIndexDocument {
+  text: string;
+  metadata: {
+    fileName: string;
+    userId: string;
+    uploadPath: string;
+    bucketName: string;
+    processingDate: string;
+    documentType: string;
+    source: string;
+    pageNumber: number;
+    totalPages: number;
+    lineCount: number;
+    boundingBoxes: Array<{
+      lineIndex: number;
+      text: string;
+      type: string;
+      region: any;
+      confidence: number | null;
+    }>;
+    extractedLines: Array<{
+      text: string;
+      type: string;
+      region: any;
+      lineIndex: number;
+      confidence: number | null;
+    }>;
+  };
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -47,7 +101,6 @@ export async function POST(request: NextRequest) {
     
     // Declare temp file paths for cleanup
     let tempFilePath: string | undefined = undefined;
-    let parsedTempFilePath: string | undefined = undefined;
 
     try {
       // Convert blob to buffer and write to temporary file
@@ -59,89 +112,63 @@ export async function POST(request: NextRequest) {
       tempFilePath = join(tmpdir(), tempFileName);
       await writeFile(tempFilePath, buffer);
 
-      // Create function to add text to LlamaIndex for embedding
-      const addTextToLlamaIndex = async (extractedText: string) => {
+      // Create function to upload OCR content as a file to LlamaIndex
+      const uploadOCRAsFileToLlamaIndex = async (documents: LlamaIndexDocument[]): Promise<any | null> => {
         try {
-          console.log('Adding extracted text to LlamaIndex for embedding...');
+          console.log(`🔄 Creating text file from ${documents.length} OCR documents for LlamaIndex upload...`);
           
-          const response = await fetch("https://api.cloud.llamaindex.ai/api/v1/documents", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "Accept": "application/json",
-              "Authorization": `Bearer ${process.env.LLAMA_CLOUD_API_KEY}`
-            },
-            body: JSON.stringify({
-              text: extractedText,
-              metadata: {
-                fileName: fileName,
-                userId: userId,
-                uploadPath: uploadPath,
-                bucketName: bucketName,
-                processingDate: new Date().toISOString(),
-                documentType: 'math-homework',
-                source: 'mathpix-ocr'
-              },
-              project_id: "2a2234b3-7c0c-4436-b09c-db61e7e5b546",
-              pipeline_id: "f159f09f-bb0c-4414-aaeb-084c8167cdf1"
-            })
-          });
-
-          if (!response.ok) {
-            const errorText = await response.text();
-            console.error("Error adding text to LlamaIndex:", errorText);
-            throw new Error(`LlamaIndex text upload error: ${response.status} ${response.statusText}`);
-          }
-
-          const result = await response.json();
-          console.log("✅ Text successfully added to LlamaIndex:");
-          //console.log(JSON.stringify(result, null, 2));
-          return result;
-        } catch (error) {
-          console.error("LlamaIndex text upload error:", error);
-          return null;
-        }
-      };
-
-      // Upload PDF to LlamaIndex in parallel with Mathpix processing
-      const uploadToLlamaIndex = async () => {
-        try {
-          console.log('Uploading PDF to LlamaIndex...');
+          // Create a comprehensive text file with all OCR content and metadata
+          const allText = documents.map(doc => {
+            const metadata = `
+            ${doc.text}
+            `;
+            return metadata;
+          }).join('\n');
           
-          if (!tempFilePath) {
-            throw new Error('Temp file path not available');
-          }
+          // Create text file
+          const textFileName = fileName.replace(/\.(pdf|doc|docx)$/i, '.txt');
+          const textFilePath = join(tmpdir(), textFileName);
+          await writeFile(textFilePath, allText);
+                    
+          // Upload as file to LlamaIndex
+          const fileFormData = new FormData();
+          const textFileStream = fs.createReadStream(textFilePath);
           
-          const llamaFormData = new FormData();
-          const fileStream = fs.createReadStream(tempFilePath);
-          
-          llamaFormData.append("upload_file", fileStream);
-          llamaFormData.append("external_file_id", fileName);
-          llamaFormData.append("project_id", "2a2234b3-7c0c-4436-b09c-db61e7e5b546");
-          llamaFormData.append("pipeline_id", "f159f09f-bb0c-4414-aaeb-084c8167cdf1"); 
+          fileFormData.append("upload_file", textFileStream);
+          fileFormData.append("external_file_id", `${fileName}_ocr_${Date.now()}`);
+          fileFormData.append("project_id", "2a2234b3-7c0c-4436-b09c-db61e7e5b546");
+          fileFormData.append("pipeline_id", "f159f09f-bb0c-4414-aaeb-084c8167cdf1");
 
-          const llamaResponse = await fetch("https://api.cloud.llamaindex.ai/api/v1/files", {
+          console.log(`📤 Uploading OCR text file to LlamaIndex...`);
+
+          const fileUploadResponse = await fetch("https://api.cloud.llamaindex.ai/api/v1/files", {
             method: "POST",
             headers: {
               "Accept": "application/json",
               "Authorization": `Bearer ${process.env.LLAMA_CLOUD_API_KEY}`
             },
-            body: llamaFormData
+            body: fileFormData
           });
 
-          if (!llamaResponse.ok) {
-            const errorText = await llamaResponse.text();
-            console.error("Error uploading file to LlamaIndex API:", errorText);
-            throw new Error(`LlamaIndex API error: ${llamaResponse.status} ${llamaResponse.statusText}`);
+          if (!fileUploadResponse.ok) {
+            const errorText = await fileUploadResponse.text();
+            console.error('❌ OCR text file upload failed:', {
+              status: fileUploadResponse.status,
+              statusText: fileUploadResponse.statusText,
+              errorText
+            });
+            
+            // Clean up temp file
+            await unlink(textFilePath);
+            return null;
           }
 
-          const llamaResult = await llamaResponse.json() as { id?: string; [key: string]: any };
-          //console.log("=== FULL LLAMAINDEX RESPONSE ===");
-          //console.log(JSON.stringify(llamaResult, null, 2));
-          //console.log("=== END LLAMAINDEX RESPONSE ===");
-
-          if (llamaResult && llamaResult.id) {
-            console.log('Adding file to paradigms pipeline...');
+          const fileResult = await fileUploadResponse.json() as { id?: string; [key: string]: any };
+          console.log('✅ OCR text file upload successful:', fileResult);
+          
+          // Add the file to the pipeline if it has an ID
+          if (fileResult && fileResult.id) {
+            console.log('🔗 Adding OCR file to pipeline...');
             try {
               const addToPipelineResponse = await fetch(`https://api.cloud.llamaindex.ai/api/v1/pipelines/f159f09f-bb0c-4414-aaeb-084c8167cdf1/files`, {
                 method: "PUT",
@@ -151,46 +178,136 @@ export async function POST(request: NextRequest) {
                   "Authorization": `Bearer ${process.env.LLAMA_CLOUD_API_KEY}`
                 },
                 body: JSON.stringify([{
-                  file_id: llamaResult.id,
+                  file_id: fileResult.id,
                   custom_metadata: {
                     fileName: fileName,
                     userId: userId,
                     uploadPath: uploadPath,
                     bucketName: bucketName,
                     processingDate: new Date().toISOString(),
-                    documentType: 'math-homework'
+                    documentType: 'math-homework-ocr',
+                    source: 'mathpix-ocr-processed',
+                    totalPages: documents.length,
+                    totalBoundingBoxes: documents.reduce((sum, doc) => sum + doc.metadata.boundingBoxes.length, 0)
                   }
                 }])
               });
 
               if (addToPipelineResponse.ok) {
                 const pipelineResult = await addToPipelineResponse.json();
-                // console.log("✅ File successfully added to paradigms pipeline:");
-                // console.log(JSON.stringify(pipelineResult, null, 2));
+                console.log("✅ OCR file successfully added to pipeline:", pipelineResult);
               } else {
                 const errorText = await addToPipelineResponse.text();
-                console.error("❌ Error adding file to pipeline:", errorText);
+                console.error("❌ Error adding OCR file to pipeline:", errorText);
               }
             } catch (pipelineError) {
               console.error("❌ Pipeline addition failed:", pipelineError);
             }
           }
-
-          return llamaResult;
+          
+          // Clean up temp file
+          await unlink(textFilePath);
+          
+          return fileResult;
         } catch (error) {
-          console.error("LlamaIndex upload error:", error);
-          // Don't fail the entire process if LlamaIndex upload fails
+          console.error("❌ OCR file upload error:", error);
           return null;
         }
       };
 
-      // Start LlamaIndex upload in parallel
-      const llamaUploadPromise = uploadToLlamaIndex();
+      // Create LlamaIndex Documents from OCR output with metadata
+      const createLlamaIndexDocuments = async (mathpixResult: MathpixResponse): Promise<LlamaIndexDocument[]> => {
+        try {
+          console.log('🔧 Creating LlamaIndex Documents from OCR output...');
+          
+          if (!mathpixResult || !Array.isArray(mathpixResult.pages)) {
+            throw new Error('Invalid Mathpix result structure');
+          }
 
-      let key = process.env.MATHPIX_API_KEY;
-      let appId = "paradigm_75df0a_93d146"
+          console.log(`📄 Processing ${mathpixResult.pages.length} pages from Mathpix result`);
+          const documents: LlamaIndexDocument[] = [];
 
-      let options = {
+          // Create a document for each page with detailed metadata
+          for (let pageIndex = 0; pageIndex < mathpixResult.pages.length; pageIndex++) {
+            const page = mathpixResult.pages[pageIndex];
+            
+            if (!Array.isArray(page.lines)) {
+              console.log(`⚠️ Skipping page ${pageIndex + 1}: no lines array`);
+              continue;
+            }
+
+            console.log(`📝 Processing page ${pageIndex + 1} with ${page.lines.length} lines`);
+
+            // Extract text and collect bounding box information
+            const pageLines = page.lines.map((line: MathpixLine, lineIndex: number) => ({
+              text: line.text || '',
+              type: line.type || 'text',
+              region: line.region || null,
+              lineIndex: lineIndex,
+              confidence: line.confidence || null
+            }));
+
+            const pageText = pageLines
+              .filter((line: any) => line.text.trim() !== '')
+              .map((line: any) => line.text)
+              .join(' ');
+
+            if (pageText.trim() === '') {
+              console.log(`⚠️ Skipping page ${pageIndex + 1}: no text content`);
+              continue;
+            }
+
+            console.log(`📊 Page ${pageIndex + 1} stats:`, {
+              totalLines: pageLines.length,
+              textLength: pageText.length,
+              boundingBoxes: pageLines.filter(line => line.region).length
+            });
+
+            // Create document with comprehensive metadata
+            const document: LlamaIndexDocument = {
+              text: pageText,
+              metadata: {
+                fileName: fileName,
+                userId: userId,
+                uploadPath: uploadPath,
+                bucketName: bucketName,
+                processingDate: new Date().toISOString(),
+                documentType: 'math-homework',
+                source: 'mathpix-ocr',
+                pageNumber: pageIndex + 1,
+                totalPages: mathpixResult.pages.length,
+                lineCount: pageLines.length,
+                boundingBoxes: pageLines
+                  .filter((line: any) => line.region)
+                  .map((line: any) => ({
+                    lineIndex: line.lineIndex,
+                    text: line.text,
+                    type: line.type,
+                    region: line.region,
+                    confidence: line.confidence
+                  })),
+                extractedLines: pageLines
+              }
+            };
+
+            documents.push(document);
+            console.log(`✅ Created document for page ${pageIndex + 1}`);
+          }
+
+          console.log(`🎉 Successfully created ${documents.length} LlamaIndex documents`);
+          return documents;
+        } catch (error) {
+          console.error("❌ Error creating LlamaIndex documents:", error);
+          return [];
+        }
+      };
+
+      // Start document creation (will process after OCR completion)
+
+      const key = process.env.MATHPIX_API_KEY;
+      const appId = "paradigm_75df0a_93d146"
+
+      const options = {
         "conversion_formats": { "md": true },
         "math_inline_delimiters": ["$", "$"],
         "rm_spaces": true
@@ -216,12 +333,6 @@ export async function POST(request: NextRequest) {
         console.error("Error uploading file to Mathpix API:", errorText);
         throw new Error(`Mathpix API error: ${response.status} ${response.statusText}`);
       }
-
-      type MathpixResponse = {
-        pdf_id: string;
-        status?: string;
-        [key: string]: any;
-      };
 
       const data = (await response.json()) as MathpixResponse;
       const pdfId: string = data.pdf_id;
@@ -260,8 +371,8 @@ export async function POST(request: NextRequest) {
           return null;
         };
 
-        let parsedData;
-        let llamaIndexResult = null; // Initialize for scope access
+        let parsedData: MathpixResponse;
+        let llamaIndexResult: any[] | null = null; // Initialize for scope access
 
         const result = await pollForCompletion(pdfId);
         //console.log(result)
@@ -269,26 +380,68 @@ export async function POST(request: NextRequest) {
           parsedData = result;
 
           if (result && Array.isArray(result.pages)) {
-            // Extract all text from Mathpix result for LlamaIndex embedding
-            const extractedText = result.pages.map((page: any, pageIndex: number) => {
-              if (Array.isArray(page.lines)) {
-                const pageText = page.lines.map((line: any) => line.text).join(' ');
-                return `Page ${pageIndex + 1}: ${pageText}`;
+            // Create LlamaIndex Documents from the OCR result
+            const documents = await createLlamaIndexDocuments(result);
+            console.log(`📚 Created ${documents.length} LlamaIndex documents`);
+
+            // Upload documents to LlamaIndex for embedding generation
+            llamaIndexResult = await uploadOCRAsFileToLlamaIndex(documents);
+            console.log('🎯 LlamaIndex embedding result:', {
+              success: llamaIndexResult !== null,
+              fileUploaded: llamaIndexResult !== null,
+              totalDocuments: documents.length
+            });
+
+            // If standard approach fails, try creating text files and uploading them
+            if (!llamaIndexResult) {
+              console.log('⚠️ File upload failed, but continuing with document processing...');
+            }
+
+            // Verify documents are in the data source
+            if (llamaIndexResult) {
+              console.log('🔍 Checking if file appears in LlamaIndex data sources...');
+              try {
+                // Wait a moment for processing
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                
+                const dataSourcesResponse = await fetch(`https://api.cloud.llamaindex.ai/api/v1/pipelines/f159f09f-bb0c-4414-aaeb-084c8167cdf1/documents`, {
+                  method: "GET",
+                  headers: {
+                    "Accept": "application/json",
+                    "Authorization": `Bearer ${process.env.LLAMA_CLOUD_API_KEY}`
+                  }
+                });
+
+                if (dataSourcesResponse.ok) {
+                  const dataSources = await dataSourcesResponse.json() as any[];
+                  console.log('📋 Current data sources in pipeline (count):', dataSources.length);
+                  
+                  // Check if our file appears in the list
+                  const ourFile = dataSources.find((doc: any) => 
+                    doc.metadata?.fileName === fileName || 
+                    doc.metadata?.external_file_id?.includes(fileName)
+                  );
+                  
+                  if (ourFile) {
+                    console.log('✅ Our uploaded file found in data sources!', {
+                      id: ourFile.id,
+                      fileName: ourFile.metadata?.fileName || ourFile.metadata?.file_name,
+                      external_file_id: ourFile.metadata?.external_file_id
+                    });
+                  } else {
+                    console.log('⚠️ Our file not yet visible in data sources (may take time to process)');
+                  }
+                } else {
+                  console.log('⚠️ Could not fetch data sources:', dataSourcesResponse.status);
+                }
+              } catch (error) {
+                console.log('⚠️ Error checking data sources:', error);
               }
-              return '';
-            }).join('\n\n');
+            }
 
-            //console.log('Extracted text for LlamaIndex:', extractedText);
-
-            // Add extracted text to LlamaIndex for embedding generation
-            llamaIndexResult = await addTextToLlamaIndex(extractedText);
-            console.log('LlamaIndex embedding result:', llamaIndexResult ? 'Success' : 'Failed');
-
-            let itemNumber=0;
             const formattedLines = result.pages.flatMap((page, pageIndex) => {
               if (Array.isArray(page.lines)) {
                 return page.lines.map((line: any, lineIndex: any) => {
-                  itemNumber++;
                   if (line && line.text !== "" && line.text != null && line.type != "table") {
                     return `Page ${pageIndex}, Item #${lineIndex}: ${line.text}`;
                   }
@@ -371,16 +524,14 @@ export async function POST(request: NextRequest) {
                 lines: ParsedLine[];
               };
 
-              let parsedJson: { page: ParsedPage[] } = {
+              const parsedJson: { page: ParsedPage[] } = {
                 page: []
               };
 
               // Extract pages and joinedGroups
-              //console.log(parsedData)
-              const pages = parsedData.pages;
               const joinedGroups = llmData;
 
-              let mergeBoundingBoxes = (regions: any) => {
+              const mergeBoundingBoxes = (regions: any) => {
                 if (!regions || regions.length === 0) return null;
 
                 let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
@@ -408,18 +559,20 @@ export async function POST(request: NextRequest) {
               };
 
               joinedGroups.forEach((page:any, pageIndex:any) => {
-                let currentPage = pageIndex;
+                const currentPage = pageIndex;
                 parsedJson.page.push({ lines: [] });
-                page.forEach((group:any, groupIndex:any) => {
-                  let textType = group[group.length - 1];
+                page.forEach((group:any) => {
+                  const textType = group[group.length - 1];
                   let mergedText = "";
-                  let type = pages[pageIndex].lines[group[0]].type;
-                  let regionsArray = [];
-                  let column = pages[pageIndex].lines[group[0]].column;
-                  let line = pages[pageIndex].lines[group[0]].line;
+                  const type = parsedData.pages?.[pageIndex]?.lines?.[group[0]]?.type || 'text';
+                  const regionsArray = [];
+                  const column = parsedData.pages?.[pageIndex]?.lines?.[group[0]]?.column || '';
+                  const line = parsedData.pages?.[pageIndex]?.lines?.[group[0]]?.line || '';
                   for (let i = 0; i < group.length - 1; i++) {
-                    mergedText += pages[pageIndex].lines[group[i]].text + " ";
-                    regionsArray.push(pages[pageIndex].lines[group[i]].region);
+                    const lineText = parsedData.pages?.[pageIndex]?.lines?.[group[i]]?.text || '';
+                    mergedText += lineText + " ";
+                    const region = parsedData.pages?.[pageIndex]?.lines?.[group[i]]?.region;
+                    if (region) regionsArray.push(region);
                   }
                   parsedJson.page[currentPage].lines.push({
                     "text": mergedText.trim(),
@@ -459,16 +612,12 @@ export async function POST(request: NextRequest) {
               );
             }
 
-            // Wait for LlamaIndex upload to complete
-            const llamaUploadResult = await llamaUploadPromise;
-            //console.log('LlamaIndex upload completed:', llamaUploadResult ? 'Success' : 'Failed');
-
             // If we reach here, everything was successful
             return NextResponse.json(
               { 
                 message: 'File parsed and uploaded successfully',
-                llamaIndexUploaded: llamaUploadResult !== null,
-                llamaIndexEmbedded: llamaIndexResult !== null,
+                documentsCreated: documents.length,
+                llamaIndexUploaded: llamaIndexResult !== null,
                 parsedJsonPath: parsedJsonPath
               },
               { status: 200 }
@@ -501,9 +650,6 @@ export async function POST(request: NextRequest) {
       try {
         if (typeof tempFilePath !== 'undefined') {
           await unlink(tempFilePath);
-        }
-        if (typeof parsedTempFilePath !== 'undefined') {
-          await unlink(parsedTempFilePath);
         }
       } catch (unlinkError) {
         console.error('Error cleaning up temp file:', unlinkError)
