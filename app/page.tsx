@@ -49,7 +49,7 @@ export default function Home() {
           
           {/* Side panel - Realtime Chat */}
           <div className={`transition-all duration-300 flex flex-col ${isChatCollapsed ? 'w-12' : 'w-full lg:w-2/5'}`}>
-            <div className="border-b border-border p-2 bg-muted/30 flex items-center justify-between">
+            <div className={`border-b border-border p-2 bg-muted/30 flex items-center ${isChatCollapsed ? 'justify-center' : 'justify-between'}`}>
               {!isChatCollapsed && (
                 <div>
                   <h2 className="text-xs font-semibold">AI Assistant</h2>
