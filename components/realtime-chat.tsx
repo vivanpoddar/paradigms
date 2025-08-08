@@ -325,11 +325,10 @@ export const RealtimeChat = ({
         </div>
       </div>
 
-      <form onSubmit={handleSendMessage} className="flex w-full gap-2 border-t border-border p-4">
+      <form onSubmit={handleSendMessage} className="flex w-full border-t gap-2 border-border p-4">
         <Input
           className={cn(
-            'rounded-full bg-background text-sm transition-all duration-300',
-            isConnected && newMessage.trim() ? 'w-[calc(100%-80px)]' : 'w-full'
+            'rounded-full bg-background text-sm transition-all duration-300'
           )}
           type="text"
           value={newMessage}
@@ -344,32 +343,19 @@ export const RealtimeChat = ({
           disabled={!isConnected || isQuerying}
         />
         
-        {/* Document query button */}
-        {enableDocumentQuery && isConnected && newMessage.trim() && (
+        {enableDocumentQuery && isConnected && newMessage.trim() && isConnected && newMessage.trim() && (
           <Button
-            type="button"
-            variant="outline"
             className="aspect-square rounded-full animate-in fade-in slide-in-from-right-4 duration-300"
-            onClick={() => queryDocuments(newMessage.trim())}
+            type="submit"
             disabled={!isConnected || isQuerying}
+            onClick={() => queryDocuments(newMessage.trim())}
             title="Query documents"
           >
             {isQuerying ? (
               <Loader2 className="size-4 animate-spin" />
             ) : (
-              <BookOpen className="size-4" />
+              <Send className="size-4" />
             )}
-          </Button>
-        )}
-        
-        {/* Send button */}
-        {isConnected && newMessage.trim() && (
-          <Button
-            className="aspect-square rounded-full animate-in fade-in slide-in-from-right-4 duration-300"
-            type="submit"
-            disabled={!isConnected || isQuerying}
-          >
-            <Send className="size-4" />
           </Button>
         )}
       </form>
