@@ -86,47 +86,34 @@ interface TooltipLayerProps {
     setFrontTooltipId: React.Dispatch<React.SetStateAction<string | null>>;
     selectedFileName?: string | null;
     onExplain?: (problemText: string, solution: string) => void;
+    preloadedAnswers?: Map<string, string>;
+    onAnswerSaved?: (tooltipId: string, answer: string) => void;
 }
 
-export const TooltipLayer: React.FC<TooltipLayerProps> = ({ selectedBoxes, setSelectedBoxes, frontTooltipId, setFrontTooltipId, selectedFileName, onExplain }) => {
+export const TooltipLayer: React.FC<TooltipLayerProps> = ({ selectedBoxes, setSelectedBoxes, frontTooltipId, setFrontTooltipId, selectedFileName, onExplain, preloadedAnswers, onAnswerSaved }) => {
     
-    // Check for existing answers when tooltips become visible
+    // Apply preloaded answers when tooltips become visible
     React.useEffect(() => {
-        const checkExistingAnswers = async () => {
-            if (!selectedFileName) return;
-            
-            const visibleBoxes = Array.from(selectedBoxes.entries()).filter(
-                ([_, tooltip]) => tooltip.isVisible && !tooltip.solution
-            );
-            
-            for (const [boxId, _] of visibleBoxes) {
-                try {
-                    const response = await fetch(`/api/document-answers?fileName=${encodeURIComponent(selectedFileName)}&tooltipId=${encodeURIComponent(boxId)}`);
-                    
-                    if (response.ok) {
-                        const data = await response.json();
-                        if (data.answers && data.answers.length > 0) {
-                            const latestAnswer = data.answers[0]; // Most recent answer
-                            
-                            // Update tooltip with existing solution
-                            setSelectedBoxes(prev => {
-                                const newMap = new Map(prev);
-                                const currentTooltip = newMap.get(boxId);
-                                if (currentTooltip && !currentTooltip.solution) { // Only if no solution exists
-                                    newMap.set(boxId, { ...currentTooltip, solution: latestAnswer.response });
-                                }
-                                return newMap;
-                            });
-                        }
-                    }
-                } catch (error) {
-                    console.error('Failed to check existing answer for', boxId, ':', error);
-                }
-            }
-        };
+        if (!preloadedAnswers || preloadedAnswers.size === 0) return;
         
-        checkExistingAnswers();
-    }, [selectedBoxes, selectedFileName, setSelectedBoxes]);
+        const visibleBoxes = Array.from(selectedBoxes.entries()).filter(
+            ([_, tooltip]) => tooltip.isVisible && !tooltip.solution
+        );
+        
+        visibleBoxes.forEach(([boxId, _]) => {
+            const preloadedAnswer = preloadedAnswers.get(boxId);
+            if (preloadedAnswer) {
+                setSelectedBoxes(prev => {
+                    const newMap = new Map(prev);
+                    const currentTooltip = newMap.get(boxId);
+                    if (currentTooltip && !currentTooltip.solution) { // Only if no solution exists
+                        newMap.set(boxId, { ...currentTooltip, solution: preloadedAnswer });
+                    }
+                    return newMap;
+                });
+            }
+        });
+    }, [selectedBoxes, preloadedAnswers, setSelectedBoxes]);
 
     // Check for existing answer when tooltip is opened
     const checkExistingAnswer = async (boxId: string) => {
@@ -272,6 +259,11 @@ export const TooltipLayer: React.FC<TooltipLayerProps> = ({ selectedBoxes, setSe
                         }
                     }),
                 });
+                
+                // Update preloaded answers cache with the new answer
+                if (onAnswerSaved) {
+                    onAnswerSaved(boxId, fullResponse);
+                }
             } catch (saveError) {
                 console.error('Failed to save answer to database:', saveError);
                 // Don't throw here as the main functionality (showing solution) should still work

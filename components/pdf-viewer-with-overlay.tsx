@@ -47,6 +47,7 @@ export const PdfViewerWithOverlay: React.FC<PdfViewerWithOverlayProps> = ({
     const [apiBoundingBoxes, setApiBoundingBoxes] = React.useState<BoundingBox[]>([]);
     const [selectedBoxes, setSelectedBoxes] = React.useState<Map<string, { box: BoundingBox; position: { x: number; y: number }; isVisible: boolean; solution?: string; isLoading?: boolean }>>(new Map());
     const [frontTooltipId, setFrontTooltipId] = React.useState<string | null>(null);
+    const [preloadedAnswers, setPreloadedAnswers] = React.useState<Map<string, string>>(new Map());
     const pdfContainerRef = React.useRef<HTMLDivElement>(null);
 
     // Block PDF scrolling when any tooltip is open
@@ -73,6 +74,53 @@ export const PdfViewerWithOverlay: React.FC<PdfViewerWithOverlayProps> = ({
             }
         }
     }, [selectedBoxes]);
+
+    // Preload all answers for this document when it opens
+    React.useEffect(() => {
+        const preloadAnswers = async () => {
+            if (!fileName) return;
+            
+            try {
+                const response = await fetch(`/api/document-answers?fileName=${encodeURIComponent(fileName)}`);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.answers && data.answers.length > 0) {
+                        const answersMap = new Map<string, string>();
+                        
+                        // Group answers by tooltip_id and take the most recent (first in array since ordered by id desc)
+                        const groupedAnswers = data.answers.reduce((acc: Record<string, any>, answer: any) => {
+                            if (!acc[answer.tooltip_id] || acc[answer.tooltip_id].id < answer.id) {
+                                acc[answer.tooltip_id] = answer;
+                            }
+                            return acc;
+                        }, {});
+                        
+                        // Convert to map for easy lookup
+                        Object.values(groupedAnswers).forEach((answer: any) => {
+                            answersMap.set(answer.tooltip_id, answer.response);
+                        });
+                        
+                        setPreloadedAnswers(answersMap);
+                        console.log(`Preloaded ${answersMap.size} answers for document: ${fileName}`);
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to preload answers:', error);
+            }
+        };
+
+        preloadAnswers();
+    }, [fileName]);
+
+    // Handler to update preloaded answers when new answers are saved
+    const handleAnswerSaved = React.useCallback((tooltipId: string, answer: string) => {
+        setPreloadedAnswers(prev => {
+            const newMap = new Map(prev);
+            newMap.set(tooltipId, answer);
+            return newMap;
+        });
+    }, []);
 
     // Note: Removed general click handler to allow multiple tooltip interaction
 
@@ -273,6 +321,8 @@ export const PdfViewerWithOverlay: React.FC<PdfViewerWithOverlayProps> = ({
                 setFrontTooltipId={setFrontTooltipId}
                 selectedFileName={fileName}
                 onExplain={onExplain}
+                preloadedAnswers={preloadedAnswers}
+                onAnswerSaved={handleAnswerSaved}
             />
         </div>
     );
