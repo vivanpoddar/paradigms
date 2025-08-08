@@ -64,7 +64,72 @@ interface LlamaIndexDocument {
   };
 }
 
+// Function to wait for pipeline indexing completion using pipeline status API
+const waitForPipelineIndexingCompletion = async (pipelineId: string, timeoutMs: number = 120000): Promise<boolean> => {
+  const startTime = Date.now();
+  const pollInterval = 250; // Check every 3 seconds
+  
+  console.log(`🔍 Polling pipeline status for indexing completion: ${pipelineId}`);
+  
+  while (Date.now() - startTime < timeoutMs) {
+    try {
+      // Get pipeline status using LlamaIndex API
+      const statusResponse = await fetch(`https://api.cloud.llamaindex.ai/api/v1/pipelines/${pipelineId}/status`, {
+        method: "GET",
+        headers: {
+          "Accept": "application/json",
+          "Authorization": `Bearer ${process.env.LLAMA_CLOUD_API_KEY}`
+        }
+      });
+
+      if (statusResponse.ok) {
+        const status = await statusResponse.json() as any;
+        
+        console.log(`📊 Pipeline status:`, {
+          status: status.status,
+          totalDocuments: status.total_documents || 0,
+          indexedDocuments: status.indexed_documents || 0,
+          pendingDocuments: status.pending_documents || 0,
+          failedDocuments: status.failed_documents || 0
+        });
+
+        // Check if indexing is complete
+        if (status.status === 'SUCCESS' || status.status === 'completed') {
+          console.log(`✅ Pipeline indexing completed with status: ${status.status}`);
+          return true;
+        } else if (status.status === 'failed' || status.status === 'error') {
+          console.log(`❌ Pipeline indexing failed with status: ${status.status}`);
+          return false;
+        } else if (status.pending_documents === 0 && status.indexed_documents > 0) {
+          // Alternative check: no pending documents and some indexed
+          console.log(`✅ Pipeline indexing completed - no pending documents remaining`);
+          return true;
+        } else {
+          console.log(`⏳ Pipeline still indexing - status: ${status.status}, pending: ${status.pending_documents || 0}`);
+        }
+      } else {
+        console.log(`⚠️ Error checking pipeline status: ${statusResponse.status} ${statusResponse.statusText}`);
+        const errorText = await statusResponse.text();
+        console.log(`Error details: ${errorText}`);
+      }
+      
+      // Wait before next poll
+      await new Promise(resolve => setTimeout(resolve, pollInterval));
+      
+    } catch (error) {
+      console.error('❌ Error polling pipeline status:', error);
+      // Continue polling despite errors
+      await new Promise(resolve => setTimeout(resolve, pollInterval));
+    }
+  }
+  
+  console.log(`⏰ Pipeline indexing poll timeout after ${timeoutMs}ms for pipeline: ${pipelineId}`);
+  return false;
+};
+
 export async function POST(request: NextRequest) {
+  const processingStartTime = Date.now();
+  
   try {
     const { fileName, bucketName, uploadPath, userId } = await request.json()
 
@@ -129,7 +194,7 @@ export async function POST(request: NextRequest) {
           const textFileName = fileName.replace(/\.(pdf|doc|docx)$/i, '.txt');
           const textFilePath = join(tmpdir(), textFileName);
           await writeFile(textFilePath, allText);
-                    
+          
           // Upload as file to LlamaIndex
           const fileFormData = new FormData();
           const textFileStream = fs.createReadStream(textFilePath);
@@ -423,45 +488,17 @@ export async function POST(request: NextRequest) {
               console.log('⚠️ File upload failed, but continuing with document processing...');
             }
 
-            // Verify documents are in the data source
+            // Wait for pipeline indexing to complete
+            let indexingCompleted = false;
             if (llamaIndexResult) {
-              console.log('🔍 Checking if file appears in LlamaIndex data sources...');
-              try {
-                // Wait a moment for processing
-                await new Promise(resolve => setTimeout(resolve, 2000));
-                
-                const dataSourcesResponse = await fetch(`https://api.cloud.llamaindex.ai/api/v1/pipelines/f159f09f-bb0c-4414-aaeb-084c8167cdf1/documents`, {
-                  method: "GET",
-                  headers: {
-                    "Accept": "application/json",
-                    "Authorization": `Bearer ${process.env.LLAMA_CLOUD_API_KEY}`
-                  }
-                });
-
-                if (dataSourcesResponse.ok) {
-                  const dataSources = await dataSourcesResponse.json() as any[];
-                  console.log('📋 Current data sources in pipeline (count):', dataSources.length);
-                  
-                  // Check if our file appears in the list
-                  const ourFile = dataSources.find((doc: any) => 
-                    doc.metadata?.fileName === fileName || 
-                    doc.metadata?.external_file_id?.includes(fileName)
-                  );
-                  
-                  if (ourFile) {
-                    console.log('✅ Our uploaded file found in data sources!', {
-                      id: ourFile.id,
-                      fileName: ourFile.metadata?.fileName || ourFile.metadata?.file_name,
-                      external_file_id: ourFile.metadata?.external_file_id
-                    });
-                  } else {
-                    console.log('⚠️ Our file not yet visible in data sources (may take time to process)');
-                  }
-                } else {
-                  console.log('⚠️ Could not fetch data sources:', dataSourcesResponse.status);
-                }
-              } catch (error) {
-                console.log('⚠️ Error checking data sources:', error);
+              console.log('⏳ Waiting for pipeline indexing to complete...');
+              const pipelineId = "f159f09f-bb0c-4414-aaeb-084c8167cdf1";
+              indexingCompleted = await waitForPipelineIndexingCompletion(pipelineId, 120000); // 2 minute timeout
+              
+              if (indexingCompleted) {
+                console.log('✅ Pipeline indexing completed successfully!');
+              } else {
+                console.log('⚠️ Pipeline indexing timeout - may still be processing in background');
               }
             }
 
@@ -639,12 +676,31 @@ export async function POST(request: NextRequest) {
             }
 
             // If we reach here, everything was successful
+            const processingEndTime = Date.now();
+            const processingTimeMs = processingEndTime - processingStartTime;
+            
+            const uploadFinishData = {
+              fileName,
+              userId,
+              bucketName,
+              uploadPath,
+              documentsCreated: documents.length,
+              indexingCompleted,
+              parsedJsonPath: parsedJsonPath!,
+              processingTimeMs
+            };
+
+            // Log completion
+            console.log('🎉 Upload and indexing process completed:', uploadFinishData);
+
             return NextResponse.json(
               { 
                 message: 'File parsed and uploaded successfully',
                 documentsCreated: documents.length,
                 llamaIndexUploaded: llamaIndexResult !== null,
-                parsedJsonPath: parsedJsonPath
+                indexingCompleted,
+                parsedJsonPath: parsedJsonPath,
+                uploadFinishData
               },
               { status: 200 }
             );
