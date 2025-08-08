@@ -10,10 +10,14 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Send, BookOpen, Loader2 } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState, useImperativeHandle, forwardRef } from 'react'
 import { LLAMA_CLOUD_CONFIG } from '@/lib/llama-cloud-config'
 import { useChatHistory } from '@/hooks/use-chat-history'
 import { createClient } from '@/lib/supabase/client'
+
+export interface RealtimeChatRef {
+  clearCurrentMessages: () => void;
+}
 
 interface RealtimeChatProps {
   roomName: string
@@ -34,14 +38,14 @@ interface RealtimeChatProps {
  * @param selectedFileName - The name of the currently selected file to query against
  * @returns The chat component
  */
-export const RealtimeChat = ({
+export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
   roomName,
   username,
   onMessage,
   messages: initialMessages = [],
   enableDocumentQuery = false,
   selectedFileName = null,
-}: RealtimeChatProps) => {
+}, ref) => {
   const { containerRef, scrollToBottom } = useChatScroll()
 
   const {
@@ -72,10 +76,19 @@ export const RealtimeChat = ({
   }, [])
 
   // Initialize chat history hook
-  const { saveConversation, loadConversations, isLoading: isLoadingHistory } = useChatHistory({
+  const { saveConversation, loadConversations, clearHistory, isLoading: isLoadingHistory } = useChatHistory({
     userId: userId || '',
     selectedFileName,
   })
+
+  // Expose methods to parent component via ref
+  useImperativeHandle(ref, () => ({
+    clearCurrentMessages: () => {
+      setLoadedHistoryMessages([])
+      setCompletedStreamMessages([])
+      setStreamingMessage(null)
+    }
+  }), [])
 
   // Load chat history when component mounts or when file selection changes
   useEffect(() => {
@@ -502,4 +515,4 @@ export const RealtimeChat = ({
       </form>
     </div>
   )
-}
+})

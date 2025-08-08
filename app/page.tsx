@@ -2,16 +2,24 @@
 
 import { FileBrowser } from "@/components/file-browser";
 import { Navbar } from "@/components/navbar";
-import { RealtimeChat } from "@/components/realtime-chat";
+import { RealtimeChat, RealtimeChatRef } from "@/components/realtime-chat";
 import { createClient } from "@/lib/supabase/client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, MessageCircle } from "lucide-react";
+import { ChevronLeft, ChevronRight, MessageCircle, Trash2 } from "lucide-react";
+import { useChatHistory } from "@/hooks/use-chat-history";
 
 export default function Home() {
   const [user, setUser] = useState<any>(null);
   const [isChatCollapsed, setIsChatCollapsed] = useState(false);
   const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
+  const chatRef = useRef<RealtimeChatRef>(null);
+
+  // Initialize chat history hook
+  const { clearHistory, isLoading: isClearingHistory } = useChatHistory({
+    userId: user?.id || '',
+    selectedFileName,
+  });
 
   useEffect(() => {
     const getUser = async () => {
@@ -36,6 +44,18 @@ export default function Home() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
+
+  const handleClearHistory = async () => {
+    if (!user?.id) return;
+    
+    try {
+      await clearHistory();
+      // Clear current chat contents immediately
+      chatRef.current?.clearCurrentMessages();
+    } catch (error) {
+      console.error('Failed to clear chat history:', error);
+    }
+  };
   
   return (
     <main className="h-screen flex flex-col">
@@ -63,6 +83,18 @@ export default function Home() {
                 </div>
               )}
               <div className="flex items-center gap-2">
+                {!isChatCollapsed && selectedFileName && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleClearHistory}
+                    disabled={isClearingHistory}
+                    className="h-5 w-5 p-0"
+                    title="Clear chat history"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                )}
                 <Button
                   variant="ghost"
                   size="sm"
@@ -91,6 +123,7 @@ export default function Home() {
             {!isChatCollapsed && (
               <div className="flex-1 max-h-[89vh]">
                 <RealtimeChat 
+                  ref={chatRef}
                   roomName="general-chat" 
                   username={user?.email?.split('@')[0] || 'anonymous'}
                   enableDocumentQuery={true}

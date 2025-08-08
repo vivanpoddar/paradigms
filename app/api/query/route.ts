@@ -88,7 +88,7 @@ Please respond on the available context from the file: ${fileName.replace(/\.[^.
           const content = response.message.content;
           
           // Stream the content in chunks
-          const chunkSize = 10; // Adjust chunk size as needed
+          const chunkSize = 50; // Adjust chunk size as needed
           for (let i = 0; i < content.length; i += chunkSize) {
             const chunk = content.slice(i, i + chunkSize);
             const data = JSON.stringify({ content: chunk, done: false }) + '\n';

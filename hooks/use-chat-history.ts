@@ -93,15 +93,35 @@ export const useChatHistory = ({ userId, selectedFileName }: UseChatHistoryProps
   const clearHistory = useCallback(async () => {
     try {
       setError(null)
-      // Implementation for clearing history would go here
-      // You might want to add a DELETE endpoint to the API
-      console.log('Clear history not yet implemented')
+      setIsLoading(true)
+
+      const params = new URLSearchParams({
+        userId,
+      })
+
+      if (selectedFileName) {
+        params.append('fileName', selectedFileName)
+      }
+
+      const response = await fetch(`/api/chat-history?${params.toString()}`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to clear history')
+      }
+
+      return await response.json()
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to clear history'
       setError(errorMessage)
       console.error('Error clearing history:', err)
+      throw err
+    } finally {
+      setIsLoading(false)
     }
-  }, [])
+  }, [userId, selectedFileName])
 
   return {
     saveConversation,

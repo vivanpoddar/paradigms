@@ -113,3 +113,54 @@ export async function GET(request: NextRequest) {
     )
   }
 }
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url)
+    const userId = searchParams.get('userId')
+    const fileName = searchParams.get('fileName')
+
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'Missing required parameter: userId' },
+        { status: 400 }
+      )
+    }
+
+    const supabase = await createClient()
+
+    // Build delete query
+    let query = supabase
+      .from('chat_history')
+      .delete()
+      .eq('user_id', userId)
+
+    // Add fileName filter if provided (delete only for specific file)
+    if (fileName) {
+      query = query.eq('file_name', fileName)
+    }
+
+    const { data, error } = await query
+
+    if (error) {
+      console.error('Error clearing chat history:', error)
+      return NextResponse.json(
+        { error: `Failed to clear history: ${error.message}` },
+        { status: 500 }
+      )
+    }
+
+    return NextResponse.json(
+      { message: 'Chat history cleared successfully', data },
+      { status: 200 }
+    )
+  } catch (error) {
+    console.error('API route error:', error)
+    return NextResponse.json(
+      { 
+        error: `Server error: ${error instanceof Error ? error.message : 'Unknown error'}` 
+      },
+      { status: 500 }
+    )
+  }
+}
