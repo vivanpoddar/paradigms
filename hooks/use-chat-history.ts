@@ -22,6 +22,14 @@ export const useChatHistory = ({ userId, selectedFileName }: UseChatHistoryProps
   const saveConversation = useCallback(async (query: string, response: string, metadata: Record<string, any> = {}) => {
     try {
       setError(null)
+      console.log('useChatHistory saveConversation called with:', {
+        userId,
+        query: query.substring(0, 50),
+        response: response.substring(0, 50),
+        selectedFileName,
+        metadata
+      })
+      
       const response_data = await fetch('/api/chat-history', {
         method: 'POST',
         headers: {

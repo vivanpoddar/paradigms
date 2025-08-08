@@ -50,17 +50,11 @@ export async function POST(request: NextRequest) {
       }
 
       // Enhanced query with action-oriented instructions and conversation context
-      const enhancedQuery = `You are an intelligent assistant that takes action based on user requests. When responding:
-1. If the user asks for information, provide comprehensive details with actionable insights
-2. If they ask you to analyze, create, or solve something, actively do it
-3. If they ask for recommendations, provide specific, actionable advice with steps
-4. If they ask you to explain something, provide step-by-step guidance with examples
-5. Always be proactive - don't just extract information, provide actionable insights and next steps
-6. Consider the conversation history to provide contextually relevant responses
+      const enhancedQuery = `You are an intelligent assistant that takes action based on user requests. Assume the user is asking for help with a document-related task. If your responses do not require any action, keep your response concise, short, and focused on the user's request.
 
 ${conversationContext}Current user request: ${query}
 
-Please respond in a helpful, action-oriented manner based on the available context from the file: ${fileName.replace(/\.[^.]+$/, '') + '.txt'} and the conversation history above.`;
+Please respond on the available context from the file: ${fileName.replace(/\.[^.]+$/, '') + '.txt'} and the conversation history above.`;
 
       console.log('Creating query engine...');
       const fileNameTxt = fileName.replace(/\.[^.]+$/, '') + '.txt';
@@ -86,13 +80,42 @@ Please respond in a helpful, action-oriented manner based on the available conte
       return response;
     };
 
-    const response = await answerQuery(query, fileName, messageHistory);
+    // Create a readable stream for streaming the response
+    const stream = new ReadableStream({
+      async start(controller) {
+        try {
+          const response = await answerQuery(query, fileName, messageHistory);
+          const content = response.message.content;
+          
+          // Stream the content in chunks
+          const chunkSize = 50; // Adjust chunk size as needed
+          for (let i = 0; i < content.length; i += chunkSize) {
+            const chunk = content.slice(i, i + chunkSize);
+            const data = JSON.stringify({ content: chunk, done: false }) + '\n';
+            controller.enqueue(new TextEncoder().encode(data));
+            
+            // Add a small delay to simulate streaming
+            await new Promise(resolve => setTimeout(resolve, 50));
+          }
+          
+          // Send final chunk to indicate completion
+          const finalData = JSON.stringify({ content: '', done: true }) + '\n';
+          controller.enqueue(new TextEncoder().encode(finalData));
+          controller.close();
+        } catch (error) {
+          console.error('Streaming error:', error);
+          const errorData = JSON.stringify({ error: error instanceof Error ? error.message : String(error), done: true }) + '\n';
+          controller.enqueue(new TextEncoder().encode(errorData));
+          controller.close();
+        }
+      }
+    });
 
-    console.log('Query response:', response);
-
-    return NextResponse.json({
-      query,
-      response: response.message.content
+    return new Response(stream, {
+      headers: {
+        'Content-Type': 'text/plain',
+        'Transfer-Encoding': 'chunked',
+      },
     });
   } catch (error) {
     console.error('=== ERROR IN QUERY ROUTE ===');

@@ -56,6 +56,8 @@ export const RealtimeChat = ({
   const [isQuerying, setIsQuerying] = useState(false)
   const [userId, setUserId] = useState<string | null>(null)
   const [loadedHistoryMessages, setLoadedHistoryMessages] = useState<ChatMessage[]>([])
+  const [streamingMessage, setStreamingMessage] = useState<ChatMessage | null>(null)
+  const [completedStreamMessages, setCompletedStreamMessages] = useState<ChatMessage[]>([])
 
   // Get user ID from Supabase
   useEffect(() => {
@@ -80,8 +82,9 @@ export const RealtimeChat = ({
     const loadChatHistory = async () => {
       if (!userId) return
       
-      // Clear existing history when file changes
+      // Clear existing history and completed stream messages when file changes
       setLoadedHistoryMessages([])
+      setCompletedStreamMessages([])
       
       // Only load history if a file is selected
       if (!selectedFileName) {
@@ -124,7 +127,13 @@ export const RealtimeChat = ({
 
   // Merge realtime messages with initial messages and loaded history
   const allMessages = useMemo(() => {
-    const mergedMessages = [...initialMessages, ...loadedHistoryMessages, ...realtimeMessages]
+    const mergedMessages = [...initialMessages, ...loadedHistoryMessages, ...realtimeMessages, ...completedStreamMessages]
+    
+    // Add streaming message if it exists
+    if (streamingMessage) {
+      mergedMessages.push(streamingMessage)
+    }
+    
     // Remove duplicates based on message id
     const uniqueMessages = mergedMessages.filter(
       (message, index, self) => index === self.findIndex((m) => m.id === message.id)
@@ -133,7 +142,7 @@ export const RealtimeChat = ({
     const sortedMessages = uniqueMessages.sort((a, b) => a.createdAt.localeCompare(b.createdAt))
 
     return sortedMessages
-  }, [initialMessages, realtimeMessages, loadedHistoryMessages])
+  }, [initialMessages, realtimeMessages, loadedHistoryMessages, streamingMessage, completedStreamMessages])
 
   useEffect(() => {
     if (onMessage) {
@@ -148,7 +157,15 @@ export const RealtimeChat = ({
 
   // Save new conversations to database (query + response pairs)
   const saveConversationToHistory = useCallback(async (query: string, response: string, metadata: Record<string, any> = {}) => {
-    if (!userId) return
+    if (!userId) {
+      console.error('Cannot save conversation: userId is not available')
+      return
+    }
+    
+    if (!query || !response) {
+      console.error('Cannot save conversation: query or response is empty', { query: !!query, response: !!response })
+      return
+    }
     
     try {
       await saveConversation(query, response, metadata)
@@ -198,24 +215,104 @@ export const RealtimeChat = ({
         throw new Error(`HTTP error! status: ${response.status}`)
       }
 
-      const data = await response.json()
-      const responseText = data.response
-      
-      // Send the AI response as a message from a bot user
-      const botMessage: ChatMessage = {
-        id: crypto.randomUUID(),
-        content: `🤖 **Document Assistant**: ${responseText}`,
+      // Create a temporary message to stream content into
+      const botMessageId = crypto.randomUUID()
+      const initialBotMessage: ChatMessage = {
+        id: botMessageId,
+        content: '🤖 **Document Assistant**: ',
         user: {
           name: 'Document Assistant',
         },
         createdAt: new Date().toISOString(),
       }
 
-      // Add bot message to local state (this will be broadcast to other users)
-      sendMessage(botMessage.content)
+      // Set the streaming message in local state
+      setStreamingMessage(initialBotMessage)
+      
+      let fullResponse = ''
+      
+      // Handle streaming response
+      const reader = response.body?.getReader()
+      if (reader) {
+        const decoder = new TextDecoder()
+        
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+          
+          const chunk = decoder.decode(value)
+          const lines = chunk.split('\n').filter(line => line.trim())
+          
+          for (const line of lines) {
+            try {
+              const data = JSON.parse(line)
+              
+              if (data.error) {
+                throw new Error(data.error)
+              }
+              
+              if (data.content) {
+                fullResponse += data.content
+                // Update the streaming message with accumulated content
+                setStreamingMessage(prev => prev ? {
+                  ...prev,
+                  content: `🤖 **Document Assistant**: ${fullResponse}`
+                } : null)
+              }
+              
+              if (data.done) {
+                console.log('Streaming completed, breaking loop')
+                break
+              }
+            } catch (parseError) {
+              console.warn('Failed to parse streaming chunk:', parseError)
+            }
+          }
+          
+          // Check if we received a done signal to break the outer loop
+          if (lines.some(line => {
+            try {
+              const data = JSON.parse(line)
+              return data.done
+            } catch {
+              return false
+            }
+          })) {
+            console.log('Breaking outer streaming loop')
+            break
+          }
+        }
+        
+        console.log('Streaming reader finished')
+      } else {
+        // Fallback for non-streaming response
+        const data = await response.json()
+        fullResponse = data.response
+        setStreamingMessage(prev => prev ? {
+          ...prev,
+          content: `🤖 **Document Assistant**: ${fullResponse}`
+        } : null)
+      }
+      
+      console.log('Streaming completed, fullResponse length:', fullResponse.length)
+      
+      // Once streaming is complete, add the final message to completed messages and clear streaming state
+      const finalBotMessage: ChatMessage = {
+        id: botMessageId,
+        content: `🤖 **Document Assistant**: ${fullResponse}`,
+        user: {
+          name: 'Document Assistant',
+        },
+        createdAt: new Date().toISOString(),
+      }
+      
+      // Add to completed stream messages (local state only, not broadcast)
+      setCompletedStreamMessages(prev => [...prev, finalBotMessage])
+      setStreamingMessage(null)
       
       // Save the complete conversation to database (query + response)
-      await saveConversationToHistory(query, responseText, {
+      console.log('Saving conversation - userId:', userId, 'query:', query.substring(0, 50), 'response:', fullResponse.substring(0, 50))
+      await saveConversationToHistory(query, fullResponse, {
         fileName: selectedFileName,
         messageType: 'query-response'
       })
@@ -225,26 +322,45 @@ export const RealtimeChat = ({
       
       const errorResponse = 'Sorry, I encountered an error while searching the documents. Please try again.'
       
-      // Send error message
-      const errorMessage: ChatMessage = {
-        id: crypto.randomUUID(),
-        content: `🤖 **Document Assistant**: ${errorResponse}`,
-        user: {
-          name: 'Document Assistant',
-        },
-        createdAt: new Date().toISOString(),
+      // Update streaming message with error or send new error message
+      if (streamingMessage) {
+        const errorBotMessage: ChatMessage = {
+          id: streamingMessage.id,
+          content: `🤖 **Document Assistant**: ${errorResponse}`,
+          user: {
+            name: 'Document Assistant',
+          },
+          createdAt: streamingMessage.createdAt,
+        }
+        
+        // Add to completed stream messages and clear streaming state
+        setCompletedStreamMessages(prev => [...prev, errorBotMessage])
+        setStreamingMessage(null)
+      } else {
+        // Send error message as a new completed message
+        const errorMessage: ChatMessage = {
+          id: crypto.randomUUID(),
+          content: `🤖 **Document Assistant**: ${errorResponse}`,
+          user: {
+            name: 'Document Assistant',
+          },
+          createdAt: new Date().toISOString(),
+        }
+        
+        setCompletedStreamMessages(prev => [...prev, errorMessage])
       }
       
-      sendMessage(errorMessage.content)
-      
       // Save the error conversation to database
+      console.log('Saving error conversation - userId:', userId, 'query:', query.substring(0, 50), 'errorResponse:', errorResponse)
       await saveConversationToHistory(query, errorResponse, {
         fileName: selectedFileName,
         messageType: 'query-error',
         error: error instanceof Error ? error.message : 'Unknown error'
       })
     } finally {
+      console.log('Query finally block reached, setting isQuerying to false')
       setIsQuerying(false)
+      setStreamingMessage(null) // Clear streaming message on completion
     }
   }, [sendMessage, selectedFileName, saveConversationToHistory, allMessages])
 
