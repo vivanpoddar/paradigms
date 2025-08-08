@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { File, FileText, Image, Download, Plus, ChevronLeft, ChevronRight, Folder } from "lucide-react";
+import { File, FileText, Image, Download, Plus, ChevronLeft, ChevronRight, Folder, Trash2 } from "lucide-react";
 import { FileUpload } from "@/components/file-upload";
 import { PdfViewerWithOverlay } from "@/components/pdf-viewer-with-overlay";
 
@@ -31,6 +31,7 @@ export function FileBrowser({ onFileSelect }: FileBrowserProps = {}) {
   const [userId, setUserId] = useState<string | null>(null);
   const [showUpload, setShowUpload] = useState(false);
   const [isFileListCollapsed, setIsFileListCollapsed] = useState(false);
+  const [deletingFile, setDeletingFile] = useState<string | null>(null);
 
   // Get current user and load files
   useEffect(() => {
@@ -42,21 +43,6 @@ export function FileBrowser({ onFileSelect }: FileBrowserProps = {}) {
       }
     };
     loadUserFiles();
-  }, []);
-
-  // Keyboard shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.ctrlKey || e.metaKey) {
-        if (e.key === 'e' || e.key === 'E') {
-          e.preventDefault();
-          setIsFileListCollapsed(prev => !prev);
-        }
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
   const loadFiles = async (userUuid: string) => {
@@ -149,6 +135,65 @@ export function FileBrowser({ onFileSelect }: FileBrowserProps = {}) {
     }
   };
 
+  const deleteFile = async (file: FileItem) => {
+    if (!userId) return;
+        
+    setDeletingFile(file.id);
+    
+    try {
+      
+      const { error: fileDeleteError } = await supabase.storage
+        .from('documents')
+        .remove([`${userId}/${file.name}`]);
+
+      if (fileDeleteError) {
+        console.error('Error deleting file from storage:', fileDeleteError);
+        throw fileDeleteError;
+      }
+
+      console.log('✅ File deleted from storage');
+
+      const parsedJsonFileName = file.name.replace(/\.(pdf|doc|docx)$/i, '_parsed.json');
+      if (parsedJsonFileName !== file.name) {
+        const { error: parsedDeleteError } = await supabase.storage
+          .from('documents')
+          .remove([`${userId}/${parsedJsonFileName}`]);
+        
+        if (parsedDeleteError) {
+        } else {
+        }
+      }
+
+      // 3. Delete chat history from database
+      const { error: chatDeleteError, count: deletedChatCount } = await supabase
+        .from('chat_history')
+        .delete()
+        .eq('user_id', userId)
+        .eq('file_name', file.name);
+
+      if (chatDeleteError) {
+        console.error('Error deleting chat history:', chatDeleteError);
+      } else {
+        console.log(`✅ Chat history deleted (${deletedChatCount || 0} messages)`);
+      }
+
+      // 5. Refresh file list
+      await loadFiles(userId);
+      
+      if (selectedFile?.id === file.id) {
+        setSelectedFile(null);
+        setFileContent(null);
+        onFileSelect?.(null);
+      }
+      
+    } catch (error) {
+      console.error('Error deleting file:', error);
+      alert(`Failed to delete file: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setDeletingFile(null);
+    }
+  };
+
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
@@ -163,6 +208,9 @@ export function FileBrowser({ onFileSelect }: FileBrowserProps = {}) {
     if (mimetype === 'application/pdf') return <FileText className="h-4 w-4" />;
     return <File className="h-4 w-4" />;
   };
+
+  // const visibleFiles = files.filter(file => !file.name.toLowerCase().endsWith('.json'));
+  const visibleFiles = files
 
   return (
     <div className="flex h-full">
@@ -222,14 +270,14 @@ export function FileBrowser({ onFileSelect }: FileBrowserProps = {}) {
             <div 
               className="flex-1 flex flex-col items-center justify-start pt-4 cursor-pointer hover:bg-muted/50 transition-colors"
               onClick={() => setIsFileListCollapsed(false)}
-              title={`Click to expand file list (${files.length} files) - Ctrl+E`}
+              title={`Click to expand file list (${visibleFiles.length} files) - Ctrl+E`}
             >
               <div className="flex flex-col items-center gap-2 text-muted-foreground">
                 <div className="relative">
                   <Folder className="h-5 w-5" />
-                  {files.length > 0 && (
+                  {visibleFiles.length > 0 && (
                     <span className="absolute -top-2 -right-2 bg-primary text-primary-foreground text-xs rounded-full h-4 w-4 flex items-center justify-center">
-                      {files.length > 9 ? '9+' : files.length}
+                      {visibleFiles.length > 9 ? '9+' : visibleFiles.length}
                     </span>
                   )}
                 </div>
@@ -247,22 +295,22 @@ export function FileBrowser({ onFileSelect }: FileBrowserProps = {}) {
                 </div>
               )}
               <div className="flex-1 overflow-y-auto">
-                {files.length === 0 ? (
+                {visibleFiles.length === 0 ? (
                   <div className="flex items-center justify-center h-64">
                     <p className="text-muted-foreground text-center">
                       No files uploaded yet
                     </p>
                   </div>
                 ) : (
-                  files.map((file) => (
+                  visibleFiles.map((file) => (
                     <div
                       key={file.id}
                       className={`p-4 border-b cursor-pointer transition-colors ${
                         selectedFile?.id === file.id
                           ? 'bg-primary/10 border-primary'
                           : 'hover:bg-muted/50'
-                      }`}
-                      onClick={() => selectFile(file)}
+                      } ${deletingFile === file.id ? 'opacity-50 pointer-events-none' : ''}`}
+                      onClick={() => deletingFile !== file.id && selectFile(file)}
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -276,16 +324,36 @@ export function FileBrowser({ onFileSelect }: FileBrowserProps = {}) {
                             </span>
                           </div>
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            downloadFile(file);
-                          }}
-                        >
-                          <Download className="h-4 w-4" />
-                        </Button>
+                        <div className="flex gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              downloadFile(file);
+                            }}
+                            title="Download file"
+                          >
+                            <Download className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteFile(file);
+                            }}
+                            disabled={deletingFile === file.id}
+                            title="Delete file and chat history"
+                            className=""
+                          >
+                            {deletingFile === file.id ? (
+                              <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                            ) : (
+                              <Trash2 className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   ))

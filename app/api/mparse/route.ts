@@ -68,9 +68,7 @@ interface LlamaIndexDocument {
 const waitForPipelineIndexingCompletion = async (pipelineId: string, timeoutMs: number = 120000): Promise<boolean> => {
   const startTime = Date.now();
   const pollInterval = 250; // Check every 3 seconds
-  
-  console.log(`🔍 Polling pipeline status for indexing completion: ${pipelineId}`);
-  
+    
   while (Date.now() - startTime < timeoutMs) {
     try {
       // Get pipeline status using LlamaIndex API
@@ -84,31 +82,14 @@ const waitForPipelineIndexingCompletion = async (pipelineId: string, timeoutMs: 
 
       if (statusResponse.ok) {
         const status = await statusResponse.json() as any;
-        
-        console.log(`📊 Pipeline status:`, {
-          status: status.status,
-          totalDocuments: status.total_documents || 0,
-          indexedDocuments: status.indexed_documents || 0,
-          pendingDocuments: status.pending_documents || 0,
-          failedDocuments: status.failed_documents || 0
-        });
 
         // Check if indexing is complete
         if (status.status === 'SUCCESS' || status.status === 'completed') {
-          console.log(`✅ Pipeline indexing completed with status: ${status.status}`);
-          return true;
-        } else if (status.status === 'failed' || status.status === 'error') {
-          console.log(`❌ Pipeline indexing failed with status: ${status.status}`);
-          return false;
-        } else if (status.pending_documents === 0 && status.indexed_documents > 0) {
-          // Alternative check: no pending documents and some indexed
-          console.log(`✅ Pipeline indexing completed - no pending documents remaining`);
           return true;
         } else {
-          console.log(`⏳ Pipeline still indexing - status: ${status.status}, pending: ${status.pending_documents || 0}`);
+          console.error("Error: No valid response from indexing")
         }
       } else {
-        console.log(`⚠️ Error checking pipeline status: ${statusResponse.status} ${statusResponse.statusText}`);
         const errorText = await statusResponse.text();
         console.log(`Error details: ${errorText}`);
       }
@@ -117,13 +98,12 @@ const waitForPipelineIndexingCompletion = async (pipelineId: string, timeoutMs: 
       await new Promise(resolve => setTimeout(resolve, pollInterval));
       
     } catch (error) {
-      console.error('❌ Error polling pipeline status:', error);
       // Continue polling despite errors
       await new Promise(resolve => setTimeout(resolve, pollInterval));
     }
   }
   
-  console.log(`⏰ Pipeline indexing poll timeout after ${timeoutMs}ms for pipeline: ${pipelineId}`);
+  console.log(`Pipeline indexing poll timeout after ${timeoutMs}ms for pipeline: ${pipelineId}`);
   return false;
 };
 
@@ -179,9 +159,7 @@ export async function POST(request: NextRequest) {
 
       // Create function to upload OCR content as a file to LlamaIndex
       const uploadOCRAsFileToLlamaIndex = async (documents: LlamaIndexDocument[]): Promise<any | null> => {
-        try {
-          console.log(`🔄 Creating text file from ${documents.length} OCR documents for LlamaIndex upload...`);
-          
+        try {          
           // Create a comprehensive text file with all OCR content and metadata
           const allText = documents.map(doc => {
             const metadata = `
@@ -203,8 +181,6 @@ export async function POST(request: NextRequest) {
           fileFormData.append("external_file_id", `${fileName}_ocr_${Date.now()}`);
           fileFormData.append("project_id", "2a2234b3-7c0c-4436-b09c-db61e7e5b546");
           fileFormData.append("pipeline_id", "f159f09f-bb0c-4414-aaeb-084c8167cdf1");
-
-          console.log(`📤 Uploading OCR text file to LlamaIndex...`);
 
           const fileUploadResponse = await fetch("https://api.cloud.llamaindex.ai/api/v1/files", {
             method: "POST",
@@ -229,11 +205,9 @@ export async function POST(request: NextRequest) {
           }
 
           const fileResult = await fileUploadResponse.json() as { id?: string; [key: string]: any };
-          console.log('✅ OCR text file upload successful:', fileResult);
           
           // Add the file to the pipeline if it has an ID
           if (fileResult && fileResult.id) {
-            console.log('🔗 Adding OCR file to pipeline...');
             try {
               const addToPipelineResponse = await fetch(`https://api.cloud.llamaindex.ai/api/v1/pipelines/f159f09f-bb0c-4414-aaeb-084c8167cdf1/files`, {
                 method: "PUT",
@@ -258,15 +232,8 @@ export async function POST(request: NextRequest) {
                 }])
               });
 
-              if (addToPipelineResponse.ok) {
-                const pipelineResult = await addToPipelineResponse.json();
-                console.log("✅ OCR file successfully added to pipeline:", pipelineResult);
-              } else {
-                const errorText = await addToPipelineResponse.text();
-                console.error("❌ Error adding OCR file to pipeline:", errorText);
-              }
             } catch (pipelineError) {
-              console.error("❌ Pipeline addition failed:", pipelineError);
+              console.error("Pipeline addition failed:", pipelineError);
             }
           }
           
@@ -275,7 +242,7 @@ export async function POST(request: NextRequest) {
           
           return fileResult;
         } catch (error) {
-          console.error("❌ OCR file upload error:", error);
+          console.error("OCR file upload error:", error);
           return null;
         }
       };
@@ -283,13 +250,11 @@ export async function POST(request: NextRequest) {
       // Create LlamaIndex Documents from OCR output with metadata
       const createLlamaIndexDocuments = async (mathpixResult: MathpixResponse, lines: string): Promise<LlamaIndexDocument[]> => {
         try {
-          console.log('🔧 Creating LlamaIndex Documents from OCR output...');
           
           if (!mathpixResult || !Array.isArray(mathpixResult.pages)) {
             throw new Error('Invalid Mathpix result structure');
           }
 
-          console.log(`📄 Processing ${mathpixResult.pages.length} pages from Mathpix result`);
           const documents: LlamaIndexDocument[] = [];
 
           // Create a document for each page with detailed metadata
@@ -297,11 +262,8 @@ export async function POST(request: NextRequest) {
             const page = mathpixResult.pages[pageIndex];
             
             if (!Array.isArray(page.lines)) {
-              console.log(`⚠️ Skipping page ${pageIndex + 1}: no lines array`);
               continue;
             }
-
-            console.log(`📝 Processing page ${pageIndex + 1} with ${page.lines.length} lines`);
 
             // Extract text and collect bounding box information
             const pageLines = page.lines.map((line: MathpixLine, lineIndex: number) => ({
@@ -318,15 +280,9 @@ export async function POST(request: NextRequest) {
               .join(' ');
 
             if (pageText.trim() === '') {
-              console.log(`⚠️ Skipping page ${pageIndex + 1}: no text content`);
               continue;
             }
 
-            console.log(`📊 Page ${pageIndex + 1} stats:`, {
-              totalLines: pageLines.length,
-              textLength: pageText.length,
-              boundingBoxes: pageLines.filter(line => line.region).length
-            });
             // Create document with comprehensive metadata
             const document: LlamaIndexDocument = {
               text: lines,
@@ -355,13 +311,11 @@ export async function POST(request: NextRequest) {
             };
 
             documents.push(document);
-            console.log(`✅ Created document for page ${pageIndex + 1}`);
           }
 
-          console.log(`🎉 Successfully created ${documents.length} LlamaIndex documents`);
           return documents;
         } catch (error) {
-          console.error("❌ Error creating LlamaIndex documents:", error);
+          console.error("Error creating LlamaIndex documents:", error);
           return [];
         }
       };
@@ -400,8 +354,6 @@ export async function POST(request: NextRequest) {
 
       const data = (await response.json()) as MathpixResponse;
       const pdfId: string = data.pdf_id;
-
-      let mdData = "";
 
       if (pdfId) {
         const pollForCompletion = async (pdfId: string, retries = 20, delayMs = 500): Promise<MathpixResponse | null> => {
@@ -473,33 +425,20 @@ export async function POST(request: NextRequest) {
           if (result && Array.isArray(result.pages)) {
             // Create LlamaIndex Documents from the OCR result
             const documents = await createLlamaIndexDocuments(result, lines);
-            console.log(`📚 Created ${documents.length} LlamaIndex documents`);
 
             // Upload documents to LlamaIndex for embedding generation
             llamaIndexResult = await uploadOCRAsFileToLlamaIndex(documents);
-            console.log('🎯 LlamaIndex embedding result:', {
-              success: llamaIndexResult !== null,
-              fileUploaded: llamaIndexResult !== null,
-              totalDocuments: documents.length
-            });
 
             // If standard approach fails, try creating text files and uploading them
             if (!llamaIndexResult) {
-              console.log('⚠️ File upload failed, but continuing with document processing...');
+              console.log('File upload failed, but continuing with document processing...');
             }
 
             // Wait for pipeline indexing to complete
             let indexingCompleted = false;
             if (llamaIndexResult) {
-              console.log('⏳ Waiting for pipeline indexing to complete...');
               const pipelineId = "f159f09f-bb0c-4414-aaeb-084c8167cdf1";
               indexingCompleted = await waitForPipelineIndexingCompletion(pipelineId, 120000); // 2 minute timeout
-              
-              if (indexingCompleted) {
-                console.log('✅ Pipeline indexing completed successfully!');
-              } else {
-                console.log('⚠️ Pipeline indexing timeout - may still be processing in background');
-              }
             }
 
             const formattedLines = result.pages.flatMap((page, pageIndex) => {
@@ -515,7 +454,6 @@ export async function POST(request: NextRequest) {
             });
 
             const linesForLLM = formattedLines.join('\n');
-            console.log(linesForLLM)
             
             // Declare parsedJsonPath for use across scopes
             let parsedJsonPath: string;
@@ -534,7 +472,6 @@ export async function POST(request: NextRequest) {
               apiKey: process.env.GEMINI_API_KEY
             });
 
-            console.log('linesForLLM:', linesForLLM); 
             try {
               const response = await ai.models.generateContent({
                 model: "gemini-2.5-flash",
@@ -561,8 +498,6 @@ export async function POST(request: NextRequest) {
                   },
                 }
               });
-
-              console.log('LLM response:', JSON.stringify(response, null, 2));
 
               let llmData;
               try {
@@ -691,7 +626,6 @@ export async function POST(request: NextRequest) {
             };
 
             // Log completion
-            console.log('🎉 Upload and indexing process completed:', uploadFinishData);
 
             return NextResponse.json(
               { 

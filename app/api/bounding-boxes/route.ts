@@ -53,7 +53,7 @@ export async function GET(request: Request) {
       parsedData.page.forEach((page: any, pageIndex: number) => {
         if (page.lines && Array.isArray(page.lines)) {
           page.lines.forEach((line: any, lineIndex: number) => {
-            if ((line.textType === 'Q' && line.region && line.region.region) && (line.type === 'text' || line.type === 'simple_cell' ) ) {
+            if ((line.textType === 'Q' && line.region && line.region.region) ) {
               const region = line.region.region;
               boundingBoxes.push({
                 id: `page-${pageIndex + 1}-line-${lineIndex}`,
