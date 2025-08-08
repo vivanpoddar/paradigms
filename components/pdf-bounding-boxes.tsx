@@ -90,6 +90,72 @@ interface TooltipLayerProps {
 
 export const TooltipLayer: React.FC<TooltipLayerProps> = ({ selectedBoxes, setSelectedBoxes, frontTooltipId, setFrontTooltipId, selectedFileName, onExplain }) => {
     
+    // Check for existing answers when tooltips become visible
+    React.useEffect(() => {
+        const checkExistingAnswers = async () => {
+            if (!selectedFileName) return;
+            
+            const visibleBoxes = Array.from(selectedBoxes.entries()).filter(
+                ([_, tooltip]) => tooltip.isVisible && !tooltip.solution
+            );
+            
+            for (const [boxId, _] of visibleBoxes) {
+                try {
+                    const response = await fetch(`/api/document-answers?fileName=${encodeURIComponent(selectedFileName)}&tooltipId=${encodeURIComponent(boxId)}`);
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.answers && data.answers.length > 0) {
+                            const latestAnswer = data.answers[0]; // Most recent answer
+                            
+                            // Update tooltip with existing solution
+                            setSelectedBoxes(prev => {
+                                const newMap = new Map(prev);
+                                const currentTooltip = newMap.get(boxId);
+                                if (currentTooltip && !currentTooltip.solution) { // Only if no solution exists
+                                    newMap.set(boxId, { ...currentTooltip, solution: latestAnswer.response });
+                                }
+                                return newMap;
+                            });
+                        }
+                    }
+                } catch (error) {
+                    console.error('Failed to check existing answer for', boxId, ':', error);
+                }
+            }
+        };
+        
+        checkExistingAnswers();
+    }, [selectedBoxes, selectedFileName, setSelectedBoxes]);
+
+    // Check for existing answer when tooltip is opened
+    const checkExistingAnswer = async (boxId: string) => {
+        if (!selectedFileName) return;
+        
+        try {
+            const response = await fetch(`/api/document-answers?fileName=${encodeURIComponent(selectedFileName)}&tooltipId=${encodeURIComponent(boxId)}`);
+            
+            if (response.ok) {
+                const data = await response.json();
+                if (data.answers && data.answers.length > 0) {
+                    const latestAnswer = data.answers[0]; // Most recent answer
+                    
+                    // Update tooltip with existing solution
+                    setSelectedBoxes(prev => {
+                        const newMap = new Map(prev);
+                        const currentTooltip = newMap.get(boxId);
+                        if (currentTooltip) {
+                            newMap.set(boxId, { ...currentTooltip, solution: latestAnswer.response });
+                        }
+                        return newMap;
+                    });
+                }
+            }
+        } catch (error) {
+            console.error('Failed to check existing answer:', error);
+        }
+    };
+
     const handleSolve = async (boxId: string, problemText: string) => {
         // Set loading state
         setSelectedBoxes(prev => {
@@ -187,6 +253,29 @@ export const TooltipLayer: React.FC<TooltipLayerProps> = ({ selectedBoxes, setSe
                 }
                 return newMap;
             });
+
+            // Save answer to database
+            try {
+                await fetch('/api/document-answers', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        fileName: selectedFileName,
+                        response: fullResponse,
+                        tooltipId: boxId,
+                        metadata: {
+                            problemText: problemText,
+                            timestamp: new Date().toISOString(),
+                            source: 'tooltip'
+                        }
+                    }),
+                });
+            } catch (saveError) {
+                console.error('Failed to save answer to database:', saveError);
+                // Don't throw here as the main functionality (showing solution) should still work
+            }
 
         } catch (error) {
             console.error('Error solving problem:', error);
