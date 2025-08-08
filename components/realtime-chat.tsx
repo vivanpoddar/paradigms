@@ -99,20 +99,19 @@ export const RealtimeChat = ({
         
         // Convert conversations to chat messages format
         const historyMessages: ChatMessage[] = []
-        conversations.forEach((conv) => {
-          // Add user query message
+        conversations.forEach((conv, index) => {
+          const baseTime = new Date(conv.timestamp).getTime()
           historyMessages.push({
             id: `${conv.id}-query`,
             content: conv.query,
             user: { name: username },
             createdAt: conv.timestamp,
           })
-          // Add bot response message
           historyMessages.push({
             id: `${conv.id}-response`,
-            content: `🤖 **Document Assistant**: ${conv.response}`,
+            content: `${conv.response}`,
             user: { name: 'Document Assistant' },
-            createdAt: new Date(new Date(conv.timestamp).getTime() + 1000).toISOString(), // Add 1 second to ensure proper ordering
+            createdAt: new Date(baseTime + 500).toISOString(), // Add 500ms to ensure proper ordering within conversation
           })
         })
         setLoadedHistoryMessages(historyMessages)
@@ -138,8 +137,27 @@ export const RealtimeChat = ({
     const uniqueMessages = mergedMessages.filter(
       (message, index, self) => index === self.findIndex((m) => m.id === message.id)
     )
-    // Sort by creation date
-    const sortedMessages = uniqueMessages.sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+    
+    // Sort by creation date with enhanced logic for proper conversation flow
+    const sortedMessages = uniqueMessages.sort((a, b) => {
+      const timeA = new Date(a.createdAt).getTime()
+      const timeB = new Date(b.createdAt).getTime()
+      
+      // If timestamps are very close (within 2 seconds), ensure query comes before response
+      if (Math.abs(timeA - timeB) < 2000) {
+        // Check if one is a query and one is a response from the same conversation
+        const aIsQuery = a.user.name === username
+        const bIsQuery = b.user.name === username
+        const aIsResponse = a.user.name === 'Document Assistant'
+        const bIsResponse = b.user.name === 'Document Assistant'
+        
+        // If one is query and one is response, query should come first
+        if (aIsQuery && bIsResponse) return -1
+        if (bIsQuery && aIsResponse) return 1
+      }
+      
+      return timeA - timeB
+    })
 
     return sortedMessages
   }, [initialMessages, realtimeMessages, loadedHistoryMessages, streamingMessage, completedStreamMessages])
@@ -183,7 +201,7 @@ export const RealtimeChat = ({
   }, [enableDocumentQuery, selectedFileName])
 
   // Function to query documents using LlamaCloudIndex
-  const queryDocuments = useCallback(async (query: string): Promise<void> => {
+  const queryDocuments = useCallback(async (query: string, queryTimestamp?: string): Promise<void> => {
     console.log('=== QUERY DOCUMENTS CALLED ===');
     console.log('Query:', query);
     console.log('Selected file:', selectedFileName);
@@ -193,6 +211,11 @@ export const RealtimeChat = ({
       console.log('❌ No file selected for querying')
       return
     }
+    
+    // Calculate response timestamp early so it's available throughout the function
+    const responseTimestamp = queryTimestamp 
+      ? new Date(new Date(queryTimestamp).getTime() + 500).toISOString() // 500ms after query
+      : new Date().toISOString() // Fallback to current time
     
     console.log('✅ Starting query with file:', selectedFileName);
     setIsQuerying(true)
@@ -217,13 +240,14 @@ export const RealtimeChat = ({
 
       // Create a temporary message to stream content into
       const botMessageId = crypto.randomUUID()
+      
       const initialBotMessage: ChatMessage = {
         id: botMessageId,
         content: '🤖 **Document Assistant**: ',
         user: {
           name: 'Document Assistant',
         },
-        createdAt: new Date().toISOString(),
+        createdAt: responseTimestamp,
       }
 
       // Set the streaming message in local state
@@ -303,7 +327,7 @@ export const RealtimeChat = ({
         user: {
           name: 'Document Assistant',
         },
-        createdAt: new Date().toISOString(),
+        createdAt: responseTimestamp, // Use the same timestamp as the initial streaming message
       }
       
       // Add to completed stream messages (local state only, not broadcast)
@@ -344,7 +368,7 @@ export const RealtimeChat = ({
           user: {
             name: 'Document Assistant',
           },
-          createdAt: new Date().toISOString(),
+          createdAt: responseTimestamp, // Use the calculated response timestamp
         }
         
         setCompletedStreamMessages(prev => [...prev, errorMessage])
@@ -370,6 +394,7 @@ export const RealtimeChat = ({
       if (!newMessage.trim() || !isConnected) return
 
       const messageContent = newMessage.trim()
+      const queryTimestamp = new Date().toISOString() // Capture the timestamp when query is sent
       
       // Send the user message
       sendMessage(messageContent)
@@ -385,8 +410,8 @@ export const RealtimeChat = ({
       
       if (shouldQuery) {
         console.log('🔍 Triggering document query...');
-        // The conversation will be saved in queryDocuments function
-        await queryDocuments(messageContent);
+        // Pass the query timestamp to ensure proper ordering
+        await queryDocuments(messageContent, queryTimestamp);
       } else {
         console.log('⚠️ Not triggering document query');
         // For non-query messages, we could optionally save them separately
@@ -464,7 +489,7 @@ export const RealtimeChat = ({
             className="aspect-square rounded-full animate-in fade-in slide-in-from-right-4 duration-300"
             type="submit"
             disabled={!isConnected || isQuerying}
-            onClick={() => queryDocuments(newMessage.trim())}
+            onClick={() => queryDocuments(newMessage.trim(), new Date().toISOString())}
             title="Query documents"
           >
             {isQuerying ? (
