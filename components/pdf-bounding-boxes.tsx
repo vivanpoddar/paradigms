@@ -102,7 +102,7 @@ export const TooltipLayer: React.FC<TooltipLayerProps> = ({ selectedBoxes, setSe
             <div
                 id="tooltip"
                 key={boxId}
-                className={`fixed bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg p-4 max-w-md pointer-events-auto transition-all duration-200 ease-out cursor-pointer ${
+                className={`fixed bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg p-2 max-w-md pointer-events-auto transition-all duration-200 ease-out cursor-pointer ${
                     tooltip.isVisible 
                         ? 'opacity-100 scale-100 translate-y-0' 
                         : 'opacity-0 scale-95 translate-y-2'
@@ -119,10 +119,14 @@ export const TooltipLayer: React.FC<TooltipLayerProps> = ({ selectedBoxes, setSe
                     setFrontTooltipId(boxId); // Bring this tooltip to front when clicked
                 }}
             >
-                <div className="flex justify-between items-start mb-2">
-                    <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                        Highlighted Text
-                    </h3>
+                <div className="flex justify-between items-start">
+                    <div className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed">
+                        {tooltip.box.text.split(/(\$[^$]+\$)/g).map((part, i) =>
+                            part.startsWith('$') && part.endsWith('$')
+                                ? <InlineMath key={i} math={part.slice(1, -1)} />
+                                : <span key={i}>{part}</span>
+                        )}
+                    </div>
                     <button
                         onClick={() => {
                             // Close this specific tooltip
@@ -150,18 +154,8 @@ export const TooltipLayer: React.FC<TooltipLayerProps> = ({ selectedBoxes, setSe
                         }}
                         className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 ml-2 p-1 rounded-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                     >
-                        <X className="w-4 h-4" />
+                        <X className="w-3 h-3" />
                     </button>
-                </div>
-                <div className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
-                    {/\$.*\$/.test(tooltip.box.text) ? (
-                        <InlineMath math={tooltip.box.text.replace(/\$/g, '')} />
-                    ) : (
-                        tooltip.box.text
-                    )}
-                </div>
-                <div className="mt-3 text-xs text-gray-500 dark:text-gray-400">
-                    Page {tooltip.box.pageNumber} • ID: {tooltip.box.id}
                 </div>
             </div>
         ))}

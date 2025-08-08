@@ -209,8 +209,8 @@ export function FileBrowser({ onFileSelect }: FileBrowserProps = {}) {
     return <File className="h-4 w-4" />;
   };
 
-  // const visibleFiles = files.filter(file => !file.name.toLowerCase().endsWith('.json'));
-  const visibleFiles = files
+  const visibleFiles = files.filter(file => !file.name.toLowerCase().endsWith('.json'));
+  // const visibleFiles = files
 
   return (
     <div className="flex h-full">
