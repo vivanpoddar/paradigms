@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { InlineMath } from 'react-katex';
 import 'katex/dist/katex.min.css';
-import { X } from 'lucide-react';
+import { X, Loader2 } from 'lucide-react';
 
 interface BoundingBox {
     id: string;
@@ -16,7 +16,7 @@ interface BoundingBox {
 interface PdfBoundingBoxesProps {
     apiBoundingBoxes: BoundingBox[];
     renderPageProps: any;
-    setSelectedBoxes: React.Dispatch<React.SetStateAction<Map<string, { box: BoundingBox; position: { x: number; y: number }; isVisible: boolean }>>>;
+    setSelectedBoxes: React.Dispatch<React.SetStateAction<Map<string, { box: BoundingBox; position: { x: number; y: number }; isVisible: boolean; solution?: string; isLoading?: boolean }>>>;
     setFrontTooltipId: React.Dispatch<React.SetStateAction<string | null>>;
 }
 
@@ -80,13 +80,129 @@ const BoundingBoxLayer: React.FC<PdfBoundingBoxesProps> = ({ apiBoundingBoxes, r
 );
 
 interface TooltipLayerProps {
-    selectedBoxes: Map<string, { box: BoundingBox; position: { x: number; y: number }; isVisible: boolean }>;
-    setSelectedBoxes: React.Dispatch<React.SetStateAction<Map<string, { box: BoundingBox; position: { x: number; y: number }; isVisible: boolean }>>>;
+    selectedBoxes: Map<string, { box: BoundingBox; position: { x: number; y: number }; isVisible: boolean; solution?: string; isLoading?: boolean }>;
+    setSelectedBoxes: React.Dispatch<React.SetStateAction<Map<string, { box: BoundingBox; position: { x: number; y: number }; isVisible: boolean; solution?: string; isLoading?: boolean }>>>;
     frontTooltipId: string | null;
     setFrontTooltipId: React.Dispatch<React.SetStateAction<string | null>>;
+    selectedFileName?: string | null;
 }
 
-export const TooltipLayer: React.FC<TooltipLayerProps> = ({ selectedBoxes, setSelectedBoxes, frontTooltipId, setFrontTooltipId }) => (
+export const TooltipLayer: React.FC<TooltipLayerProps> = ({ selectedBoxes, setSelectedBoxes, frontTooltipId, setFrontTooltipId, selectedFileName }) => {
+    
+    const handleSolve = async (boxId: string, problemText: string) => {
+        // Set loading state
+        setSelectedBoxes(prev => {
+            const newMap = new Map(prev);
+            const currentTooltip = newMap.get(boxId);
+            if (currentTooltip) {
+                newMap.set(boxId, { ...currentTooltip, isLoading: true });
+            }
+            return newMap;
+        });
+
+        try {
+            const response = await fetch('/api/query', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ 
+                    query: `Please solve this problem. Include only the final answer in your response ${problemText}`, 
+                    fileName: selectedFileName,
+                }),
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            let fullResponse = '';
+            
+            // Handle streaming response
+            const reader = response.body?.getReader();
+            if (reader) {
+                const decoder = new TextDecoder();
+                
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    
+                    const chunk = decoder.decode(value);
+                    const lines = chunk.split('\n').filter(line => line.trim());
+                    
+                    for (const line of lines) {
+                        try {
+                            const data = JSON.parse(line);
+                            
+                            if (data.error) {
+                                throw new Error(data.error);
+                            }
+                            
+                            if (data.content) {
+                                fullResponse += data.content;
+                                // Update the solution in real-time
+                                setSelectedBoxes(prev => {
+                                    const newMap = new Map(prev);
+                                    const currentTooltip = newMap.get(boxId);
+                                    if (currentTooltip) {
+                                        newMap.set(boxId, { ...currentTooltip, solution: fullResponse, isLoading: true });
+                                    }
+                                    return newMap;
+                                });
+                            }
+                            
+                            if (data.done) {
+                                break;
+                            }
+                        } catch (parseError) {
+                            console.warn('Failed to parse streaming chunk:', parseError);
+                        }
+                    }
+                    
+                    // Check if we received a done signal to break the outer loop
+                    if (lines.some(line => {
+                        try {
+                            const data = JSON.parse(line);
+                            return data.done;
+                        } catch {
+                            return false;
+                        }
+                    })) {
+                        break;
+                    }
+                }
+            } else {
+                // Fallback for non-streaming response
+                const data = await response.json();
+                fullResponse = data.response;
+            }
+
+            // Set final solution and clear loading
+            setSelectedBoxes(prev => {
+                const newMap = new Map(prev);
+                const currentTooltip = newMap.get(boxId);
+                if (currentTooltip) {
+                    newMap.set(boxId, { ...currentTooltip, solution: fullResponse, isLoading: false });
+                }
+                return newMap;
+            });
+
+        } catch (error) {
+            console.error('Error solving problem:', error);
+            const errorMessage = 'Sorry, I encountered an error while solving this problem. Please try again.';
+            
+            setSelectedBoxes(prev => {
+                const newMap = new Map(prev);
+                const currentTooltip = newMap.get(boxId);
+                if (currentTooltip) {
+                    newMap.set(boxId, { ...currentTooltip, solution: errorMessage, isLoading: false });
+                }
+                return newMap;
+            });
+        }
+    };
+
+    return (
     <>
         {/* Backdrop overlay when any tooltip is open */}
         {selectedBoxes.size > 0 && (
@@ -120,11 +236,18 @@ export const TooltipLayer: React.FC<TooltipLayerProps> = ({ selectedBoxes, setSe
                 }}
             >
                 <div className="flex justify-between items-start">
-                    <div className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed">
-                        {tooltip.box.text.split(/(\$[^$]+\$)/g).map((part, i) =>
-                            part.startsWith('$') && part.endsWith('$')
-                                ? <InlineMath key={i} math={part.slice(1, -1)} />
-                                : <span key={i}>{part}</span>
+                    <div className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed flex-1">
+                        <div className="mb-2">
+                            {tooltip.box.text.split(/(\$[^$]+\$)/g).map((part, i) =>
+                                part.startsWith('$') && part.endsWith('$')
+                                    ? <InlineMath key={i} math={part.slice(1, -1)} />
+                                    : <span key={i}>{part}</span>
+                            )}
+                        </div>
+                        {tooltip.solution && (
+                            <div className="mt-2 p-2 bg-gray-50 dark:bg-gray-700 rounded border-t">
+                                <div className="text-xs whitespace-pre-wrap">{tooltip.solution}</div>
+                            </div>
                         )}
                     </div>
                     <button
@@ -158,16 +281,26 @@ export const TooltipLayer: React.FC<TooltipLayerProps> = ({ selectedBoxes, setSe
                     </button>
                 </div>
                 <button
-                    className="mt-2 px-2 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600 transition-colors"
-                    onClick={() => {
-                        alert('Solve button clicked for box: ' + boxId);
+                    className="mt-2 px-2 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        handleSolve(boxId, tooltip.box.text);
                     }}
+                    disabled={tooltip.isLoading}
                 >
-                    Solve
+                    {tooltip.isLoading ? (
+                        <>
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                            Solving...
+                        </>
+                    ) : (
+                        'Solve'
+                    )}
                 </button>
             </div>
         ))}
     </>
-);
+    );
+};
 
 export { BoundingBoxLayer };

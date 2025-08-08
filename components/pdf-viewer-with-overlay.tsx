@@ -43,7 +43,7 @@ export const PdfViewerWithOverlay: React.FC<PdfViewerWithOverlayProps> = ({
     fileName = "" 
 }) => {
     const [apiBoundingBoxes, setApiBoundingBoxes] = React.useState<BoundingBox[]>([]);
-    const [selectedBoxes, setSelectedBoxes] = React.useState<Map<string, { box: BoundingBox; position: { x: number; y: number }; isVisible: boolean }>>(new Map());
+    const [selectedBoxes, setSelectedBoxes] = React.useState<Map<string, { box: BoundingBox; position: { x: number; y: number }; isVisible: boolean; solution?: string; isLoading?: boolean }>>(new Map());
     const [frontTooltipId, setFrontTooltipId] = React.useState<string | null>(null);
     const pdfContainerRef = React.useRef<HTMLDivElement>(null);
 
@@ -269,6 +269,7 @@ export const PdfViewerWithOverlay: React.FC<PdfViewerWithOverlayProps> = ({
                 setSelectedBoxes={setSelectedBoxes}
                 frontTooltipId={frontTooltipId}
                 setFrontTooltipId={setFrontTooltipId}
+                selectedFileName={fileName}
             />
         </div>
     );
