@@ -34,13 +34,15 @@ interface PdfViewerWithOverlayProps {
     boundingBoxes?: BoundingBox[];
     user?: string; // Optional user ID for fetching bounding boxes
     fileName?: string;
+    onExplain?: (problemText: string, solution: string) => void;
 }
 
 export const PdfViewerWithOverlay: React.FC<PdfViewerWithOverlayProps> = ({ 
     pdfUrl, 
     user,
     boundingBoxes = [], 
-    fileName = "" 
+    fileName = "",
+    onExplain
 }) => {
     const [apiBoundingBoxes, setApiBoundingBoxes] = React.useState<BoundingBox[]>([]);
     const [selectedBoxes, setSelectedBoxes] = React.useState<Map<string, { box: BoundingBox; position: { x: number; y: number }; isVisible: boolean; solution?: string; isLoading?: boolean }>>(new Map());
@@ -270,6 +272,7 @@ export const PdfViewerWithOverlay: React.FC<PdfViewerWithOverlayProps> = ({
                 frontTooltipId={frontTooltipId}
                 setFrontTooltipId={setFrontTooltipId}
                 selectedFileName={fileName}
+                onExplain={onExplain}
             />
         </div>
     );

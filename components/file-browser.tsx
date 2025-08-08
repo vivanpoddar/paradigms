@@ -21,9 +21,10 @@ interface FileItem {
 
 interface FileBrowserProps {
   onFileSelect?: (fileName: string | null) => void;
+  onExplain?: (problemText: string, solution: string) => void;
 }
 
-export function FileBrowser({ onFileSelect }: FileBrowserProps = {}) {
+export function FileBrowser({ onFileSelect, onExplain }: FileBrowserProps = {}) {
   const [files, setFiles] = useState<FileItem[]>([]);
   const [selectedFile, setSelectedFile] = useState<FileItem | null>(null);
   const [fileContent, setFileContent] = useState<string | null>(null);
@@ -390,6 +391,7 @@ export function FileBrowser({ onFileSelect }: FileBrowserProps = {}) {
                         pdfUrl={fileContent}
                         user={userId ?? ""}
                         fileName={selectedFile.name}
+                        onExplain={onExplain}
                       />
                     ) : (selectedFile.metadata?.mimetype || '').startsWith('text/') ||
                        selectedFile.metadata?.mimetype === 'application/json' ? (

@@ -9,14 +9,17 @@ import {
 } from '@/hooks/use-realtime-chat'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Send, BookOpen, Loader2 } from 'lucide-react'
+import { Send, BookOpen, Loader2, X } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState, useImperativeHandle, forwardRef } from 'react'
 import { LLAMA_CLOUD_CONFIG } from '@/lib/llama-cloud-config'
 import { useChatHistory } from '@/hooks/use-chat-history'
 import { createClient } from '@/lib/supabase/client'
+import { InlineMath } from 'react-katex'
+import 'katex/dist/katex.min.css'
 
 export interface RealtimeChatRef {
   clearCurrentMessages: () => void;
+  openExplainContext: (problemText: string, solution: string) => void;
 }
 
 interface RealtimeChatProps {
@@ -62,6 +65,7 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
   const [loadedHistoryMessages, setLoadedHistoryMessages] = useState<ChatMessage[]>([])
   const [streamingMessage, setStreamingMessage] = useState<ChatMessage | null>(null)
   const [completedStreamMessages, setCompletedStreamMessages] = useState<ChatMessage[]>([])
+  const [contextData, setContextData] = useState<{ problemText: string; solution: string } | null>(null)
 
   // Get user ID from Supabase
   useEffect(() => {
@@ -87,6 +91,11 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
       setLoadedHistoryMessages([])
       setCompletedStreamMessages([])
       setStreamingMessage(null)
+      setContextData(null)
+    },
+    openExplainContext: (problemText: string, solution: string) => {
+      // Set the context data to be displayed above the input
+      setContextData({ problemText, solution })
     }
   }), [])
 
@@ -478,6 +487,41 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
           })}
         </div>
       </div>
+
+      {/* Context Display Area */}
+      {contextData && (
+        <div className="border-t border-border bg-gray-50 dark:bg-gray-900/20 p-3">
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <div className="space-y-2">
+                <div>
+                  <div className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Problem</div>
+                  <div className="text-xs text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-800 p-2 rounded border">
+                    {contextData.problemText.split(/(\$[^$]+\$)/g).map((part, i) =>
+                      part.startsWith('$') && part.endsWith('$')
+                        ? <InlineMath key={i} math={part.slice(1, -1)} />
+                        : <span key={i}>{part}</span>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Solution</div>
+                  <div className="text-xs text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-800 p-2 rounded border max-h-20 overflow-y-auto">
+                    {contextData.solution}
+                  </div>
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={() => setContextData(null)}
+              className="ml-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1 rounded-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              title="Clear context"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
 
       <form onSubmit={handleSendMessage} className="flex w-full border-t gap-2 border-border p-4">
         <Input

@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { InlineMath } from 'react-katex';
 import 'katex/dist/katex.min.css';
-import { X, Loader2 } from 'lucide-react';
+import { X, Loader2, MessageCircle } from 'lucide-react';
 
 interface BoundingBox {
     id: string;
@@ -85,9 +85,10 @@ interface TooltipLayerProps {
     frontTooltipId: string | null;
     setFrontTooltipId: React.Dispatch<React.SetStateAction<string | null>>;
     selectedFileName?: string | null;
+    onExplain?: (problemText: string, solution: string) => void;
 }
 
-export const TooltipLayer: React.FC<TooltipLayerProps> = ({ selectedBoxes, setSelectedBoxes, frontTooltipId, setFrontTooltipId, selectedFileName }) => {
+export const TooltipLayer: React.FC<TooltipLayerProps> = ({ selectedBoxes, setSelectedBoxes, frontTooltipId, setFrontTooltipId, selectedFileName, onExplain }) => {
     
     const handleSolve = async (boxId: string, problemText: string) => {
         // Set loading state
@@ -280,23 +281,39 @@ export const TooltipLayer: React.FC<TooltipLayerProps> = ({ selectedBoxes, setSe
                         <X className="w-3 h-3" />
                     </button>
                 </div>
-                <button
-                    className="mt-2 px-2 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        handleSolve(boxId, tooltip.box.text);
-                    }}
-                    disabled={tooltip.isLoading}
-                >
-                    {tooltip.isLoading ? (
-                        <>
-                            <Loader2 className="w-3 h-3 animate-spin" />
-                            Solving...
-                        </>
-                    ) : (
-                        'Solve'
+                <div className="flex gap-2 mt-2">
+                    <button
+                        className="px-2 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            handleSolve(boxId, tooltip.box.text);
+                        }}
+                        disabled={tooltip.isLoading}
+                    >
+                        {tooltip.isLoading ? (
+                            <>
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                                Solving...
+                            </>
+                        ) : (
+                            'Solve'
+                        )}
+                    </button>
+                    {tooltip.solution && !tooltip.isLoading && onExplain && (
+                        <button
+                            className="px-2 py-1 bg-green-500 text-white text-xs rounded hover:bg-green-600 transition-colors flex items-center gap-1"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                if (tooltip.solution) {
+                                    onExplain(tooltip.box.text, tooltip.solution);
+                                }
+                            }}
+                        >
+                            <MessageCircle className="w-3 h-3" />
+                            Explain
+                        </button>
                     )}
-                </button>
+                </div>
             </div>
         ))}
     </>

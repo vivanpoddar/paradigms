@@ -56,6 +56,16 @@ export default function Home() {
       console.error('Failed to clear chat history:', error);
     }
   };
+
+  const handleExplain = (problemText: string, solution: string) => {
+    // Expand chat if it's collapsed
+    if (isChatCollapsed) {
+      setIsChatCollapsed(false);
+    }
+    
+    // Open the explanation context in chat
+    chatRef.current?.openExplainContext(problemText, solution);
+  };
   
   return (
     <main className="h-screen flex flex-col">
@@ -64,7 +74,7 @@ export default function Home() {
         <div className="flex-1 w-full min-h-0 flex">
           {/* Main content area - File Browser */}
           <div className={`flex-1 transition-all duration-300 ${isChatCollapsed ? 'w-full' : 'lg:w-3/5'} border-r border-border`}>
-            <FileBrowser onFileSelect={setSelectedFileName} />
+            <FileBrowser onFileSelect={setSelectedFileName} onExplain={handleExplain} />
           </div>
           
           {/* Side panel - Realtime Chat */}
