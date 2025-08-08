@@ -89,7 +89,7 @@ export default function Home() {
               </div>
             )}
             {!isChatCollapsed && (
-              <div className="flex-1 min-h-0">
+              <div className="flex-1 max-h-[89vh]">
                 <RealtimeChat 
                   roomName="general-chat" 
                   username={user?.email?.split('@')[0] || 'anonymous'}

@@ -406,11 +406,11 @@ export async function POST(request: NextRequest) {
 
         const result = await pollForCompletion(pdfId);
 
-        const lines = (result?.pages ?? []).flatMap((page) => {
+        const lines = (result?.pages ?? []).flatMap((page, pageIndex) => {
           if (Array.isArray(page.lines)) {
             return page.lines.map((line: any) => {
               if (line && line.text !== "" && line.text != null && line.type != "table") {
-                return `${line.text}`;
+                return `Text at page ${pageIndex + 1}: ${line.text}`;
               }
               return undefined;
             }).filter(Boolean);
