@@ -157,6 +157,14 @@ export const TooltipLayer: React.FC<TooltipLayerProps> = ({ selectedBoxes, setSe
                         <X className="w-3 h-3" />
                     </button>
                 </div>
+                <button
+                    className="mt-2 px-2 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600 transition-colors"
+                    onClick={() => {
+                        alert('Solve button clicked for box: ' + boxId);
+                    }}
+                >
+                    Solve
+                </button>
             </div>
         ))}
     </>
