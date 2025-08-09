@@ -161,7 +161,10 @@ export const TooltipLayer: React.FC<TooltipLayerProps> = ({ selectedBoxes, setSe
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({ 
-                    query: `You are a tutor of a highschool student. Please solve the following question. Include only the final answer in your response:
+                    query: `You are a helpful high school math tutor. 
+                    Your task is to solve the following question for a student. 
+                    If your answer includes math, clearly format all math expressions in LaTeX using $ symbols. 
+                    Only provide the final answer—do not include explanations or steps.                   
                     ${problemText}`, 
                     fileName: selectedFileName,
                 }),
@@ -329,7 +332,12 @@ export const TooltipLayer: React.FC<TooltipLayerProps> = ({ selectedBoxes, setSe
                         </div>
                         {tooltip.solution && (
                             <div className="mt-2 p-2 bg-gray-50 dark:bg-gray-700 rounded border-t">
-                                <div className="text-xs whitespace-pre-wrap">{tooltip.solution}</div>
+                                <div className="text-xs whitespace-pre-wrap">                            
+                                    {tooltip.solution.split(/(\$[^$]+\$)/g).map((part, i) =>
+                                    part.startsWith('$') && part.endsWith('$')
+                                        ? <InlineMath key={i} math={part.slice(1, -1)} />
+                                        : <span key={i}>{part}</span>
+                                )}</div>
                             </div>
                         )}
                     </div>

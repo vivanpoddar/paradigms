@@ -239,7 +239,7 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
       ? new Date(new Date(queryTimestamp).getTime() + 500).toISOString() // 500ms after query
       : new Date().toISOString() // Fallback to current time
 
-    const enhancedQuery = `You are an intelligent highschool tutor that takes action based on user requests. Assume the user is asking for help with a document-related task. Please thoroughly explain all queries asked by the user. If your responses do not require any action, keep your response concise, short, and focused on the user's request.\n
+    const enhancedQuery = `You are an intelligent highschool tutor that takes action based on user requests. Assume the user is asking for help with a document-related task. Please thoroughly explain all queries asked by the user. If your responses do not require any action, keep your response concise, short, and focused on the user's request. Responses including math should be clearly demarcated in latex and with $ symbols.\n
       Current user request:
       ${query}
 
