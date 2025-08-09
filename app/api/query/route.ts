@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
       apiKey: process.env.LLAMA_CLOUD_API_KEY,
     });
 
-    const answerQuery = async (query: string, fileName: string, messageHistory?: any[]) => {
+    const answerQuery = async (query: string, fileName: string, useChatHistory: boolean, messageHistory?: any[]) => {
       // Build conversation context from message history
       let conversationContext = '';
       if (messageHistory && messageHistory.length > 0) {
@@ -49,12 +49,9 @@ export async function POST(request: NextRequest) {
         conversationContext += '\n';
       }
 
-      // Enhanced query with action-oriented instructions and conversation context
-      const enhancedQuery = `You are an intelligent assistant that takes action based on user requests. Assume the user is asking for help with a document-related task. If your responses do not require any action, keep your response concise, short, and focused on the user's request.
-
-${conversationContext}Current user request: ${query}
-
-Please respond on the available context from the file: ${fileName.replace(/\.[^.]+$/, '') + '.txt'} and the conversation history above.`;
+      const enhancedQuery = `${query}
+      ${useChatHistory ? `If needed, respond based on the available conversation history: ${conversationContext}` : ''}
+      `
 
       console.log('Creating query engine...');
       const fileNameTxt = fileName.replace(/\.[^.]+$/, '') + '.txt';

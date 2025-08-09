@@ -161,7 +161,8 @@ export const TooltipLayer: React.FC<TooltipLayerProps> = ({ selectedBoxes, setSe
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({ 
-                    query: `Please solve this problem. Include only the final answer in your response ${problemText}`, 
+                    query: `You are a tutor of a highschool student. Please solve the following question. Include only the final answer in your response:
+                    ${problemText}`, 
                     fileName: selectedFileName,
                 }),
             });

@@ -238,7 +238,22 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
     const responseTimestamp = queryTimestamp 
       ? new Date(new Date(queryTimestamp).getTime() + 500).toISOString() // 500ms after query
       : new Date().toISOString() // Fallback to current time
-    
+
+    const enhancedQuery = `You are an intelligent highschool tutor that takes action based on user requests. Assume the user is asking for help with a document-related task. Please thoroughly explain all queries asked by the user. If your responses do not require any action, keep your response concise, short, and focused on the user's request.\n
+      Current user request:
+      ${query}
+
+      ${contextData ? `
+      --- Context Information ---
+      Related Question:
+      ${contextData.problemText}
+
+      Related Solution:
+      ${contextData.solution}
+      --------------------------
+      ` : ''}
+      `
+
     console.log('✅ Starting query with file:', selectedFileName);
     setIsQuerying(true)
     try {
@@ -249,9 +264,9 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ 
-          query, 
+          query: enhancedQuery, 
           fileName: selectedFileName,
-          messageHistory: allMessages // Include message history for context
+          messageHistory: allMessages
         }),
       })
 
