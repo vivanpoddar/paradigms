@@ -54,7 +54,7 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
 
   const {
     messages: realtimeMessages,
-    sendMessage,
+    sendMessage: sendRealtimeMessage,
     isConnected,
   } = useRealtimeChat({
     roomName,
@@ -63,9 +63,8 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
   const [newMessage, setNewMessage] = useState('')
   const [isQuerying, setIsQuerying] = useState(false)
   const [userId, setUserId] = useState<string | null>(null)
-  const [loadedHistoryMessages, setLoadedHistoryMessages] = useState<ChatMessage[]>([])
+  const [messages, setMessages] = useState<ChatMessage[]>([])
   const [streamingMessage, setStreamingMessage] = useState<ChatMessage | null>(null)
-  const [completedStreamMessages, setCompletedStreamMessages] = useState<ChatMessage[]>([])
   const [contextData, setContextData] = useState<{ problemText: string; solution: string } | null>(null)
 
   // Get user ID from Supabase
@@ -89,8 +88,7 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
   // Expose methods to parent component via ref
   useImperativeHandle(ref, () => ({
     clearCurrentMessages: () => {
-      setLoadedHistoryMessages([])
-      setCompletedStreamMessages([])
+      setMessages([])
       setStreamingMessage(null)
       setContextData(null)
     },
@@ -105,9 +103,8 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
     const loadChatHistory = async () => {
       if (!userId) return
       
-      // Clear existing history and completed stream messages when file changes
-      setLoadedHistoryMessages([])
-      setCompletedStreamMessages([])
+      // Clear existing messages when file changes
+      setMessages([])
       
       // Only load history if a file is selected
       if (!selectedFileName) {
@@ -122,22 +119,23 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
         
         // Convert conversations to chat messages format
         const historyMessages: ChatMessage[] = []
-        conversations.forEach((conv, index) => {
-          const baseTime = new Date(conv.timestamp).getTime()
+        conversations.forEach((conv) => {
+          // Add user query
           historyMessages.push({
             id: `${conv.id}-query`,
             content: conv.query,
             user: { name: username },
             createdAt: conv.timestamp,
           })
+          // Add assistant response
           historyMessages.push({
             id: `${conv.id}-response`,
-            content: `${conv.response}`,
+            content: conv.response,
             user: { name: 'Document Assistant' },
-            createdAt: new Date(baseTime + 500).toISOString(), // Add 500ms to ensure proper ordering within conversation
+            createdAt: conv.timestamp,
           })
         })
-        setLoadedHistoryMessages(historyMessages)
+        setMessages(historyMessages)
         console.log('Chat history loaded successfully, messages count:', historyMessages.length)
       } catch (error) {
         console.error('Failed to load chat history:', error)
@@ -147,43 +145,34 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
     loadChatHistory()
   }, [userId, loadConversations, selectedFileName, username])
 
-  // Merge realtime messages with initial messages and loaded history
+  // Add new messages from realtime chat
+  useEffect(() => {
+    if (realtimeMessages.length > 0) {
+      setMessages(prev => {
+        const newMessages = realtimeMessages.filter(
+          realtimeMsg => !prev.some(prevMsg => prevMsg.id === realtimeMsg.id)
+        )
+        return [...prev, ...newMessages]
+      })
+    }
+  }, [realtimeMessages])
+
+  // Merge messages with initial messages and add streaming message if exists
   const allMessages = useMemo(() => {
-    const mergedMessages = [...initialMessages, ...loadedHistoryMessages, ...realtimeMessages, ...completedStreamMessages]
+    let finalMessages = [...initialMessages, ...messages]
     
-    // Add streaming message if it exists
+    // Add streaming message at the end if it exists
     if (streamingMessage) {
-      mergedMessages.push(streamingMessage)
+      finalMessages.push(streamingMessage)
     }
     
-    // Remove duplicates based on message id
-    const uniqueMessages = mergedMessages.filter(
+    // Remove duplicates based on message id while preserving order
+    const uniqueMessages = finalMessages.filter(
       (message, index, self) => index === self.findIndex((m) => m.id === message.id)
     )
-    
-    // Sort by creation date with enhanced logic for proper conversation flow
-    const sortedMessages = uniqueMessages.sort((a, b) => {
-      const timeA = new Date(a.createdAt).getTime()
-      const timeB = new Date(b.createdAt).getTime()
-      
-      // If timestamps are very close (within 2 seconds), ensure query comes before response
-      if (Math.abs(timeA - timeB) < 2000) {
-        // Check if one is a query and one is a response from the same conversation
-        const aIsQuery = a.user.name === username
-        const bIsQuery = b.user.name === username
-        const aIsResponse = a.user.name === 'Document Assistant'
-        const bIsResponse = b.user.name === 'Document Assistant'
-        
-        // If one is query and one is response, query should come first
-        if (aIsQuery && bIsResponse) return -1
-        if (bIsQuery && aIsResponse) return 1
-      }
-      
-      return timeA - timeB
-    })
 
-    return sortedMessages
-  }, [initialMessages, realtimeMessages, loadedHistoryMessages, streamingMessage, completedStreamMessages])
+    return uniqueMessages
+  }, [initialMessages, messages, streamingMessage])
 
   useEffect(() => {
     if (onMessage) {
@@ -217,14 +206,19 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
 
   // Function to detect if a message should trigger document query
   const shouldQueryDocuments = useCallback((message: string): boolean => {
-    if (!enableDocumentQuery || !selectedFileName) return false
+    if (!enableDocumentQuery || !selectedFileName) {
+      console.log('Document query disabled or no file selected:', { enableDocumentQuery, selectedFileName })
+      return false
+    }
     
-    const lowerMessage = message.toLowerCase()
-    return LLAMA_CLOUD_CONFIG.queryTriggers.some(trigger => lowerMessage.includes(trigger))
+    // For now, let's query documents for any message (you can add more specific logic later)
+    const shouldQuery = message.trim().length > 0
+    console.log('Should query documents result:', shouldQuery, 'for message:', message.substring(0, 50))
+    return shouldQuery
   }, [enableDocumentQuery, selectedFileName])
 
   // Function to query documents using LlamaCloudIndex
-  const queryDocuments = useCallback(async (query: string, queryTimestamp?: string): Promise<void> => {
+  const queryDocuments = useCallback(async (query: string): Promise<void> => {
     console.log('=== QUERY DOCUMENTS CALLED ===');
     console.log('Query:', query);
     console.log('Selected file:', selectedFileName);
@@ -235,11 +229,9 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
       return
     }
     
-    // Calculate response timestamp early so it's available throughout the function
-    const responseTimestamp = queryTimestamp 
-      ? new Date(new Date(queryTimestamp).getTime() + 500).toISOString() // 500ms after query
-      : new Date().toISOString() // Fallback to current time
-
+    console.log('✅ Starting query with file:', selectedFileName);
+    setIsQuerying(true)
+    
     const enhancedQuery = `You are an intelligent highschool tutor that takes action based on user requests. Assume the user is asking for help with a document-related task. Please thoroughly explain all queries asked by the user. If your responses do not require any action, keep your response concise, short, and focused on the user's request. 
 
 IMPORTANT: When including mathematical expressions in your responses:
@@ -261,9 +253,6 @@ Current user request:
       --------------------------
       ` : ''}
       `
-
-    console.log('✅ Starting query with file:', selectedFileName);
-    setIsQuerying(true)
     try {
       console.log('📤 Sending request to /api/query');
       const response = await fetch('/api/query', {
@@ -288,11 +277,11 @@ Current user request:
       
       const initialBotMessage: ChatMessage = {
         id: botMessageId,
-        content: '🤖 **Document Assistant**: ',
+        content: '',
         user: {
           name: 'Document Assistant',
         },
-        createdAt: responseTimestamp,
+        createdAt: new Date().toISOString(),
       }
 
       // Set the streaming message in local state
@@ -325,7 +314,7 @@ Current user request:
                 // Update the streaming message with accumulated content
                 setStreamingMessage(prev => prev ? {
                   ...prev,
-                  content: `🤖 **Document Assistant**: ${fullResponse}`
+                  content: fullResponse
                 } : null)
               }
               
@@ -359,24 +348,24 @@ Current user request:
         fullResponse = data.response
         setStreamingMessage(prev => prev ? {
           ...prev,
-          content: `🤖 **Document Assistant**: ${fullResponse}`
+          content: fullResponse
         } : null)
       }
       
       console.log('Streaming completed, fullResponse length:', fullResponse.length)
       
-      // Once streaming is complete, add the final message to completed messages and clear streaming state
+      // Once streaming is complete, add the final message to messages and clear streaming state
       const finalBotMessage: ChatMessage = {
         id: botMessageId,
-        content: `🤖 **Document Assistant**: ${fullResponse}`,
+        content: fullResponse,
         user: {
           name: 'Document Assistant',
         },
-        createdAt: responseTimestamp, // Use the same timestamp as the initial streaming message
+        createdAt: new Date().toISOString(),
       }
       
-      // Add to completed stream messages (local state only, not broadcast)
-      setCompletedStreamMessages(prev => [...prev, finalBotMessage])
+      // Add to messages array
+      setMessages(prev => [...prev, finalBotMessage])
       setStreamingMessage(null)
       
       // Save the complete conversation to database (query + response)
@@ -391,33 +380,19 @@ Current user request:
       
       const errorResponse = 'Sorry, I encountered an error while searching the documents. Please try again.'
       
-      // Update streaming message with error or send new error message
-      if (streamingMessage) {
-        const errorBotMessage: ChatMessage = {
-          id: streamingMessage.id,
-          content: `🤖 **Document Assistant**: ${errorResponse}`,
-          user: {
-            name: 'Document Assistant',
-          },
-          createdAt: streamingMessage.createdAt,
-        }
-        
-        // Add to completed stream messages and clear streaming state
-        setCompletedStreamMessages(prev => [...prev, errorBotMessage])
-        setStreamingMessage(null)
-      } else {
-        // Send error message as a new completed message
-        const errorMessage: ChatMessage = {
-          id: crypto.randomUUID(),
-          content: `🤖 **Document Assistant**: ${errorResponse}`,
-          user: {
-            name: 'Document Assistant',
-          },
-          createdAt: responseTimestamp, // Use the calculated response timestamp
-        }
-        
-        setCompletedStreamMessages(prev => [...prev, errorMessage])
+      // Create error message
+      const errorMessage: ChatMessage = {
+        id: streamingMessage?.id || crypto.randomUUID(),
+        content: errorResponse,
+        user: {
+          name: 'Document Assistant',
+        },
+        createdAt: new Date().toISOString(),
       }
+      
+      // Add error message to messages array
+      setMessages(prev => [...prev, errorMessage])
+      setStreamingMessage(null)
       
       // Save the error conversation to database
       console.log('Saving error conversation - userId:', userId, 'query:', query.substring(0, 50), 'errorResponse:', errorResponse)
@@ -431,7 +406,7 @@ Current user request:
       setIsQuerying(false)
       setStreamingMessage(null) // Clear streaming message on completion
     }
-  }, [sendMessage, selectedFileName, saveConversationToHistory, allMessages])
+  }, [selectedFileName, saveConversationToHistory, allMessages, contextData, userId, streamingMessage])
 
   const handleSendMessage = useCallback(
     async (e: React.FormEvent) => {
@@ -439,10 +414,19 @@ Current user request:
       if (!newMessage.trim() || !isConnected) return
 
       const messageContent = newMessage.trim()
-      const queryTimestamp = new Date().toISOString() // Capture the timestamp when query is sent
       
-      // Send the user message
-      sendMessage(messageContent)
+      // Create user message and add it to messages immediately
+      const userMessage: ChatMessage = {
+        id: crypto.randomUUID(),
+        content: messageContent,
+        user: { name: username },
+        createdAt: new Date().toISOString(),
+      }
+      
+      // Add user message to messages array
+      setMessages(prev => [...prev, userMessage])
+      
+      // Clear input
       setNewMessage('')
 
       // Check if we should query documents for this message
@@ -455,15 +439,15 @@ Current user request:
       
       if (shouldQuery) {
         console.log('🔍 Triggering document query...');
-        // Pass the query timestamp to ensure proper ordering
-        await queryDocuments(messageContent, queryTimestamp);
+        // Use a small delay to ensure user message appears first
+        setTimeout(() => {
+          queryDocuments(messageContent);
+        }, 100);
       } else {
         console.log('⚠️ Not triggering document query');
-        // For non-query messages, we could optionally save them separately
-        // or handle them differently based on your requirements
       }
     },
-    [newMessage, isConnected, sendMessage, queryDocuments, shouldQueryDocuments]
+    [newMessage, isConnected, queryDocuments, shouldQueryDocuments, selectedFileName, enableDocumentQuery, username]
   )
 
   const mathJaxConfig = {
@@ -585,12 +569,11 @@ Current user request:
           disabled={!isConnected || isQuerying}
         />
         
-        {enableDocumentQuery && isConnected && newMessage.trim() && isConnected && newMessage.trim() && (
+        {enableDocumentQuery && isConnected && newMessage.trim() && (
           <Button
             className="aspect-square rounded-full animate-in fade-in slide-in-from-right-4 duration-300"
             type="submit"
             disabled={!isConnected || isQuerying}
-            onClick={() => queryDocuments(newMessage.trim(), new Date().toISOString())}
             title="Query documents"
           >
             {isQuerying ? (

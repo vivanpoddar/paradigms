@@ -29,14 +29,14 @@ const renderFormattedContent = (content: string): ReactElement[] => {
       }
       
       elements.push(
-        <div key={`code-block-${keyCounter++}`} className="my-3 first:mt-0 last:mb-0">
+        <div key={`code-block-${keyCounter++}`} className="my-1 first:mt-0 last:mb-0">
           <div className="bg-gray-100 dark:bg-gray-800 rounded-md overflow-hidden">
             {language && (
-              <div className="px-3 py-1 text-xs font-medium bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
+              <div className="px-2 py-1 text-xs font-medium bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
                 {language}
               </div>
             )}
-            <pre className="p-3 text-sm overflow-x-auto">
+            <pre className="p-2 text-sm overflow-x-auto">
               <code className="text-gray-800 dark:text-gray-200">
                 {codeLines.join('\n')}
               </code>
@@ -59,7 +59,7 @@ const renderFormattedContent = (content: string): ReactElement[] => {
           {
             key: `header-${keyCounter++}`,
             className: cn(
-              "font-semibold my-2 first:mt-0 last:mb-0",
+              "font-semibold my-1 first:mt-0 last:mb-0",
               level === 1 && "text-xl",
               level === 2 && "text-lg",
               level === 3 && "text-base",
@@ -83,7 +83,7 @@ const renderFormattedContent = (content: string): ReactElement[] => {
       }
       
       elements.push(
-        <ul key={`ul-${keyCounter++}`} className="list-disc list-inside my-2 first:mt-0 last:mb-0 space-y-1">
+        <ul key={`ul-${keyCounter++}`} className="list-disc list-inside my-1 first:mt-0 last:mb-0 space-y-0.5">
           {listItems.map((item, idx) => (
             <li key={`li-${keyCounter++}`} className="text-sm">
               {renderInlineContent(item.replace(/^\s*[-*+]\s/, ''))}
@@ -105,7 +105,7 @@ const renderFormattedContent = (content: string): ReactElement[] => {
       }
       
       elements.push(
-        <ol key={`ol-${keyCounter++}`} className="list-decimal list-inside my-2 first:mt-0 last:mb-0 space-y-1">
+        <ol key={`ol-${keyCounter++}`} className="list-decimal list-inside my-1 first:mt-0 last:mb-0 space-y-0.5">
           {listItems.map((item, idx) => (
             <li key={`li-${keyCounter++}`} className="text-sm">
               {renderInlineContent(item.replace(/^\s*\d+\.\s/, ''))}
@@ -119,14 +119,14 @@ const renderFormattedContent = (content: string): ReactElement[] => {
     // Handle empty lines as spacing
     if (line.trim() === '') {
       if (elements.length > 0) {
-        elements.push(<div key={`space-${keyCounter++}`} className="h-2" />)
+        elements.push(<div key={`space-${keyCounter++}`} className="h-1" />)
       }
       continue
     }
 
     // Handle regular paragraphs
     elements.push(
-      <p key={`para-${keyCounter++}`} className="my-1 first:mt-0 last:mb-0">
+      <p key={`para-${keyCounter++}`} className="my-0.5 first:mt-0 last:mb-0">
         {renderInlineContent(line)}
       </p>
     )
@@ -145,7 +145,7 @@ const renderInlineContent = (text: string): ReactElement[] => {
   remaining = remaining.replace(displayMathRegex, (match, math) => {
     const placeholder = `__DISPLAY_MATH_${keyCounter}__`
     parts.push(
-      <div key={`display-math-${keyCounter++}`} className="my-2 first:mt-0 last:mb-0">
+      <div key={`display-math-${keyCounter++}`} className="my-1 first:mt-0 last:mb-0">
         <MathJax dynamic>{`$$${math}$$`}</MathJax>
       </div>
     )
@@ -235,9 +235,9 @@ const renderInlineContent = (text: string): ReactElement[] => {
 
 export const ChatMessageItem = ({ message, isOwnMessage, showHeader }: ChatMessageItemProps) => {
   return (
-    <div className={`flex mt-2 ${isOwnMessage ? 'justify-end' : 'justify-start'}`}>
+    <div className={`flex mt-1 ${isOwnMessage ? 'justify-end' : 'justify-start'}`}>
       <div
-        className={cn('max-w-[75%] w-fit flex flex-col gap-1', {
+        className={cn('max-w-[75%] w-fit flex flex-col gap-0.5', {
           'items-end': isOwnMessage,
         })}
       >
@@ -259,7 +259,7 @@ export const ChatMessageItem = ({ message, isOwnMessage, showHeader }: ChatMessa
         )}
         <div
           className={cn(
-            'py-3 px-4 rounded-xl text-sm w-fit leading-relaxed',
+            'py-2 px-3 rounded-xl text-sm w-fit leading-relaxed',
             isOwnMessage ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground'
           )}
         >
