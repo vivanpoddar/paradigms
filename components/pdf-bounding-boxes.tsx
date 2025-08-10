@@ -144,12 +144,12 @@ export const TooltipLayer: React.FC<TooltipLayerProps> = ({ selectedBoxes, setSe
     };
 
     const handleSolve = async (boxId: string, problemText: string) => {
-        // Set loading state
+        // Clear any existing solution first
         setSelectedBoxes(prev => {
             const newMap = new Map(prev);
             const currentTooltip = newMap.get(boxId);
             if (currentTooltip) {
-                newMap.set(boxId, { ...currentTooltip, isLoading: true });
+                newMap.set(boxId, { ...currentTooltip, solution: undefined, isLoading: true });
             }
             return newMap;
         });
@@ -386,7 +386,7 @@ export const TooltipLayer: React.FC<TooltipLayerProps> = ({ selectedBoxes, setSe
                                 Solving...
                             </>
                         ) : (
-                            'Solve'
+                            tooltip.solution ? 'Solve Again' : 'Solve'
                         )}
                     </button>
                     {tooltip.solution && !tooltip.isLoading && onExplain && (
