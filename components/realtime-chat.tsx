@@ -16,6 +16,7 @@ import { useChatHistory } from '@/hooks/use-chat-history'
 import { createClient } from '@/lib/supabase/client'
 import { InlineMath } from 'react-katex'
 import 'katex/dist/katex.min.css'
+import { MathJaxContext } from 'better-react-mathjax'
 
 export interface RealtimeChatRef {
   clearCurrentMessages: () => void;
@@ -239,8 +240,15 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
       ? new Date(new Date(queryTimestamp).getTime() + 500).toISOString() // 500ms after query
       : new Date().toISOString() // Fallback to current time
 
-    const enhancedQuery = `You are an intelligent highschool tutor that takes action based on user requests. Assume the user is asking for help with a document-related task. Please thoroughly explain all queries asked by the user. If your responses do not require any action, keep your response concise, short, and focused on the user's request. Responses including math should be clearly demarcated in latex and with $ symbols.\n
-      Current user request:
+    const enhancedQuery = `You are an intelligent highschool tutor that takes action based on user requests. Assume the user is asking for help with a document-related task. Please thoroughly explain all queries asked by the user. If your responses do not require any action, keep your response concise, short, and focused on the user's request. 
+
+IMPORTANT: When including mathematical expressions in your responses:
+- Use $expression$ for inline math (e.g., $x^2 + y^2 = z^2$)
+- Use $$expression$$ for block/display math (e.g., $$\\int_0^1 x^2 dx$$)
+- Always wrap mathematical expressions with dollar signs for proper LaTeX rendering
+- Use proper LaTeX syntax (e.g., \\frac{a}{b} for fractions, \\sqrt{x} for square roots, etc.)
+
+Current user request:
       ${query}
 
       ${contextData ? `
@@ -458,8 +466,29 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
     [newMessage, isConnected, sendMessage, queryDocuments, shouldQueryDocuments]
   )
 
+  const mathJaxConfig = {
+    loader: { load: ["[tex]/html"] },
+    tex: {
+      packages: { "[+]": ["html"] },
+      inlineMath: [
+        ["$", "$"],
+        ["\\(", "\\)"]
+      ],
+      displayMath: [
+        ["$$", "$$"],
+        ["\\[", "\\]"]
+      ],
+      processEscapes: true,
+      processEnvironments: true
+    },
+    options: {
+      enableMenu: false
+    }
+  }
+
   return (
-    <div className="flex flex-col h-full w-full bg-background text-foreground antialiased">
+    <MathJaxContext config={mathJaxConfig}>
+      <div className="flex flex-col h-full w-full bg-background text-foreground antialiased">
       {/* Messages */}
       <div ref={containerRef} className="flex-1 overflow-y-auto p-4 space-y-4">
         {isLoadingHistory ? (
@@ -573,5 +602,6 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
         )}
       </form>
     </div>
+    </MathJaxContext>
   )
 })
