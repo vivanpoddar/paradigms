@@ -32,16 +32,10 @@ export const SimplePdfViewer: React.FC<SimplePdfViewerProps> = ({
     const { EnterFullScreen } = fullScreenPluginInstance;
 
     return (
-        <div>
+        <div className="h-full">
             <Worker workerUrl='https://unpkg.com/pdfjs-dist@3.4.120/build/pdf.worker.min.js'>
                 <div
-                    className="bg-white dark:bg-black"
-                    style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        height: '91vh',
-                    }}
-
+                    className="bg-white dark:bg-black h-full flex flex-col"
                 >
                     <div className="flex items-center justify-between px-4">
                         <Toolbar>

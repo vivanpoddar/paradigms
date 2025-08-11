@@ -23,9 +23,10 @@ interface FileBrowserProps {
   onFileSelect?: (fileName: string | null) => void;
   onExplain?: (problemText: string, solution: string) => void;
   forceShowFileList?: boolean; // New prop to force showing file list on mobile
+  isVisible?: boolean; // New prop to track if the component is currently visible
 }
 
-export function FileBrowser({ onFileSelect, onExplain, forceShowFileList = false }: FileBrowserProps = {}) {
+export function FileBrowser({ onFileSelect, onExplain, forceShowFileList = false, isVisible = true }: FileBrowserProps = {}) {
   const [files, setFiles] = useState<FileItem[]>([]);
   const [selectedFile, setSelectedFile] = useState<FileItem | null>(null);
   const [fileContent, setFileContent] = useState<string | null>(null);
@@ -35,6 +36,7 @@ export function FileBrowser({ onFileSelect, onExplain, forceShowFileList = false
   const [isFileListCollapsed, setIsFileListCollapsed] = useState(false);
   const [deletingFile, setDeletingFile] = useState<string | null>(null);
   const [isMobile, setIsMobile] = useState(false);
+  const [hasLoadedFiles, setHasLoadedFiles] = useState(false); // Track if we've already loaded files
 
   // Check if mobile
   useEffect(() => {
@@ -47,20 +49,21 @@ export function FileBrowser({ onFileSelect, onExplain, forceShowFileList = false
     return () => window.removeEventListener('resize', checkIsMobile);
   }, []);
 
-  // Get current user and load files
+  // Get current user and load files only once
   useEffect(() => {
     const loadUserFiles = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         setUserId(user.id);
-        // Only load files if we don't already have them for this user
-        if (files.length === 0) {
+        // Only load files if we haven't loaded them yet for any user
+        if (!hasLoadedFiles) {
           await loadFiles(user.id);
+          setHasLoadedFiles(true);
         }
       }
     };
     loadUserFiles();
-  }, []);
+  }, []); // Empty dependency array ensures this runs only once
 
   // Listen for auth state changes to reload files when user logs in
   useEffect(() => {
@@ -68,11 +71,13 @@ export function FileBrowser({ onFileSelect, onExplain, forceShowFileList = false
       if (event === 'SIGNED_IN' && session?.user) {
         setUserId(session.user.id);
         await loadFiles(session.user.id);
+        setHasLoadedFiles(true);
       } else if (event === 'SIGNED_OUT') {
         setFiles([]);
         setUserId(null);
         setSelectedFile(null);
         setFileContent(null);
+        setHasLoadedFiles(false); // Reset the flag when user signs out
         onFileSelect?.(null);
       }
     });
@@ -81,7 +86,7 @@ export function FileBrowser({ onFileSelect, onExplain, forceShowFileList = false
   }, [onFileSelect]);
 
   const loadFiles = async (userUuid: string) => {
-    // Prevent loading if already loading or if we already have files for this user
+    // Prevent loading if already loading
     if (loading) return;
     
     setLoading(true);
@@ -105,6 +110,25 @@ export function FileBrowser({ onFileSelect, onExplain, forceShowFileList = false
     } finally {
       setLoading(false);
     }
+  };
+
+  // Function to refresh files (only call when necessary, like after upload)
+  const refreshFiles = async () => {
+    if (userId) {
+      await loadFiles(userId);
+    }
+  };
+
+  // Function to add a new file to the local state without full reload
+  const addNewFile = (newFile: FileItem) => {
+    setFiles(prevFiles => {
+      // Check if file already exists to avoid duplicates
+      const exists = prevFiles.some(file => file.name === newFile.name);
+      if (exists) {
+        return prevFiles;
+      }
+      return [...prevFiles, newFile];
+    });
   };
 
   const selectFile = async (file: FileItem) => {
@@ -217,8 +241,8 @@ export function FileBrowser({ onFileSelect, onExplain, forceShowFileList = false
         console.log(`✅ Chat history deleted (${deletedChatCount || 0} messages)`);
       }
 
-      // 5. Refresh file list
-      await loadFiles(userId);
+      // Update local state instead of reloading all files
+      setFiles(prevFiles => prevFiles.filter(f => f.id !== file.id));
       
       if (selectedFile?.id === file.id) {
         setSelectedFile(null);
@@ -296,7 +320,7 @@ export function FileBrowser({ onFileSelect, onExplain, forceShowFileList = false
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => userId && loadFiles(userId)}
+                    onClick={refreshFiles}
                     disabled={loading}
                     className="h-7 text-xs"
                   >
@@ -342,7 +366,7 @@ export function FileBrowser({ onFileSelect, onExplain, forceShowFileList = false
             <CardContent className="p-0 flex-1 flex flex-col">
               {showUpload && (
                 <div className="p-4 border-b bg-muted/30 flex-shrink-0">
-                  <FileUpload />
+                  <FileUpload onUploadSuccess={refreshFiles} />
                 </div>
               )}
               <div className="flex-1 overflow-y-auto">

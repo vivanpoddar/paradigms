@@ -199,34 +199,35 @@ export default function Home() {
         )}
         
         <div className="flex-1 w-full min-h-0 flex relative">
-          {/* Mobile File Browser Overlay */}
-          {isMobile && showMobileFileBrowser && (
-            <div className="absolute inset-0 z-20 bg-background mobile-overlay mobile-viewport-fix">
-              <div className="h-full flex flex-col mobile-panel mobile-viewport-fix">
-                <div className="flex items-center justify-between p-2 border-b bg-muted/30 flex-shrink-0">
-                  <h2 className="text-sm font-semibold">File Browser</h2>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setShowMobileFileBrowser(false)}
-                    className="h-8 w-8 p-0"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-                <div className="flex-1 min-h-0 mobile-scroll">
-                  <FileBrowser 
-                    forceShowFileList={true}
-                    onFileSelect={(fileName) => {
-                      handleFileSelect(fileName);
-                      setShowMobileFileBrowser(false); // Close after selection
-                    }} 
-                    onExplain={handleExplain} 
-                  />
-                </div>
+          {/* Mobile File Browser Overlay - Always rendered to avoid remounting */}
+          <div className={`absolute inset-0 z-20 bg-background mobile-overlay mobile-viewport-fix transition-transform duration-300 ${
+            isMobile && showMobileFileBrowser ? 'translate-x-0' : 'translate-x-full'
+          }`}>
+            <div className="h-full flex flex-col mobile-panel mobile-viewport-fix">
+              <div className="flex items-center justify-between p-2 border-b bg-muted/30 flex-shrink-0">
+                <h2 className="text-sm font-semibold">File Browser</h2>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowMobileFileBrowser(false)}
+                  className="h-8 w-8 p-0"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+              <div className="flex-1 min-h-0 mobile-scroll">
+                <FileBrowser 
+                  forceShowFileList={true}
+                  isVisible={isMobile && showMobileFileBrowser}
+                  onFileSelect={(fileName) => {
+                    handleFileSelect(fileName);
+                    setShowMobileFileBrowser(false); // Close after selection
+                  }} 
+                  onExplain={handleExplain} 
+                />
               </div>
             </div>
-          )}
+          </div>
 
           {/* Mobile PDF Viewer Overlay */}
           {isMobile && showMobilePdfViewer && selectedFileUrl && (
@@ -243,7 +244,7 @@ export default function Home() {
                     <X className="h-4 w-4" />
                   </Button>
                 </div>
-                <div className="flex-1 min-h-0 mobile-scroll">
+                <div className="flex-1 min-h-0 h-full overflow-hidden">
                   <SimplePdfViewer pdfUrl={selectedFileUrl} />
                 </div>
               </div>
@@ -267,7 +268,7 @@ export default function Home() {
             <>
               {/* Desktop Layout - Main content area - File Browser */}
               <div className={`flex-1 transition-all duration-300 ${isChatCollapsed ? 'w-full' : 'lg:w-3/5'} border-r border-border`}>
-                <FileBrowser onFileSelect={handleFileSelect} onExplain={handleExplain} />
+                <FileBrowser onFileSelect={handleFileSelect} onExplain={handleExplain} isVisible={!isMobile} />
               </div>
               
               {/* Desktop Layout - Side panel - Realtime Chat */}
