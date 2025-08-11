@@ -472,7 +472,7 @@ Current user request:
 
   return (
     <MathJaxContext config={mathJaxConfig}>
-      <div className="flex flex-col w-full bg-background text-foreground antialiased mobile-chat-container">
+      <div className="flex flex-col h-full w-full bg-background text-foreground antialiased mobile-chat-container">
       {/* Messages */}
       <div ref={containerRef} className="flex-1 overflow-y-auto p-4 space-y-4 mobile-chat-messages mobile-scroll">
         {isLoadingHistory ? (

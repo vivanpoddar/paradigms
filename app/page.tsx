@@ -99,7 +99,7 @@ export default function Home() {
   };
   
   return (
-    <main className="h-screen max-h-[100vh] overflow-y-hidden flex flex-col main-container mobile-viewport-fix">
+    <main className="h-screen max-h-[100vh] overflow-hidden flex flex-col main-container mobile-viewport-fix">
       <div className="flex-1 w-full flex flex-col">
         <Navbar />
         
@@ -241,8 +241,8 @@ export default function Home() {
                   </div>
                 )}
                 {!isChatCollapsed && (
-                  <div className="flex-1 max-h-[89vh]">
-                    <RealtimeChat 
+                  <div className="flex-1 max-h-[89vh] overflow-y-scroll">
+                    <RealtimeChat
                       ref={chatRef}
                       roomName="general-chat" 
                       username={user?.email?.split('@')[0] || 'anonymous'}
