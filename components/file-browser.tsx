@@ -22,9 +22,10 @@ interface FileItem {
 interface FileBrowserProps {
   onFileSelect?: (fileName: string | null) => void;
   onExplain?: (problemText: string, solution: string) => void;
+  forceShowFileList?: boolean; // New prop to force showing file list on mobile
 }
 
-export function FileBrowser({ onFileSelect, onExplain }: FileBrowserProps = {}) {
+export function FileBrowser({ onFileSelect, onExplain, forceShowFileList = false }: FileBrowserProps = {}) {
   const [files, setFiles] = useState<FileItem[]>([]);
   const [selectedFile, setSelectedFile] = useState<FileItem | null>(null);
   const [fileContent, setFileContent] = useState<string | null>(null);
@@ -33,6 +34,18 @@ export function FileBrowser({ onFileSelect, onExplain }: FileBrowserProps = {}) 
   const [showUpload, setShowUpload] = useState(false);
   const [isFileListCollapsed, setIsFileListCollapsed] = useState(false);
   const [deletingFile, setDeletingFile] = useState<string | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Check if mobile
+  useEffect(() => {
+    const checkIsMobile = () => {
+      setIsMobile(window.innerWidth < 1024);
+    };
+
+    checkIsMobile();
+    window.addEventListener('resize', checkIsMobile);
+    return () => window.removeEventListener('resize', checkIsMobile);
+  }, []);
 
   // Get current user and load files
   useEffect(() => {
@@ -40,13 +53,37 @@ export function FileBrowser({ onFileSelect, onExplain }: FileBrowserProps = {}) 
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         setUserId(user.id);
-        await loadFiles(user.id);
+        // Only load files if we don't already have them for this user
+        if (files.length === 0) {
+          await loadFiles(user.id);
+        }
       }
     };
     loadUserFiles();
   }, []);
 
+  // Listen for auth state changes to reload files when user logs in
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN' && session?.user) {
+        setUserId(session.user.id);
+        await loadFiles(session.user.id);
+      } else if (event === 'SIGNED_OUT') {
+        setFiles([]);
+        setUserId(null);
+        setSelectedFile(null);
+        setFileContent(null);
+        onFileSelect?.(null);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [onFileSelect]);
+
   const loadFiles = async (userUuid: string) => {
+    // Prevent loading if already loading or if we already have files for this user
+    if (loading) return;
+    
     setLoading(true);
     try {
       const { data, error } = await supabase.storage
@@ -59,7 +96,9 @@ export function FileBrowser({ onFileSelect, onExplain }: FileBrowserProps = {}) 
       if (error) {
         console.error('Error loading files:', error);
       } else {
-        setFiles(data || []);
+        const fileList = data || [];
+        setFiles(fileList);
+        console.log(`✅ Loaded ${fileList.length} files for user`);
       }
     } catch (error) {
       console.error('Error loading files:', error);
@@ -214,14 +253,23 @@ export function FileBrowser({ onFileSelect, onExplain }: FileBrowserProps = {}) 
   // const visibleFiles = files
 
   return (
-    <div className="flex h-full">
+    <div className="flex h-full main-container">
       {/* Left Side - File List */}
-      <div className={`transition-all duration-300 border-r border-border flex flex-col ${isFileListCollapsed ? 'w-12' : 'w-2/5'}`}>
+      <div className={`transition-all duration-300 border-r border-border flex flex-col ${
+        isFileListCollapsed
+          ? 'w-12' 
+          : forceShowFileList
+            ? 'w-full'
+            : isMobile && selectedFile 
+              ? 'hidden' 
+              : 'w-full lg:w-2/5'
+      }`}>
         <Card className="h-full rounded-none border-0 flex flex-col">
           <CardHeader className="border-b flex-shrink-0 p-2">
             <CardTitle className="flex items-center justify-between text-sm">
-              {!isFileListCollapsed && "Your Files"}
-              {isFileListCollapsed && (
+              {!isFileListCollapsed && !isMobile && "Your Files"}
+              {!isFileListCollapsed && forceShowFileList && "Your Files"}
+              {isFileListCollapsed && !isMobile && (
                 <div className="flex justify-center w-full">
                   <Button
                     variant="ghost"
@@ -254,15 +302,17 @@ export function FileBrowser({ onFileSelect, onExplain }: FileBrowserProps = {}) 
                   >
                     {loading ? 'Loading...' : 'Refresh'}
                   </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setIsFileListCollapsed(!isFileListCollapsed)}
-                    className="h-6 w-6 p-0"
-                    title={isFileListCollapsed ? "Expand file list (Ctrl+E)" : "Collapse file list (Ctrl+E)"}
-                  >
-                    {isFileListCollapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
-                  </Button>
+                  {!forceShowFileList && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setIsFileListCollapsed(!isFileListCollapsed)}
+                      className="h-6 w-6 p-0 hidden lg:flex"
+                      title={isFileListCollapsed ? "Expand file list (Ctrl+E)" : "Collapse file list (Ctrl+E)"}
+                    >
+                      {isFileListCollapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
+                    </Button>
+                  )}
                 </div>
               )}
             </CardTitle>
@@ -365,18 +415,41 @@ export function FileBrowser({ onFileSelect, onExplain }: FileBrowserProps = {}) 
         </Card>
       </div>
 
-      {/* Right Side - File Display */}
-      <div className="flex-1 flex flex-col">
+      {/* Right Side - File Display - Hidden when forcing file list or on mobile */}
+      <div className={`flex-1 flex flex-col ${
+        forceShowFileList
+          ? 'hidden'
+          : isFileListCollapsed 
+            ? '' 
+            : isMobile && selectedFile 
+              ? 'w-full' 
+              : 'hidden lg:flex'
+      }`}>
         <Card className="h-full rounded-none border-0 flex flex-col">
           <CardHeader className="border-b flex-shrink-0 p-2">
-            <CardTitle className="text-sm">
-              {selectedFile ? selectedFile.name : 'Select a file to view'}
+            <CardTitle className="text-sm flex items-center justify-between">
+              <span>{selectedFile ? selectedFile.name : 'Select a file to view'}</span>
+              {isMobile && selectedFile && !forceShowFileList && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setSelectedFile(null);
+                    setFileContent(null);
+                    onFileSelect?.(null);
+                  }}
+                  className="h-6 w-6 p-0 lg:hidden"
+                  title="Back to file list"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+              )}
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0 flex-1 flex flex-col">
             {selectedFile ? (
               <div className="flex-1 flex flex-col">
-                <div className="flex-1 h-[90vh] overflow-auto">
+                <div className="flex-1 mobile-pdf-container lg:h-[90vh] overflow-auto mobile-scroll">
                   {fileContent ? (
                     (selectedFile.metadata?.mimetype || '').startsWith('image/') ? (
                       <div className="p-2">
@@ -395,7 +468,7 @@ export function FileBrowser({ onFileSelect, onExplain }: FileBrowserProps = {}) 
                       />
                     ) : (selectedFile.metadata?.mimetype || '').startsWith('text/') ||
                        selectedFile.metadata?.mimetype === 'application/json' ? (
-                      <pre className="whitespace-pre-wrap text-sm font-mono bg-muted/30 p-4 rounded overflow-auto min-h-0 h-[90vh] flex-1 m-2">
+                      <pre className="whitespace-pre-wrap text-sm font-mono bg-muted/30 p-4 rounded overflow-auto min-h-0 mobile-pdf-container lg:h-[90vh] flex-1 m-2 mobile-scroll">
                         {fileContent}
                       </pre>
                     ) : (

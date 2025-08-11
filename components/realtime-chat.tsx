@@ -472,9 +472,9 @@ Current user request:
 
   return (
     <MathJaxContext config={mathJaxConfig}>
-      <div className="flex flex-col h-full w-full bg-background text-foreground antialiased">
+      <div className="flex flex-col w-full bg-background text-foreground antialiased mobile-chat-container">
       {/* Messages */}
-      <div ref={containerRef} className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div ref={containerRef} className="flex-1 overflow-y-auto p-4 space-y-4 mobile-chat-messages mobile-scroll">
         {isLoadingHistory ? (
           <div className="text-center text-sm text-muted-foreground">
             <Loader2 className="inline w-4 h-4 animate-spin mr-2" />
@@ -505,11 +505,13 @@ Current user request:
                 key={message.id}
                 className="animate-in fade-in slide-in-from-bottom-4 duration-300"
               >
-                <ChatMessageItem
-                  message={message}
-                  isOwnMessage={message.user.name === username}
-                  showHeader={showHeader}
-                />
+                <div className="mobile-message-bubble">
+                  <ChatMessageItem
+                    message={message}
+                    isOwnMessage={message.user.name === username}
+                    showHeader={showHeader}
+                  />
+                </div>
               </div>
             )
           })}
@@ -551,10 +553,10 @@ Current user request:
         </div>
       )}
 
-      <form onSubmit={handleSendMessage} className="flex w-full border-t gap-2 border-border p-4">
+      <form onSubmit={handleSendMessage} className="flex w-full border-t gap-2 border-border p-4 mobile-chat-input bg-background">
         <Input
           className={cn(
-            'rounded-full bg-background text-sm transition-all duration-300'
+            'rounded-full bg-background transition-all duration-300 text-base lg:text-sm'
           )}
           type="text"
           value={newMessage}
@@ -571,7 +573,7 @@ Current user request:
         
         {enableDocumentQuery && isConnected && newMessage.trim() && (
           <Button
-            className="aspect-square rounded-full animate-in fade-in slide-in-from-right-4 duration-300"
+            className="aspect-square rounded-full animate-in fade-in slide-in-from-right-4 duration-300 flex-shrink-0"
             type="submit"
             disabled={!isConnected || isQuerying}
             title="Query documents"

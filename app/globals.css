@@ -83,4 +83,178 @@
     font-size: 0.75rem;
     color: hsl(var(--muted-foreground));
   }
+
+  /* Mobile responsive utilities */
+  @media (max-width: 1023px) {
+    .mobile-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 50;
+      background: hsl(var(--background));
+      height: 100vh;
+      height: -webkit-fill-available;
+    }
+    
+    .mobile-panel {
+      height: 100vh;
+      height: -webkit-fill-available;
+      overflow: hidden;
+    }
+    
+    /* Ensure PDF viewer fits mobile viewport */
+    .mobile-pdf-container {
+      height: calc(100vh - 120px); /* Account for navbar and mobile controls */
+      height: calc(-webkit-fill-available - 120px);
+    }
+    
+    /* Mobile-specific scrolling */
+    .mobile-scroll {
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    
+    /* Chat container specific mobile optimizations */
+    .mobile-chat-container {
+      height: 89vh;
+      height: calc(-webkit-fill-available - 20vh);
+    }
+    
+    /* Ensure chat messages don't exceed viewport */
+    .mobile-chat-messages {
+      max-width: 100vw;
+      overflow-x: hidden;
+      word-wrap: break-word;
+      hyphens: auto;
+    }
+    
+    /* Mobile-optimized message bubbles */
+    .mobile-message-bubble {
+      max-width: calc(100vw - 2rem);
+      word-break: break-word;
+      overflow-wrap: break-word;
+    }
+  }
+
+  /* Prevent horizontal scrolling on mobile */
+  @media (max-width: 1023px) {
+    body {
+      overflow-x: hidden;
+      word-wrap: break-word;
+    }
+    
+    .main-container {
+      width: 100vw;
+      max-width: 100vw;
+      overflow-x: hidden;
+    }
+    
+    /* Ensure all text content wraps properly */
+    * {
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+      hyphens: auto;
+    }
+    
+    /* Mobile viewport fix for iOS Safari */
+    .mobile-viewport-fix {
+      height: 100vh;
+      height: -webkit-fill-available;
+      height: 100dvh;
+    }
+    
+    /* iOS Safari specific fixes */
+    @supports (-webkit-touch-callout: none) {
+      .mobile-viewport-fix {
+        height: -webkit-fill-available;
+      }
+      
+      .mobile-chat-container {
+        height: -webkit-fill-available;
+        max-height: -webkit-fill-available;
+      }
+      
+      .mobile-panel {
+        height: -webkit-fill-available;
+      }
+    }
+    
+    /* Prevent viewport changes on iOS */
+    html {
+      height: -webkit-fill-available;
+    }
+    
+    body {
+      min-height: 100vh;
+      min-height: -webkit-fill-available;
+    }
+    
+    /* Prevent zoom on input focus (iOS Safari) */
+    input[type="text"],
+    input[type="email"],
+    input[type="password"],
+    textarea {
+      font-size: 16px;
+    }
+    
+    /* Ensure chat input area stays at bottom */
+    .mobile-chat-input {
+      position: sticky;
+      bottom: 0;
+      background: hsl(var(--background));
+      border-top: 1px solid hsl(var(--border));
+      z-index: 10;
+    }
+    
+    /* MathJax mobile responsiveness */
+    .MathJax {
+      max-width: 100% !important;
+      overflow-x: auto !important;
+      overflow-y: hidden !important;
+      -webkit-overflow-scrolling: touch;
+    }
+    
+    .MathJax_Display {
+      overflow-x: auto !important;
+      overflow-y: hidden !important;
+      max-width: 100% !important;
+      text-align: left !important;
+      margin: 0.5em 0 !important;
+    }
+    
+    .MathJax_Display > span {
+      max-width: 100% !important;
+    }
+    
+    mjx-container {
+      max-width: 100% !important;
+      overflow-x: auto !important;
+      overflow-y: hidden !important;
+    }
+    
+    mjx-container[display="true"] {
+      overflow-x: auto !important;
+      text-align: left !important;
+      margin: 0.5em 0 !important;
+    }
+    
+    /* MathJax scrollbar styling for mobile */
+    .MathJax::-webkit-scrollbar,
+    mjx-container::-webkit-scrollbar {
+      height: 4px;
+    }
+    
+    .MathJax::-webkit-scrollbar-track,
+    mjx-container::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    
+    .MathJax::-webkit-scrollbar-thumb,
+    mjx-container::-webkit-scrollbar-thumb {
+      background: hsl(var(--muted-foreground));
+      border-radius: 2px;
+    }
+  }
 }
