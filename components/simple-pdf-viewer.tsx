@@ -141,7 +141,7 @@ export const SimplePdfViewer: React.FC<SimplePdfViewerProps> = ({
                             }}
                         </Toolbar>
                     </div>
-                    <div className="flex-1 overflow-hidden bg-gray-100 dark:bg-black">
+                    <div className="flex-1 overflow-hidden bg-white dark:bg-white">
                         <Viewer 
                             fileUrl={pdfUrl} 
                             plugins={[

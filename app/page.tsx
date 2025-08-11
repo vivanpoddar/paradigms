@@ -7,7 +7,7 @@ import { SimplePdfViewer } from "@/components/simple-pdf-viewer";
 import { createClient } from "@/lib/supabase/client";
 import { useEffect, useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, MessageCircle, Trash2, Menu, X, FileText, Eye } from "lucide-react";
+import { ChevronLeft, ChevronRight, MessageCircle, Trash2, Menu, X, FileText, Eye, FileIcon } from "lucide-react";
 import { useChatHistory } from "@/hooks/use-chat-history";
 
 export default function Home() {
@@ -165,15 +165,15 @@ export default function Home() {
               </Button>
               
               {selectedFileName && selectedFileName.toLowerCase().endsWith('.pdf') && (
-                <Button
-                  variant={showMobilePdfViewer ? "default" : "ghost"}
-                  size="sm"
+                <button
+                  //variant={showMobilePdfViewer ? "default" : "ghost"}
+                  //size="sm"
                   onClick={handleMobilePdfViewerToggle}
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-2 text-sm"
                 >
-                  <Eye className="h-4 w-4" />
-                  PDF
-                </Button>
+                  <FileIcon className="h-4 w-4" />
+                  View
+                </button>
               )}
             </div>
             

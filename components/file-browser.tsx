@@ -277,7 +277,7 @@ export function FileBrowser({ onFileSelect, onExplain, forceShowFileList = false
   // const visibleFiles = files
 
   return (
-    <div className="flex h-full main-container">
+    <div className="flex overflow-y-scroll h-full main-container">
       {/* Left Side - File List */}
       <div className={`transition-all duration-300 border-r border-border flex flex-col ${
         isFileListCollapsed
