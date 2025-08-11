@@ -3,10 +3,11 @@
 import { FileBrowser } from "@/components/file-browser";
 import { Navbar } from "@/components/navbar";
 import { RealtimeChat, RealtimeChatRef } from "@/components/realtime-chat";
+import { SimplePdfViewer } from "@/components/simple-pdf-viewer";
 import { createClient } from "@/lib/supabase/client";
 import { useEffect, useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, MessageCircle, Trash2, Menu, X, FileText } from "lucide-react";
+import { ChevronLeft, ChevronRight, MessageCircle, Trash2, Menu, X, FileText, Eye } from "lucide-react";
 import { useChatHistory } from "@/hooks/use-chat-history";
 
 export default function Home() {
@@ -18,6 +19,8 @@ export default function Home() {
   // Mobile state management
   const [isMobile, setIsMobile] = useState(false);
   const [showMobileFileBrowser, setShowMobileFileBrowser] = useState(false);
+  const [showMobilePdfViewer, setShowMobilePdfViewer] = useState(false);
+  const [selectedFileUrl, setSelectedFileUrl] = useState<string | null>(null);
 
   // Initialize chat history hook
   const { clearHistory, isLoading: isClearingHistory } = useChatHistory({
@@ -43,6 +46,7 @@ export default function Home() {
       // Reset mobile panels when switching to desktop
       if (!mobile) {
         setShowMobileFileBrowser(false);
+        setShowMobilePdfViewer(false);
       }
     };
 
@@ -85,9 +89,10 @@ export default function Home() {
     }
     
     // On mobile, chat is already visible by default
-    // Just close file browser if it's open
-    if (isMobile && showMobileFileBrowser) {
+    // Just close overlays if they're open
+    if (isMobile && (showMobileFileBrowser || showMobilePdfViewer)) {
       setShowMobileFileBrowser(false);
+      setShowMobilePdfViewer(false);
     }
     
     // Open the explanation context in chat
@@ -96,6 +101,48 @@ export default function Home() {
 
   const handleMobileFileBrowserToggle = () => {
     setShowMobileFileBrowser(!showMobileFileBrowser);
+    setShowMobilePdfViewer(false); // Close PDF viewer when opening file browser
+  };
+
+  const handleMobilePdfViewerToggle = () => {
+    setShowMobilePdfViewer(!showMobilePdfViewer);
+    setShowMobileFileBrowser(false); // Close file browser when opening PDF viewer
+  };
+
+  // Function to get PDF URL for the selected file
+  const getPdfUrl = async (fileName: string): Promise<string | null> => {
+    if (!user?.id || !fileName.toLowerCase().endsWith('.pdf')) {
+      return null;
+    }
+
+    try {
+      const supabase = createClient();
+      const { data, error } = await supabase.storage
+        .from('documents')
+        .createSignedUrl(`${user.id}/${fileName}`, 3600); // 1 hour expiry
+
+      if (error) {
+        console.error('Error creating signed URL:', error);
+        return null;
+      }
+
+      return data.signedUrl;
+    } catch (error) {
+      console.error('Error getting PDF URL:', error);
+      return null;
+    }
+  };
+
+  // Handle file selection and get PDF URL if it's a PDF
+  const handleFileSelect = async (fileName: string | null) => {
+    setSelectedFileName(fileName);
+    
+    if (fileName && fileName.toLowerCase().endsWith('.pdf')) {
+      const pdfUrl = await getPdfUrl(fileName);
+      setSelectedFileUrl(pdfUrl);
+    } else {
+      setSelectedFileUrl(null);
+    }
   };
   
   return (
@@ -106,15 +153,29 @@ export default function Home() {
         {/* Mobile Navigation Buttons */}
         {isMobile && (
           <div className="flex justify-between items-center p-2 bg-muted/30 border-b lg:hidden flex-shrink-0">
-            <Button
-              variant={showMobileFileBrowser ? "default" : "ghost"}
-              size="sm"
-              onClick={handleMobileFileBrowserToggle}
-              className="flex items-center gap-2"
-            >
-              <FileText className="h-4 w-4" />
-              Files
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant={showMobileFileBrowser ? "default" : "ghost"}
+                size="sm"
+                onClick={handleMobileFileBrowserToggle}
+                className="flex items-center gap-2"
+              >
+                <FileText className="h-4 w-4" />
+                Files
+              </Button>
+              
+              {selectedFileName && selectedFileName.toLowerCase().endsWith('.pdf') && (
+                <Button
+                  variant={showMobilePdfViewer ? "default" : "ghost"}
+                  size="sm"
+                  onClick={handleMobilePdfViewerToggle}
+                  className="flex items-center gap-2"
+                >
+                  <Eye className="h-4 w-4" />
+                  PDF
+                </Button>
+              )}
+            </div>
             
             <div className="text-xs text-center flex-1 px-4">
               {selectedFileName ? (
@@ -157,11 +218,33 @@ export default function Home() {
                   <FileBrowser 
                     forceShowFileList={true}
                     onFileSelect={(fileName) => {
-                      setSelectedFileName(fileName);
+                      handleFileSelect(fileName);
                       setShowMobileFileBrowser(false); // Close after selection
                     }} 
                     onExplain={handleExplain} 
                   />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Mobile PDF Viewer Overlay */}
+          {isMobile && showMobilePdfViewer && selectedFileUrl && (
+            <div className="absolute inset-0 z-20 bg-background mobile-overlay mobile-viewport-fix">
+              <div className="h-full flex flex-col mobile-panel mobile-viewport-fix">
+                <div className="flex items-center justify-between p-2 border-b bg-muted/30 flex-shrink-0">
+                  <h2 className="text-sm font-semibold">PDF Viewer</h2>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowMobilePdfViewer(false)}
+                    className="h-8 w-8 p-0"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="flex-1 min-h-0 mobile-scroll">
+                  <SimplePdfViewer pdfUrl={selectedFileUrl} />
                 </div>
               </div>
             </div>
@@ -184,7 +267,7 @@ export default function Home() {
             <>
               {/* Desktop Layout - Main content area - File Browser */}
               <div className={`flex-1 transition-all duration-300 ${isChatCollapsed ? 'w-full' : 'lg:w-3/5'} border-r border-border`}>
-                <FileBrowser onFileSelect={setSelectedFileName} onExplain={handleExplain} />
+                <FileBrowser onFileSelect={handleFileSelect} onExplain={handleExplain} />
               </div>
               
               {/* Desktop Layout - Side panel - Realtime Chat */}
