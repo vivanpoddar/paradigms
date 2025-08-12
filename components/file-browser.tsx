@@ -199,63 +199,79 @@ export function FileBrowser({ onFileSelect, onExplain, forceShowFileList = false
     }
   };
 
-  const deleteFile = async (file: FileItem) => {
+  const deleteFile = (file: FileItem) => {
     if (!userId) return;
         
     setDeletingFile(file.id);
     
-    try {
-      
-      const { error: fileDeleteError } = await supabase.storage
-        .from('documents')
-        .remove([`${userId}/${file.name}`]);
-
-      if (fileDeleteError) {
-        console.error('Error deleting file from storage:', fileDeleteError);
-        throw fileDeleteError;
-      }
-
-      console.log('✅ File deleted from storage');
-
-      const parsedJsonFileName = file.name.replace(/\.(pdf|doc|docx)$/i, '_parsed.json');
-      if (parsedJsonFileName !== file.name) {
-        const { error: parsedDeleteError } = await supabase.storage
-          .from('documents')
-          .remove([`${userId}/${parsedJsonFileName}`]);
-        
-        if (parsedDeleteError) {
-        } else {
-        }
-      }
-
-      // 3. Delete chat history from database
-      const { error: chatDeleteError, count: deletedChatCount } = await supabase
-        .from('chat_history')
-        .delete()
-        .eq('user_id', userId)
-        .eq('file_name', file.name);
-
-      if (chatDeleteError) {
-        console.error('Error deleting chat history:', chatDeleteError);
-      } else {
-        console.log(`✅ Chat history deleted (${deletedChatCount || 0} messages)`);
-      }
-
-      // Update local state instead of reloading all files
-      setFiles(prevFiles => prevFiles.filter(f => f.id !== file.id));
-      
-      if (selectedFile?.id === file.id) {
-        setSelectedFile(null);
-        setFileContent(null);
-        onFileSelect?.(null);
-      }
-      
-    } catch (error) {
-      console.error('Error deleting file:', error);
-      alert(`Failed to delete file: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    } finally {
-      setDeletingFile(null);
+    // Update UI immediately for better UX
+    setFiles(prevFiles => prevFiles.filter(f => f.id !== file.id));
+    
+    if (selectedFile?.id === file.id) {
+      setSelectedFile(null);
+      setFileContent(null);
+      onFileSelect?.(null);
     }
+    
+    // Perform deletions in background without awaiting
+    const performDeletions = async () => {
+      try {
+        // Delete main file
+        const fileDeletePromise = supabase.storage
+          .from('documents')
+          .remove([`${userId}/${file.name}`]);
+
+        // Delete parsed JSON file if it exists
+        const parsedJsonFileName = file.name.replace(/\.(pdf|doc|docx)$/i, '_parsed.json');
+        const parsedDeletePromise = parsedJsonFileName !== file.name 
+          ? supabase.storage
+              .from('documents')
+              .remove([`${userId}/${parsedJsonFileName}`])
+          : Promise.resolve({ error: null });
+
+        // Delete chat history
+        const chatDeletePromise = supabase
+          .from('chat_history')
+          .delete()
+          .eq('user_id', userId)
+          .eq('file_name', file.name);
+
+        // Execute all deletions in parallel
+        const [fileResult, parsedResult, chatResult] = await Promise.all([
+          fileDeletePromise,
+          parsedDeletePromise,
+          chatDeletePromise
+        ]);
+
+        if (fileResult.error) {
+          console.error('Error deleting file from storage:', fileResult.error);
+        } else {
+          console.log('✅ File deleted from storage');
+        }
+
+        if (parsedResult.error && parsedJsonFileName !== file.name) {
+          console.error('Error deleting parsed file:', parsedResult.error);
+        } else if (parsedJsonFileName !== file.name) {
+          console.log('✅ Parsed file deleted from storage');
+        }
+
+        if (chatResult.error) {
+          console.error('Error deleting chat history:', chatResult.error);
+        } else {
+          console.log(`✅ Chat history deleted (${chatResult.count || 0} messages)`);
+        }
+        
+      } catch (error) {
+        console.error('Error during deletion:', error);
+        // If there's an error, we could optionally reload the files to restore the UI state
+        // refreshFiles();
+      } finally {
+        setDeletingFile(null);
+      }
+    };
+
+    // Start deletions but don't await them
+    performDeletions();
   };
 
   const formatFileSize = (bytes: number) => {
@@ -473,7 +489,7 @@ export function FileBrowser({ onFileSelect, onExplain, forceShowFileList = false
           <CardContent className="p-0 flex-1 flex flex-col">
             {selectedFile ? (
               <div className="flex-1 flex flex-col">
-                <div className="flex-1 mobile-pdf-container lg:h-[90vh] overflow-auto mobile-scroll">
+                <div className="flex-1 mobile-pdf-container bg-white lg:h-[90vh] overflow-auto mobile-scroll">
                   {fileContent ? (
                     (selectedFile.metadata?.mimetype || '').startsWith('image/') ? (
                       <div className="p-2">

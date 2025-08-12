@@ -37,6 +37,11 @@ type UseSupabaseUploadOptions = {
    */
   maxFiles?: number
   /**
+   * Parsing method to use for document processing.
+   * 'mparse' uses Mathpix for mathematical content, 'nparse' uses standard LlamaIndex OCR
+   */
+  parseMethod?: 'mparse' | 'nparse'
+  /**
    * The number of seconds the asset is cached in the browser and in the Supabase CDN.
    *
    * This is set in the Cache-Control: max-age=<seconds> header. Defaults to 3600 seconds.
@@ -59,8 +64,9 @@ const useSupabaseUpload = (options: UseSupabaseUploadOptions) => {
     allowedMimeTypes = [],
     maxFileSize = Number.POSITIVE_INFINITY,
     maxFiles = 1,
+    parseMethod = 'nparse', 
     cacheControl = 3600,
-    upsert = false,
+    upsert = true,
   } = options
 
   const [files, setFiles] = useState<FileWithPreview[]>([])
@@ -159,7 +165,8 @@ const useSupabaseUpload = (options: UseSupabaseUploadOptions) => {
           }
 
           // After successful upload, send to backend for LlamaParse processing
-          const parseResponse = await fetch('/api/mparse', {
+          console.log('Using parseMethod:', parseMethod, 'for file:', file.name)
+          const parseResponse = await fetch(`/api/${parseMethod}`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',

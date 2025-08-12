@@ -283,7 +283,7 @@ export const PdfViewerWithOverlay: React.FC<PdfViewerWithOverlayProps> = ({
                             }}
                         </Toolbar>
                     </div>
-                    <div className="flex-1 overflow-hidden bg-gray-100 dark:bg-black" ref={pdfContainerRef}>
+                    <div className="flex-1 overflow-hidden bg-white dark:bg-white" ref={pdfContainerRef}>
                         <Viewer 
                             fileUrl={pdfUrl} 
                             plugins={[

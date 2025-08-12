@@ -8,6 +8,8 @@ import FormData from 'form-data'
 import fetch from 'node-fetch'
 import { GoogleGenAI } from "@google/genai";
 
+console.log('Processing mparse route...')
+
 // Type definitions for Mathpix OCR response
 interface MathpixLine {
   text: string;
@@ -20,11 +22,12 @@ interface MathpixLine {
   };
   confidence?: number;
   line?: string;
-  column?: string;
 }
 
 interface MathpixPage {
   lines: MathpixLine[];
+  page_width: number;
+  page_height: number;
 }
 
 interface MathpixResponse {
@@ -515,11 +518,12 @@ export async function POST(request: NextRequest) {
                 textType: string;
                 region: any;
                 line: string;
-                column: string;
               };
 
               type ParsedPage = {
                 lines: ParsedLine[];
+                pageWidth: number | undefined;
+                pageHeight: number | undefined;
               };
 
               const parsedJson: { page: ParsedPage[] } = {
@@ -547,24 +551,21 @@ export async function POST(request: NextRequest) {
                 });
 
                 return {
-                  region: {
-                    top_left_x: minX,
-                    top_left_y: minY,
-                    width: maxX - minX,
-                    height: maxY - minY
-                  }
+                  top_left_x: minX,
+                  top_left_y: minY,
+                  width: maxX - minX,
+                  height: maxY - minY
                 };
               };
 
               joinedGroups.forEach((page:any, pageIndex:any) => {
                 const currentPage = pageIndex;
-                parsedJson.page.push({ lines: [] });
+                parsedJson.page.push({ lines: [], pageWidth: parsedData.pages?.[pageIndex]?.page_width, pageHeight: parsedData.pages?.[pageIndex]?.page_height});
                 page.forEach((group:any) => {
                   const textType = group[group.length - 1];
                   let mergedText = "";
                   const type = parsedData.pages?.[pageIndex]?.lines?.[group[0]]?.type || 'text';
                   const regionsArray = [];
-                  const column = parsedData.pages?.[pageIndex]?.lines?.[group[0]]?.column || '';
                   const line = parsedData.pages?.[pageIndex]?.lines?.[group[0]]?.line || '';
                   for (let i = 0; i < group.length - 1; i++) {
                     const lineText = parsedData.pages?.[pageIndex]?.lines?.[group[i]]?.text || '';
@@ -578,7 +579,6 @@ export async function POST(request: NextRequest) {
                     "textType": textType,
                     "region": mergeBoundingBoxes(regionsArray),
                     "line": line,
-                    "column": column
                   });
                 })
               })

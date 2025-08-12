@@ -53,8 +53,8 @@ export async function GET(request: Request) {
       parsedData.page.forEach((page: any, pageIndex: number) => {
         if (page.lines && Array.isArray(page.lines)) {
           page.lines.forEach((line: any, lineIndex: number) => {
-            if ((line.textType === 'Q' && line.region && line.region.region) ) {
-              const region = line.region.region;
+            if ((line.textType === 'Q' && line.region) ) {
+              const region = line.region;
               boundingBoxes.push({
                 id: `page-${pageIndex + 1}-line-${lineIndex}`,
                 x: region.top_left_x || 0,

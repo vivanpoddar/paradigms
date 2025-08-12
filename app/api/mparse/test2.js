@@ -51,7 +51,7 @@ let mergeBoundingBoxes = (regions) => {
 
 llmData.forEach((page, pageIndex) => {
     let currentPage = pageIndex;
-    parsedJson.page.push({ lines: [] });
+    parsedJson.page.push({ lines: [], pageWidth: pages[pageIndex].page_width, pageHeight: pages[pageIndex].page_height });
     page.forEach((group, groupIndex) => {
         let textType = group[group.length-1];
         let mergedText = "";
