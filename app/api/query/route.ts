@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { LlamaCloudIndex, Settings,  } from "llamaindex";
-import { gemini, GEMINI_MODEL } from "@llamaindex/google";
+import { LlamaCloudIndex, Settings } from "llamaindex";
+import { openai } from "@llamaindex/openai";
 
 export async function POST(request: NextRequest) {
   console.log('=== QUERY API CALLED ===');
@@ -24,9 +24,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    Settings.llm = gemini({
-      model: GEMINI_MODEL.GEMINI_PRO_FLASH_LATEST,
-      temperature: 0.7, // Add some creativity for more actionable responses
+    Settings.llm = openai({
+      model: "gpt-4",
+      temperature: 0.1,
+      apiKey: process.env.OPENAI_API_KEY,
     });
 
     const index = new LlamaCloudIndex({
@@ -59,7 +60,7 @@ export async function POST(request: NextRequest) {
       
       // Only handle OCR-processed documents with .txt extension
       const queryEngine = index.asQueryEngine({
-        similarityTopK: 5,
+        similarityTopK: 30, // Number of candidates to consider during retrieval
         filters: {
           filters: [
             {
@@ -71,28 +72,49 @@ export async function POST(request: NextRequest) {
         }
       });
       
-      console.log('Executing query...');
-      const response = await queryEngine.query({ query: enhancedQuery });
+      console.log('Executing streaming query...');
+      const streamingResponse = await queryEngine.query({ 
+        query: enhancedQuery,
+        stream: true 
+      });
       console.log('Query completed successfully');
-      return response;
+      return streamingResponse;
     };
 
     // Create a readable stream for streaming the response
     const stream = new ReadableStream({
       async start(controller) {
         try {
-          const response = await answerQuery(query, fileName, messageHistory);
-          const content = response.message.content;
+          const streamingResponse = await answerQuery(query, fileName, messageHistory);
           
-          // Stream the content in chunks
-          const chunkSize = 50; // Adjust chunk size as needed
-          for (let i = 0; i < content.length; i += chunkSize) {
-            const chunk = content.slice(i, i + chunkSize);
-            const data = JSON.stringify({ content: chunk, done: false }) + '\n';
-            controller.enqueue(new TextEncoder().encode(data));
+          // Handle streaming response - streamingResponse is AsyncIterable
+          try {
+            for await (const chunk of streamingResponse) {
+              // Extract text content from the chunk
+              const text = chunk.message?.content || chunk.toString();
+              if (text) {
+                const data = JSON.stringify({ content: text, done: false }) + '\n';
+                controller.enqueue(new TextEncoder().encode(data));
+              }
+            }
+          } catch (streamError) {
+            console.warn('Streaming failed, falling back to regular response:', streamError);
             
-            // Add a small delay to simulate streaming
-            await new Promise(resolve => setTimeout(resolve, 50));
+            // Fallback: try to get the full response
+            const content = streamingResponse.toString();
+            
+            // Stream the content in chunks with delay for better UX
+            const chunkSize = 10;
+            for (let i = 0; i < content.length; i += chunkSize) {
+              const chunk = content.slice(i, i + chunkSize);
+              const data = JSON.stringify({ content: chunk, done: false }) + '\n';
+              controller.enqueue(new TextEncoder().encode(data));
+              
+              // Add delay between chunks to simulate streaming
+              if (i + chunkSize < content.length) {
+                await new Promise(resolve => setTimeout(resolve, 10));
+              }
+            }
           }
           
           // Send final chunk to indicate completion
@@ -110,8 +132,10 @@ export async function POST(request: NextRequest) {
 
     return new Response(stream, {
       headers: {
-        'Content-Type': 'text/plain',
+        'Content-Type': 'application/json',
         'Transfer-Encoding': 'chunked',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
       },
     });
   } catch (error) {

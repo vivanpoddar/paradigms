@@ -162,6 +162,8 @@ export const PdfViewerWithOverlay: React.FC<PdfViewerWithOverlayProps> = ({
                 renderPageProps={renderPageProps}
                 setSelectedBoxes={setSelectedBoxes}
                 setFrontTooltipId={setFrontTooltipId}
+                pageWidth={renderPageProps.pageWidth}
+                pageHeight={renderPageProps.pageHeight}
             />
         ),
     });

@@ -45,12 +45,16 @@ export async function GET(request: Request) {
       height: number;
       text: string;
       pageNumber: number;
+      pageWidth: number;
+      pageHeight: number;
     }> = [];
 
     console.log('Parsed data:', parsedData);
     
     if (parsedData.page && Array.isArray(parsedData.page)) {
       parsedData.page.forEach((page: any, pageIndex: number) => {
+        const pageWidth = page.pageWidth || 0;
+        const pageHeight = page.pageHeight || 0;
         if (page.lines && Array.isArray(page.lines)) {
           page.lines.forEach((line: any, lineIndex: number) => {
             if ((line.textType === 'Q' && line.region) ) {
@@ -62,7 +66,9 @@ export async function GET(request: Request) {
                 width: region.width || 0,
                 height: region.height || 0,
                 text: line.text || `Line ${lineIndex + 1}`,
-                pageNumber: pageIndex +1 // Page numbers are 1-based in the response
+                pageNumber: pageIndex +1, // Page numbers are 1-based in the response
+                pageWidth,
+                pageHeight
               });
             }
           });

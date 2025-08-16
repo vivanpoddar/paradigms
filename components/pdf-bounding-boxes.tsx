@@ -18,9 +18,11 @@ interface PdfBoundingBoxesProps {
     renderPageProps: any;
     setSelectedBoxes: React.Dispatch<React.SetStateAction<Map<string, { box: BoundingBox; position: { x: number; y: number }; isVisible: boolean; solution?: string; isLoading?: boolean }>>>;
     setFrontTooltipId: React.Dispatch<React.SetStateAction<string | null>>;
+    pageWidth: number;
+    pageHeight: number;
 }
 
-const BoundingBoxLayer: React.FC<PdfBoundingBoxesProps> = ({ apiBoundingBoxes, renderPageProps, setSelectedBoxes, setFrontTooltipId }) => (
+const BoundingBoxLayer: React.FC<PdfBoundingBoxesProps> = ({ apiBoundingBoxes, renderPageProps, setSelectedBoxes, setFrontTooltipId, pageWidth, pageHeight }) => (
     <div>
         {apiBoundingBoxes
             .filter((box) => box.pageNumber - 1 === renderPageProps.pageIndex)

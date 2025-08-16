@@ -366,6 +366,9 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
       
       console.log('Streaming completed, fullResponse length:', fullResponse.length)
       
+      // Set isQuerying to false before clearing streaming message to prevent spinner flash
+      setIsQuerying(false)
+      
       // Once streaming is complete, add the final message to messages and clear streaming state
       const finalBotMessage: ChatMessage = {
         id: botMessageId,
@@ -404,6 +407,7 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
       
       // Add error message to messages array
       setMessages(prev => [...prev, errorMessage])
+      setIsQuerying(false)
       setStreamingMessage(null)
       
       // Save the error conversation to database
@@ -414,9 +418,9 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
         error: error instanceof Error ? error.message : 'Unknown error'
       })
     } finally {
-      console.log('Query finally block reached, setting isQuerying to false')
+      console.log('Query finally block reached')
+      // Ensure isQuerying is false (backup in case it wasn't set in try/catch)
       setIsQuerying(false)
-      setStreamingMessage(null) // Clear streaming message on completion
     }
   }, [selectedFileName, saveConversationToHistory, allMessages, contextData, userId, streamingMessage])
 
@@ -527,6 +531,22 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
               </div>
             )
           })}
+          
+          {/* Loading spinner while LLM is generating response */}
+          {isQuerying && !streamingMessage && (
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
+              <div className="mobile-message-bubble">
+                <div className="flex items-start gap-3 p-3">
+                  <div className="flex-1 space-y-1">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>I'm searching your document...</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
