@@ -10,7 +10,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Send, BookOpen, Loader2, X } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useState, useImperativeHandle, forwardRef } from 'react'
+import { useCallback, useEffect, useMemo, useState, useImperativeHandle, forwardRef, useRef } from 'react'
 import { LLAMA_CLOUD_CONFIG } from '@/lib/llama-cloud-config'
 import { useChatHistory } from '@/hooks/use-chat-history'
 import { createClient } from '@/lib/supabase/client'
@@ -66,6 +66,9 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [streamingMessage, setStreamingMessage] = useState<ChatMessage | null>(null)
   const [contextData, setContextData] = useState<{ problemText: string; solution: string } | null>(null)
+
+  // Create a ref to access queryDocuments without making it a dependency
+  const queryDocumentsRef = useRef<((query: string) => Promise<void>) | null>(null)
 
   // Get user ID from Supabase
   useEffect(() => {
@@ -174,6 +177,9 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
     return uniqueMessages
   }, [initialMessages, messages, streamingMessage])
 
+  // Memoize the message count to avoid recalculating
+  const messageCount = useMemo(() => allMessages.length, [allMessages])
+
   useEffect(() => {
     if (onMessage) {
       onMessage(allMessages)
@@ -222,7 +228,7 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
     console.log('=== QUERY DOCUMENTS CALLED ===');
     console.log('Query:', query);
     console.log('Selected file:', selectedFileName);
-    console.log('Message history length:', allMessages.length);
+    console.log('Message history length:', messageCount);
     
     if (!selectedFileName) {
       console.log('❌ No file selected for querying')
@@ -231,6 +237,9 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
     
     console.log('✅ Starting query with file:', selectedFileName);
     setIsQuerying(true)
+    
+    // Get current message history at execution time instead of dependency
+    const currentMessages = allMessages
     
     const enhancedQuery = `You are a patient and knowledgeable homework tutor. You have access to two sources of information: 1. Your own general knowledge. 2. Retrieved excerpts from the provided documents (retrieval-augmented generation).
     Your primary role:
@@ -275,7 +284,7 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
         body: JSON.stringify({ 
           query: enhancedQuery, 
           fileName: selectedFileName,
-          messageHistory: allMessages
+          messageHistory: currentMessages
         }),
       })
 
@@ -422,7 +431,12 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
       // Ensure isQuerying is false (backup in case it wasn't set in try/catch)
       setIsQuerying(false)
     }
-  }, [selectedFileName, saveConversationToHistory, allMessages, contextData, userId, streamingMessage])
+  }, [selectedFileName, saveConversationToHistory, contextData, userId])
+
+  // Update the ref whenever queryDocuments changes
+  useEffect(() => {
+    queryDocumentsRef.current = queryDocuments
+  }, [queryDocuments])
 
   const handleSendMessage = useCallback(
     async (e: React.FormEvent) => {
@@ -455,15 +469,15 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
       
       if (shouldQuery) {
         console.log('🔍 Triggering document query...');
-        // Use a small delay to ensure user message appears first
+        // Use a small delay to ensure user message appears first and input is responsive
         setTimeout(() => {
-          queryDocuments(messageContent);
-        }, 100);
+          queryDocumentsRef.current?.(messageContent);
+        }, 50); // Reduced delay for better responsiveness
       } else {
         console.log('⚠️ Not triggering document query');
       }
     },
-    [newMessage, isConnected, queryDocuments, shouldQueryDocuments, selectedFileName, enableDocumentQuery, username]
+    [newMessage, isConnected, shouldQueryDocuments, selectedFileName, enableDocumentQuery, username]
   )
 
   const mathJaxConfig = {

@@ -5,10 +5,11 @@ import { openai } from "@llamaindex/openai";
 export async function POST(request: NextRequest) {
   console.log('=== QUERY API CALLED ===');
   try {
-    const { query, fileName, messageHistory } = await request.json();
+    const { query, fileName, messageHistory, multiModal = false } = await request.json();
     console.log('Received query:', query);
     console.log('Received fileName:', fileName);
     console.log('Received message history length:', messageHistory?.length || 0);
+    console.log('Multi-modal enabled:', multiModal);
 
     if (!query || typeof query !== 'string') {
       return NextResponse.json(
@@ -25,8 +26,8 @@ export async function POST(request: NextRequest) {
     }
 
     Settings.llm = openai({
-      model: "gpt-4",
-      temperature: 0.1,
+      model: "gpt-4.1-nano",
+      temperature: 1,
       apiKey: process.env.OPENAI_API_KEY,
     });
 
@@ -37,7 +38,7 @@ export async function POST(request: NextRequest) {
       apiKey: process.env.LLAMA_CLOUD_API_KEY,
     });
 
-    const answerQuery = async (query: string, fileName: string, useChatHistory: boolean, messageHistory?: any[]) => {
+    const answerQuery = async (query: string, fileName: string, useChatHistory: boolean, messageHistory?: any[], multiModal?: boolean) => {
       // Build conversation context from message history
       let conversationContext = '';
       if (messageHistory && messageHistory.length > 0) {
@@ -52,14 +53,16 @@ export async function POST(request: NextRequest) {
 
       const enhancedQuery = `${query}
       ${useChatHistory ? `If needed, respond based on the available conversation history: ${conversationContext}` : ''}
+      ${multiModal ? `Note: Multi-modal retrieval is enabled. You have access to both text content and images from the document. When relevant, reference visual elements like diagrams, charts, or images in your response.` : ''}
       `
 
       console.log('Creating query engine...');
       const fileNameTxt = fileName.replace(/\.[^.]+$/, '') + '.txt';
       console.log('File name for query:', fileNameTxt);
+      console.log('Multi-modal retrieval:', multiModal);
       
-      // Only handle OCR-processed documents with .txt extension
-      const queryEngine = index.asQueryEngine({
+      // Configure query engine based on multi-modal setting
+      const queryEngineConfig: any = {
         similarityTopK: 30, // Number of candidates to consider during retrieval
         filters: {
           filters: [
@@ -70,7 +73,17 @@ export async function POST(request: NextRequest) {
             }
           ]
         }
-      });
+      };
+
+      // Add multi-modal retrieval configuration if enabled
+      if (multiModal) {
+        queryEngineConfig.multiModal = true;
+        queryEngineConfig.imageRetrievalTopK = 5; // Number of images to retrieve
+        queryEngineConfig.enableImageSearch = true;
+        console.log('Multi-modal retrieval enabled with image search');
+      }
+
+      const queryEngine = index.asQueryEngine(queryEngineConfig);
       
       console.log('Executing streaming query...');
       const streamingResponse = await queryEngine.query({ 
@@ -85,7 +98,7 @@ export async function POST(request: NextRequest) {
     const stream = new ReadableStream({
       async start(controller) {
         try {
-          const streamingResponse = await answerQuery(query, fileName, messageHistory);
+          const streamingResponse = await answerQuery(query, fileName, messageHistory, multiModal);
           
           // Handle streaming response - streamingResponse is AsyncIterable
           try {
