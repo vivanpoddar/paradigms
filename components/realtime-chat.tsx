@@ -9,7 +9,15 @@ import {
 } from '@/hooks/use-realtime-chat'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Send, BookOpen, Loader2, X, Mic, MicOff } from 'lucide-react'
+import { Send, BookOpen, Loader2, X, Mic, MicOff, FileText, ChevronDown, Calculator, FileIcon } from 'lucide-react'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
+} from '@/components/ui/dropdown-menu'
 import { useCallback, useEffect, useMemo, useState, useImperativeHandle, forwardRef, useRef } from 'react'
 import { LLAMA_CLOUD_CONFIG } from '@/lib/llama-cloud-config'
 import { useChatHistory } from '@/hooks/use-chat-history'
@@ -67,6 +75,9 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
   const [streamingMessage, setStreamingMessage] = useState<ChatMessage | null>(null)
   const [contextData, setContextData] = useState<{ problemText: string; solution: string } | null>(null)
   const [isRecording, setIsRecording] = useState(false)
+  const [isPdfMode, setIsPdfMode] = useState(false)
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false)
+  const [pdfMathMode, setPdfMathMode] = useState<boolean | 'auto'>('auto')
 
   // Create a ref to access queryDocuments without making it a dependency
   const queryDocumentsRef = useRef<((query: string) => Promise<void>) | null>(null)
@@ -87,6 +98,99 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
       // TODO: Implement actual voice recording start logic
     }
   }, [isRecording])
+
+  // PDF worksheet generation function
+  const generatePdfWorksheet = useCallback(async (prompt: string) => {
+    console.log('Generating PDF worksheet with prompt:', prompt)
+    setIsGeneratingPdf(true)
+    
+    try {
+      // Detect if the prompt suggests mathematical content
+      let containsMath: boolean;
+      if (pdfMathMode === 'auto') {
+        const mathKeywords = ['math', 'algebra', 'equation', 'formula', 'calculation', 'solve', 'derivative', 'integral', 'geometry', 'trigonometry', 'calculus', 'statistics', 'probability'];
+        containsMath = mathKeywords.some(keyword => 
+          prompt.toLowerCase().includes(keyword)
+        );
+      } else {
+        containsMath = pdfMathMode as boolean;
+      }
+      
+      console.log('Math content mode:', pdfMathMode, 'detected/set:', containsMath);
+      
+      const response = await fetch('/api/pdf-worksheet', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          prompt, 
+          userId,
+          containsMath 
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      // Get the JSON response
+      const result = await response.json()
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to generate worksheet')
+      }
+      
+      // Create download link
+      const link = document.createElement('a')
+      link.href = result.downloadUrl
+      link.download = result.fileName
+      link.target = '_blank'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      
+      // Add success message to chat with parsing information
+      let statusMessage = `✅ PDF worksheet "${result.worksheetData.title}" generated successfully!`;
+      
+      if (result.parsing.success) {
+        statusMessage += ` The worksheet has been processed and indexed using ${result.parsing.endpoint === '/api/mparse' ? 'math-aware parsing' : 'standard parsing'} and is now available for querying.`;
+      } else if (result.parsing.error) {
+        statusMessage += ` Note: The worksheet was created but parsing failed (${result.parsing.error}). You can still download and use the PDF manually.`;
+      }
+      
+      const successMessage: ChatMessage = {
+        id: crypto.randomUUID(),
+        content: statusMessage,
+        user: { name: 'Document Assistant' },
+        createdAt: new Date().toISOString(),
+      }
+      
+      setMessages(prev => [...prev, successMessage])
+      
+    } catch (error) {
+      console.error('Error generating PDF worksheet:', error)
+      
+      // Add error message to chat
+      const errorMessage: ChatMessage = {
+        id: crypto.randomUUID(),
+        content: `❌ Sorry, I encountered an error while generating the PDF worksheet: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again.`,
+        user: { name: 'Document Assistant' },
+        createdAt: new Date().toISOString(),
+      }
+      
+      setMessages(prev => [...prev, errorMessage])
+    } finally {
+      setIsGeneratingPdf(false)
+      setIsPdfMode(false) // Reset PDF mode after generation
+      setPdfMathMode('auto') // Reset math mode to auto
+    }
+  }, [userId, pdfMathMode])
+
+  // Toggle PDF mode
+  const handlePdfModeToggle = useCallback(() => {
+    setIsPdfMode(prev => !prev)
+  }, [])
 
   // Get user ID from Supabase
   useEffect(() => {
@@ -477,6 +581,14 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
       // Clear input
       setNewMessage('')
 
+      // Check if we're in PDF mode
+      if (isPdfMode) {
+        console.log('=== PDF WORKSHEET MODE ===');
+        console.log('Generating PDF worksheet with prompt:', messageContent);
+        await generatePdfWorksheet(messageContent);
+        return;
+      }
+
       // Check if we should query documents for this message
       const shouldQuery = shouldQueryDocuments(messageContent);
       console.log('=== MESSAGE SENT ===');
@@ -495,7 +607,7 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
         console.log('⚠️ Not triggering document query');
       }
     },
-    [newMessage, isConnected, shouldQueryDocuments, selectedFileName, enableDocumentQuery, username]
+    [newMessage, isConnected, shouldQueryDocuments, selectedFileName, enableDocumentQuery, username, isPdfMode, generatePdfWorksheet]
   )
 
   const mathJaxConfig = {
@@ -617,56 +729,178 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
         </div>
       )}
 
+      {/* PDF Mode Indicator */}
+      {isPdfMode && (
+        <div className="border-t border-border bg-blue-50 dark:bg-blue-900/20 p-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <FileText className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+              <div>
+                <div className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                  PDF Worksheet Mode Active
+                  {pdfMathMode !== 'auto' && (
+                    <span className="ml-2 text-xs bg-blue-100 dark:bg-blue-800 px-2 py-1 rounded">
+                      {pdfMathMode ? 'Math Parsing' : 'Standard Parsing'}
+                    </span>
+                  )}
+                  {pdfMathMode === 'auto' && (
+                    <span className="ml-2 text-xs bg-blue-100 dark:bg-blue-800 px-2 py-1 rounded">
+                      Auto-detect
+                    </span>
+                  )}
+                </div>
+                <div className="text-xs text-blue-600 dark:text-blue-400">
+                  Describe the worksheet you want to create and I'll generate a PDF for you.
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={() => setIsPdfMode(false)}
+              className="text-blue-400 hover:text-blue-600 dark:hover:text-blue-200 p-1 rounded-sm hover:bg-blue-100 dark:hover:bg-blue-800 transition-colors"
+              title="Exit PDF mode"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
       <form onSubmit={handleSendMessage} className="flex w-full border-t gap-2 border-border p-4 mobile-chat-input bg-background">
         <Input
           className={cn(
-            'rounded-full bg-background transition-all duration-300 text-base lg:text-sm'
+            'rounded-full bg-background transition-all duration-300 text-base lg:text-sm',
+            isPdfMode && 'border-blue-500 focus:border-blue-600'
           )}
           type="text"
           value={newMessage}
           onChange={(e) => setNewMessage(e.target.value)}
           placeholder={
-            enableDocumentQuery 
-              ? selectedFileName 
-                ? `Ask about ${selectedFileName}...` 
-                : "Select a file to query documents..." 
-              : "Type a message..."
+            isPdfMode
+              ? "Describe the worksheet you want to create..."
+              : enableDocumentQuery 
+                ? selectedFileName 
+                  ? `Ask about ${selectedFileName}...` 
+                  : "Select a file to query documents..." 
+                : "Type a message..."
           }
-          disabled={!isConnected || isQuerying}
+          disabled={!isConnected || isQuerying || isGeneratingPdf}
         />
         
-        {enableDocumentQuery && isConnected && newMessage.trim() && (
+        {/* Main Send/Generate Button */}
+        {isConnected && newMessage.trim() && (
           <Button
-            className="aspect-square rounded-full animate-in fade-in slide-in-from-right-4 duration-300 flex-shrink-0"
+            className={cn(
+              "aspect-square rounded-full animate-in fade-in slide-in-from-right-4 duration-300 flex-shrink-0",
+              isPdfMode && "bg-blue-500 hover:bg-blue-600"
+            )}
             type="submit"
-            disabled={!isConnected || isQuerying}
-            title="Query documents"
+            disabled={!isConnected || isQuerying || isGeneratingPdf}
+            title={isPdfMode ? "Generate PDF worksheet" : "Send message"}
           >
-            {isQuerying ? (
+            {isGeneratingPdf ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : isPdfMode ? (
+              <FileText className="size-4" />
+            ) : isQuerying ? (
               <Loader2 className="size-4 animate-spin" />
             ) : (
               <Send className="size-4" />
             )}
           </Button>
         )}
-          <Button
-            type="button"
-            onClick={handleMicrophoneToggle}
-            className={cn(
-              "aspect-square rounded-full flex-shrink-0 transition-all duration-300",
-              isRecording
-                ? "bg-red-500 hover:bg-red-600 text-white animate-pulse"
-                : "bg-gray-100 hover:bg-gray-200 dark:bg-gray-900 dark:hover:bg-white text-gray-600 dark:text-gray-400"
+
+        {/* Features Dropdown */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              type="button"
+              className={cn(
+                "aspect-square rounded-full flex-shrink-0 transition-all duration-300",
+                "bg-gray-100 hover:bg-gray-200 dark:bg-gray-900 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400"
+              )}
+              disabled={!isConnected || isQuerying || isGeneratingPdf}
+              title="More features"
+            >
+              <ChevronDown className="size-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuLabel>PDF Worksheet</DropdownMenuLabel>
+            <DropdownMenuItem
+              onClick={handlePdfModeToggle}
+              className={cn(
+                "flex items-center gap-2 cursor-pointer",
+                isPdfMode && "bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300"
+              )}
+            >
+              <FileText className="size-4" />
+              <span>
+                {isPdfMode ? "Exit PDF Mode" : "Create PDF Worksheet"}
+              </span>
+              {isPdfMode && <span className="ml-auto text-xs">Active</span>}
+            </DropdownMenuItem>
+            
+            {isPdfMode && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel>Parsing Mode</DropdownMenuLabel>
+                <DropdownMenuItem
+                  onClick={() => setPdfMathMode('auto')}
+                  className={cn(
+                    "flex items-center gap-2 cursor-pointer",
+                    pdfMathMode === 'auto' && "bg-gray-50 dark:bg-gray-800"
+                  )}
+                >
+                  <FileIcon className="size-4" />
+                  <span>Auto-detect Math</span>
+                  {pdfMathMode === 'auto' && <span className="ml-auto text-xs">✓</span>}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => setPdfMathMode(true)}
+                  className={cn(
+                    "flex items-center gap-2 cursor-pointer",
+                    pdfMathMode === true && "bg-gray-50 dark:bg-gray-800"
+                  )}
+                >
+                  <Calculator className="size-4" />
+                  <span>Force Math Parsing</span>
+                  {pdfMathMode === true && <span className="ml-auto text-xs">✓</span>}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => setPdfMathMode(false)}
+                  className={cn(
+                    "flex items-center gap-2 cursor-pointer",
+                    pdfMathMode === false && "bg-gray-50 dark:bg-gray-800"
+                  )}
+                >
+                  <FileText className="size-4" />
+                  <span>Force Standard Parsing</span>
+                  {pdfMathMode === false && <span className="ml-auto text-xs">✓</span>}
+                </DropdownMenuItem>
+              </>
             )}
-            disabled={!isConnected || isQuerying}
-            title={isRecording ? "Stop recording" : "Start voice recording"}
-          >
-            {isRecording ? (
-              <MicOff className="size-4" />
-            ) : (
-              <Mic className="size-4" />
-            )}
-          </Button>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        {/* Microphone Button */}
+        <Button
+          type="button"
+          onClick={handleMicrophoneToggle}
+          className={cn(
+            "aspect-square rounded-full flex-shrink-0 transition-all duration-300",
+            isRecording
+              ? "bg-red-500 hover:bg-red-600 text-white animate-pulse"
+              : "bg-gray-100 hover:bg-gray-200 dark:bg-gray-900 dark:hover:bg-white text-gray-600 dark:text-gray-400"
+          )}
+          disabled={!isConnected || isQuerying || isGeneratingPdf}
+          title={isRecording ? "Stop recording" : "Start voice recording"}
+        >
+          {isRecording ? (
+            <MicOff className="size-4" />
+          ) : (
+            <Mic className="size-4" />
+          )}
+        </Button>
       </form>
     </div>
     </MathJaxContext>
