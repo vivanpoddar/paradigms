@@ -43,9 +43,10 @@ Please generate content that includes:
 3. 5-8 practice problems or exercises with varying difficulty levels
 4. Space for students to work on solutions
 5. If applicable, include formulas, definitions, or key concepts at the top
-
+  
 Format your response as a JSON object with the following structure:
 {
+  "isMath": "Contains math content (true/false)",
   "title": "Worksheet Title",
   "instructions": "Brief instructions for students",
   "keyPoints": ["Important concept 1", "Important concept 2"],
@@ -83,6 +84,8 @@ Ensure the content is educationally sound, age-appropriate, and provides good pr
         { status: 500 }
       );
     }
+
+    let isMath = worksheetData.isMath === true || worksheetData.isMath === 'true';
 
     // Generate PDF
     console.log('Generating PDF...');
@@ -164,7 +167,7 @@ Ensure the content is educationally sound, age-appropriate, and provides good pr
     
     // Upload PDF to Supabase storage
     const supabase = await createClient();
-      const fileName = `${worksheetData.title?.replace(/[^a-z0-9]/gi, '_') || 'worksheet'}-${Date.now()}-.pdf`;
+      const fileName = `${worksheetData.title?.replace(/[^a-z0-9]/gi, '_') || 'worksheet'}-${Date.now()}.pdf`;
     const bucketName = 'documents'; // Assuming this is your bucket name
     const uploadPath = `${userId}/${fileName}`;
     
@@ -194,7 +197,8 @@ Ensure the content is educationally sound, age-appropriate, and provides good pr
     console.log('Worksheet creation completed successfully');
     
     // Automatically parse the PDF using the appropriate endpoint
-    const parseEndpoint = containsMath ? '/api/mparse' : '/api/nparse';
+    console.log(`Parsing PDF using ${isMath ? '/api/mparse' : '/api/nparse'}...`);
+    const parseEndpoint = isMath ? '/api/mparse' : '/api/nparse';
     console.log(`Parsing PDF using ${parseEndpoint}...`);
     
     let parseResult = null;
@@ -206,19 +210,24 @@ Ensure the content is educationally sound, age-appropriate, and provides good pr
       const host = request.headers.get('host') || 'localhost:3000';
       const baseUrl = `${protocol}://${host}`;
       
-      // Create form data for the parsing API
-      const formData = new FormData();
-      formData.append('file', new Blob([pdfBuffer], { type: 'application/pdf' }), fileName);
+      // Prepare the data for the parsing API (it expects JSON with file metadata)
+      const parseData = {
+        fileName,
+        bucketName,
+        uploadPath,
+        userId
+      };
       
       // Make the parsing API call with proper headers
       const parseResponse = await fetch(`${baseUrl}${parseEndpoint}`, {
         method: 'POST',
-        body: formData,
         headers: {
+          'Content-Type': 'application/json',
           // Forward relevant headers for authentication
           'cookie': request.headers.get('cookie') || '',
           'authorization': request.headers.get('authorization') || '',
         },
+        body: JSON.stringify(parseData),
       });
       
       if (parseResponse.ok) {
