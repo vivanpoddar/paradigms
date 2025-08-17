@@ -9,7 +9,7 @@ import {
 } from '@/hooks/use-realtime-chat'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Send, BookOpen, Loader2, X } from 'lucide-react'
+import { Send, BookOpen, Loader2, X, Mic, MicOff } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState, useImperativeHandle, forwardRef, useRef } from 'react'
 import { LLAMA_CLOUD_CONFIG } from '@/lib/llama-cloud-config'
 import { useChatHistory } from '@/hooks/use-chat-history'
@@ -66,9 +66,27 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [streamingMessage, setStreamingMessage] = useState<ChatMessage | null>(null)
   const [contextData, setContextData] = useState<{ problemText: string; solution: string } | null>(null)
+  const [isRecording, setIsRecording] = useState(false)
 
   // Create a ref to access queryDocuments without making it a dependency
   const queryDocumentsRef = useRef<((query: string) => Promise<void>) | null>(null)
+
+  // Microphone hook function
+  const handleMicrophoneToggle = useCallback(() => {
+    console.log('Microphone button clicked, current recording state:', isRecording)
+    
+    if (isRecording) {
+      // Stop recording
+      setIsRecording(false)
+      console.log('Stopping voice recording...')
+      // TODO: Implement actual voice recording stop logic
+    } else {
+      // Start recording
+      setIsRecording(true)
+      console.log('Starting voice recording...')
+      // TODO: Implement actual voice recording start logic
+    }
+  }, [isRecording])
 
   // Get user ID from Supabase
   useEffect(() => {
@@ -631,6 +649,24 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
             )}
           </Button>
         )}
+          <Button
+            type="button"
+            onClick={handleMicrophoneToggle}
+            className={cn(
+              "aspect-square rounded-full flex-shrink-0 transition-all duration-300",
+              isRecording
+                ? "bg-red-500 hover:bg-red-600 text-white animate-pulse"
+                : "bg-gray-100 hover:bg-gray-200 dark:bg-gray-900 dark:hover:bg-white text-gray-600 dark:text-gray-400"
+            )}
+            disabled={!isConnected || isQuerying}
+            title={isRecording ? "Stop recording" : "Start voice recording"}
+          >
+            {isRecording ? (
+              <MicOff className="size-4" />
+            ) : (
+              <Mic className="size-4" />
+            )}
+          </Button>
       </form>
     </div>
     </MathJaxContext>
