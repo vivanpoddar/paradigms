@@ -164,7 +164,7 @@ Ensure the content is educationally sound, age-appropriate, and provides good pr
     
     // Upload PDF to Supabase storage
     const supabase = await createClient();
-    const fileName = `worksheet-${Date.now()}-${worksheetData.title?.replace(/[^a-z0-9]/gi, '_') || 'worksheet'}.pdf`;
+      const fileName = `${worksheetData.title?.replace(/[^a-z0-9]/gi, '_') || 'worksheet'}-${Date.now()}-.pdf`;
     const bucketName = 'documents'; // Assuming this is your bucket name
     const uploadPath = `${userId}/${fileName}`;
     
@@ -193,9 +193,46 @@ Ensure the content is educationally sound, age-appropriate, and provides good pr
 
     console.log('Worksheet creation completed successfully');
     
-    // For now, skip automatic parsing due to authentication issues
-    // The user can manually upload/parse the file later if needed
+    // Automatically parse the PDF using the appropriate endpoint
     const parseEndpoint = containsMath ? '/api/mparse' : '/api/nparse';
+    console.log(`Parsing PDF using ${parseEndpoint}...`);
+    
+    let parseResult = null;
+    let parseError = null;
+    
+    try {
+      // Get the base URL for internal API calls
+      const protocol = request.headers.get('x-forwarded-proto') || 'http';
+      const host = request.headers.get('host') || 'localhost:3000';
+      const baseUrl = `${protocol}://${host}`;
+      
+      // Create form data for the parsing API
+      const formData = new FormData();
+      formData.append('file', new Blob([pdfBuffer], { type: 'application/pdf' }), fileName);
+      
+      // Make the parsing API call with proper headers
+      const parseResponse = await fetch(`${baseUrl}${parseEndpoint}`, {
+        method: 'POST',
+        body: formData,
+        headers: {
+          // Forward relevant headers for authentication
+          'cookie': request.headers.get('cookie') || '',
+          'authorization': request.headers.get('authorization') || '',
+        },
+      });
+      
+      if (parseResponse.ok) {
+        parseResult = await parseResponse.json();
+        console.log('PDF parsing completed successfully');
+      } else {
+        const errorText = await parseResponse.text();
+        parseError = `Parsing failed with status ${parseResponse.status}: ${errorText}`;
+        console.error('PDF parsing failed:', parseError);
+      }
+    } catch (error) {
+      parseError = `Parsing error: ${error instanceof Error ? error.message : 'Unknown error'}`;
+      console.error('Error during PDF parsing:', error);
+    }
     
     return NextResponse.json({
       success: true,
@@ -203,9 +240,9 @@ Ensure the content is educationally sound, age-appropriate, and provides good pr
       downloadUrl: publicUrl,
       worksheetData,
       parsing: {
-        success: false,
-        result: null,
-        error: 'Automatic parsing skipped - please manually parse the uploaded file if needed',
+        success: parseResult !== null,
+        result: parseResult,
+        error: parseError,
         endpoint: parseEndpoint
       }
     }, { status: 200 });

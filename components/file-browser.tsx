@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { File, FileText, Image, Download, Plus, ChevronLeft, ChevronRight, Folder, Trash2 } from "lucide-react";
 import { FileUpload } from "@/components/file-upload";
 import { PdfViewerWithOverlay } from "@/components/pdf-viewer-with-overlay";
+import { useFileManager, type UseFileManagerReturn } from "@/hooks/use-file-manager";
 
 const supabase = createClient();
 
@@ -31,16 +32,15 @@ export interface FileBrowserRef {
 }
 
 export const FileBrowser = forwardRef<FileBrowserRef, FileBrowserProps>(({ onFileSelect, onExplain, forceShowFileList = false, isVisible = true }, ref) => {
-  const [files, setFiles] = useState<FileItem[]>([]);
+  // Use the file manager hook
+  const { files, loading, userId, refreshFiles, addNewFile, removeFile } = useFileManager();
+  
   const [selectedFile, setSelectedFile] = useState<FileItem | null>(null);
   const [fileContent, setFileContent] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [userId, setUserId] = useState<string | null>(null);
   const [showUpload, setShowUpload] = useState(false);
   const [isFileListCollapsed, setIsFileListCollapsed] = useState(false);
   const [deletingFile, setDeletingFile] = useState<string | null>(null);
   const [isMobile, setIsMobile] = useState(false);
-  const [hasLoadedFiles, setHasLoadedFiles] = useState(false); // Track if we've already loaded files
 
   // Check if mobile
   useEffect(() => {
@@ -53,35 +53,12 @@ export const FileBrowser = forwardRef<FileBrowserRef, FileBrowserProps>(({ onFil
     return () => window.removeEventListener('resize', checkIsMobile);
   }, []);
 
-  // Get current user and load files only once
-  useEffect(() => {
-    const loadUserFiles = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        setUserId(user.id);
-        // Only load files if we haven't loaded them yet for any user
-        if (!hasLoadedFiles) {
-          await loadFiles(user.id);
-          setHasLoadedFiles(true);
-        }
-      }
-    };
-    loadUserFiles();
-  }, []); // Empty dependency array ensures this runs only once
-
-  // Listen for auth state changes to reload files when user logs in
+  // Listen for auth state changes to clear selected file when user logs out
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN' && session?.user) {
-        setUserId(session.user.id);
-        await loadFiles(session.user.id);
-        setHasLoadedFiles(true);
-      } else if (event === 'SIGNED_OUT') {
-        setFiles([]);
-        setUserId(null);
+      if (event === 'SIGNED_OUT') {
         setSelectedFile(null);
         setFileContent(null);
-        setHasLoadedFiles(false); // Reset the flag when user signs out
         onFileSelect?.(null);
       }
     });
@@ -89,56 +66,10 @@ export const FileBrowser = forwardRef<FileBrowserRef, FileBrowserProps>(({ onFil
     return () => subscription.unsubscribe();
   }, [onFileSelect]);
 
-  const loadFiles = async (userUuid: string) => {
-    // Prevent loading if already loading
-    if (loading) return;
-    
-    setLoading(true);
-    try {
-      const { data, error } = await supabase.storage
-        .from('documents')
-        .list(userUuid, {
-          limit: 100,
-          offset: 0,
-        });
-
-      if (error) {
-        console.error('Error loading files:', error);
-      } else {
-        const fileList = data || [];
-        setFiles(fileList);
-        console.log(`✅ Loaded ${fileList.length} files for user`);
-      }
-    } catch (error) {
-      console.error('Error loading files:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Function to refresh files (only call when necessary, like after upload)
-  const refreshFiles = async () => {
-    if (userId) {
-      await loadFiles(userId);
-    }
-  };
-
   // Expose methods to parent component via ref
   useImperativeHandle(ref, () => ({
     refreshFiles,
-  }), [userId]);
-
-  // Function to add a new file to the local state without full reload
-  const addNewFile = (newFile: FileItem) => {
-    setFiles(prevFiles => {
-      // Check if file already exists to avoid duplicates
-      const exists = prevFiles.some(file => file.name === newFile.name);
-      if (exists) {
-        return prevFiles;
-      }
-      return [...prevFiles, newFile];
-    });
-  };
+  }), [refreshFiles]);
 
   const selectFile = async (file: FileItem) => {
     if (!userId) return;
@@ -214,7 +145,7 @@ export const FileBrowser = forwardRef<FileBrowserRef, FileBrowserProps>(({ onFil
     setDeletingFile(file.id);
     
     // Update UI immediately for better UX
-    setFiles(prevFiles => prevFiles.filter(f => f.id !== file.id));
+    removeFile(file.id);
     
     if (selectedFile?.id === file.id) {
       setSelectedFile(null);
