@@ -38,6 +38,7 @@ interface RealtimeChatProps {
   messages?: ChatMessage[]
   enableDocumentQuery?: boolean
   selectedFileName?: string | null
+  onFileRefresh?: () => Promise<void>
 }
 
 /**
@@ -57,6 +58,7 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
   messages: initialMessages = [],
   enableDocumentQuery = false,
   selectedFileName = null,
+  onFileRefresh,
 }, ref) => {
   const { containerRef, scrollToBottom } = useChatScroll()
 
@@ -155,6 +157,8 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
       
       if (result.parsing.success) {
         statusMessage += ` The worksheet has been processed and indexed using ${result.parsing.endpoint === '/api/mparse' ? 'math-aware parsing' : 'standard parsing'} and is now available for querying.`;
+      } else if (result.parsing.error && result.parsing.error.includes('skipped')) {
+        statusMessage += ` The worksheet has been uploaded to your files and is ready for use. To make it searchable, please manually parse it using the document upload feature.`;
       } else if (result.parsing.error) {
         statusMessage += ` Note: The worksheet was created but parsing failed (${result.parsing.error}). You can still download and use the PDF manually.`;
       }
@@ -167,6 +171,16 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
       }
       
       setMessages(prev => [...prev, successMessage])
+      
+      // Refresh the file list to show the new worksheet
+      if (onFileRefresh) {
+        console.log('Refreshing file list after worksheet creation...');
+        try {
+          await onFileRefresh();
+        } catch (refreshError) {
+          console.error('Failed to refresh file list:', refreshError);
+        }
+      }
       
     } catch (error) {
       console.error('Error generating PDF worksheet:', error)
@@ -185,7 +199,7 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
       setIsPdfMode(false) // Reset PDF mode after generation
       setPdfMathMode('auto') // Reset math mode to auto
     }
-  }, [userId, pdfMathMode])
+  }, [userId, pdfMathMode, onFileRefresh])
 
   // Toggle PDF mode
   const handlePdfModeToggle = useCallback(() => {

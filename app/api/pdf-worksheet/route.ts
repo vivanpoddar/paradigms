@@ -186,52 +186,26 @@ Ensure the content is educationally sound, age-appropriate, and provides good pr
 
     console.log('PDF uploaded successfully:', uploadData);
     
-    // Parse the uploaded PDF using appropriate endpoint
-    const parseEndpoint = containsMath ? '/api/mparse' : '/api/nparse';
-    console.log(`Parsing PDF using ${parseEndpoint}...`);
-    
-    const parseResponse = await fetch(`${request.nextUrl.origin}${parseEndpoint}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        fileName,
-        bucketName,
-        uploadPath,
-        userId
-      }),
-    });
-
-    let parseResult = null;
-    let parseError = null;
-    
-    if (parseResponse.ok) {
-      parseResult = await parseResponse.json();
-      console.log('PDF parsing completed successfully');
-    } else {
-      const errorText = await parseResponse.text();
-      parseError = `Parsing failed: ${errorText}`;
-      console.error('PDF parsing failed:', parseError);
-    }
-
-    // Get download URL for the PDF
+    // Return success even if parsing fails - parsing can be done later manually
     const { data: { publicUrl } } = supabase.storage
       .from(bucketName)
       .getPublicUrl(uploadPath);
 
-    console.log('Worksheet creation and processing completed');
+    console.log('Worksheet creation completed successfully');
     
-    // Return comprehensive result
+    // For now, skip automatic parsing due to authentication issues
+    // The user can manually upload/parse the file later if needed
+    const parseEndpoint = containsMath ? '/api/mparse' : '/api/nparse';
+    
     return NextResponse.json({
       success: true,
       fileName,
       downloadUrl: publicUrl,
       worksheetData,
       parsing: {
-        success: parseResult !== null,
-        result: parseResult,
-        error: parseError,
+        success: false,
+        result: null,
+        error: 'Automatic parsing skipped - please manually parse the uploaded file if needed',
         endpoint: parseEndpoint
       }
     }, { status: 200 });

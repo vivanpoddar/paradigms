@@ -1,6 +1,6 @@
 'use client'
 
-import { FileBrowser } from "@/components/file-browser";
+import { FileBrowser, FileBrowserRef } from "@/components/file-browser";
 import { Navbar } from "@/components/navbar";
 import { RealtimeChat, RealtimeChatRef } from "@/components/realtime-chat";
 import { SimplePdfViewer } from "@/components/simple-pdf-viewer";
@@ -15,6 +15,7 @@ export default function Home() {
   const [isChatCollapsed, setIsChatCollapsed] = useState(false);
   const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
   const chatRef = useRef<RealtimeChatRef>(null);
+  const fileBrowserRef = useRef<FileBrowserRef>(null);
   
   // Mobile state management
   const [isMobile, setIsMobile] = useState(false);
@@ -97,6 +98,11 @@ export default function Home() {
     
     // Open the explanation context in chat
     chatRef.current?.openExplainContext(problemText, solution);
+  };
+
+  const handleFileRefresh = async () => {
+    console.log('Refreshing file list...');
+    await fileBrowserRef.current?.refreshFiles();
   };
 
   const handleMobileFileBrowserToggle = () => {
@@ -217,6 +223,7 @@ export default function Home() {
               </div>
               <div className="flex-1 min-h-0 mobile-scroll">
                 <FileBrowser 
+                  ref={fileBrowserRef}
                   forceShowFileList={true}
                   isVisible={isMobile && showMobileFileBrowser}
                   onFileSelect={(fileName) => {
@@ -261,6 +268,7 @@ export default function Home() {
                   username={user?.email?.split('@')[0] || 'anonymous'}
                   enableDocumentQuery={true}
                   selectedFileName={selectedFileName}
+                  onFileRefresh={handleFileRefresh}
                 />
               </div>
             </div>
@@ -268,7 +276,7 @@ export default function Home() {
             <>
               {/* Desktop Layout - Main content area - File Browser */}
               <div className={`flex-1 transition-all duration-300 ${isChatCollapsed ? 'w-full' : 'lg:w-3/5'} border-r border-border`}>
-                <FileBrowser onFileSelect={handleFileSelect} onExplain={handleExplain} isVisible={!isMobile} />
+                <FileBrowser ref={fileBrowserRef} onFileSelect={handleFileSelect} onExplain={handleExplain} isVisible={!isMobile} />
               </div>
               
               {/* Desktop Layout - Side panel - Realtime Chat */}
@@ -332,6 +340,7 @@ export default function Home() {
                       username={user?.email?.split('@')[0] || 'anonymous'}
                       enableDocumentQuery={true}
                       selectedFileName={selectedFileName}
+                      onFileRefresh={handleFileRefresh}
                     />
                   </div>
                 )}

@@ -1,7 +1,7 @@
 'use client'
 
 import { createClient } from "@/lib/supabase/client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, forwardRef, useImperativeHandle } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { File, FileText, Image, Download, Plus, ChevronLeft, ChevronRight, Folder, Trash2 } from "lucide-react";
@@ -26,7 +26,11 @@ interface FileBrowserProps {
   isVisible?: boolean; // New prop to track if the component is currently visible
 }
 
-export function FileBrowser({ onFileSelect, onExplain, forceShowFileList = false, isVisible = true }: FileBrowserProps = {}) {
+export interface FileBrowserRef {
+  refreshFiles: () => Promise<void>;
+}
+
+export const FileBrowser = forwardRef<FileBrowserRef, FileBrowserProps>(({ onFileSelect, onExplain, forceShowFileList = false, isVisible = true }, ref) => {
   const [files, setFiles] = useState<FileItem[]>([]);
   const [selectedFile, setSelectedFile] = useState<FileItem | null>(null);
   const [fileContent, setFileContent] = useState<string | null>(null);
@@ -118,6 +122,11 @@ export function FileBrowser({ onFileSelect, onExplain, forceShowFileList = false
       await loadFiles(userId);
     }
   };
+
+  // Expose methods to parent component via ref
+  useImperativeHandle(ref, () => ({
+    refreshFiles,
+  }), [userId]);
 
   // Function to add a new file to the local state without full reload
   const addNewFile = (newFile: FileItem) => {
@@ -539,5 +548,7 @@ export function FileBrowser({ onFileSelect, onExplain, forceShowFileList = false
       </div>
     </div>
   );
-}
+});
+
+FileBrowser.displayName = 'FileBrowser';
 
