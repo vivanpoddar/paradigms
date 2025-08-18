@@ -705,6 +705,22 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
               </div>
             </div>
           )}
+
+          {/* Loading spinner while generating PDF worksheet */}
+          {isGeneratingPdf && (
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
+              <div className="mobile-message-bubble">
+                <div className="flex items-start gap-3 p-3">
+                  <div className="flex-1 space-y-1">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>I'm generating your PDF worksheet...</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -745,32 +761,21 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
 
       {/* PDF Mode Indicator */}
       {isPdfMode && (
-        <div className="border-t border-border bg-blue-50 dark:bg-blue-900/20 p-3">
+        <div className="border-t border-border bg-white dark:bg-black p-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <FileText className="w-4 h-4 text-blue-600 dark:text-blue-400" />
               <div>
-                <div className="text-sm font-medium text-blue-700 dark:text-blue-300">
-                  PDF Worksheet Mode Active
-                  {pdfMathMode !== 'auto' && (
-                    <span className="ml-2 text-xs bg-blue-100 dark:bg-blue-800 px-2 py-1 rounded">
-                      {pdfMathMode ? 'Math Parsing' : 'Standard Parsing'}
-                    </span>
-                  )}
-                  {pdfMathMode === 'auto' && (
-                    <span className="ml-2 text-xs bg-blue-100 dark:bg-blue-800 px-2 py-1 rounded">
-                      Auto-detect
-                    </span>
-                  )}
+                <div className="text-sm font-medium text-blue-700 ">
+                  Selected
                 </div>
-                <div className="text-xs text-blue-600 dark:text-blue-400">
-                  Describe the worksheet you want to create and I'll generate a PDF for you.
+                <div className="text-xs text-blue-600">
+                  PDF Generation
                 </div>
               </div>
             </div>
             <button
               onClick={() => setIsPdfMode(false)}
-              className="text-blue-400 hover:text-blue-600 dark:hover:text-blue-200 p-1 rounded-sm hover:bg-blue-100 dark:hover:bg-blue-800 transition-colors"
+              className="p-1 rounded-sm hover:bg-blue-100 dark:hover:bg-blue-800 transition-colors"
               title="Exit PDF mode"
             >
               <X className="w-4 h-4" />
