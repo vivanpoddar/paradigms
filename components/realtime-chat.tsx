@@ -844,7 +844,7 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel>PDF Worksheet</DropdownMenuLabel>
+            <DropdownMenuLabel>Options</DropdownMenuLabel>
             <DropdownMenuItem
               onClick={handlePdfModeToggle}
               className={cn(
