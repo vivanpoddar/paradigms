@@ -26,9 +26,10 @@ export async function POST(request: NextRequest) {
     }
 
     Settings.llm = openai({
-      model: "gpt-4.1-nano",
-      temperature: 1,
+      model: "gpt-4.1-mini",
+      reasoningEffort: "medium",
       apiKey: process.env.OPENAI_API_KEY,
+      maxTokens: 1000,
     });
 
     const index = new LlamaCloudIndex({
@@ -51,10 +52,7 @@ export async function POST(request: NextRequest) {
         conversationContext += '\n';
       }
 
-      const enhancedQuery = `${query}
-      ${useChatHistory ? `If needed, respond based on the available conversation history: ${conversationContext}` : ''}
-      
-      `
+      const enhancedQuery = `${query}`
 
       console.log('Creating query engine...');
       const fileNameTxt = fileName.replace(/\.[^.]+$/, '') + '.txt';

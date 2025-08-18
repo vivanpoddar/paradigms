@@ -157,14 +157,14 @@ export const TooltipLayer: React.FC<TooltipLayerProps> = ({ selectedBoxes, setSe
         });
 
         try {
-            const response = await fetch('/api/query', {
+            const response = await fetch('/api/solve', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({ 
-                    query: `You are a helpful high school math tutor. 
-                    Your task is to solve the following question for a student. 
+                    query: `You are a high school teacher creating an answer key for a document. 
+                    Your task is to solve the following question. 
                     If your answer includes math, clearly format all math expressions in LaTeX using $ symbols. 
                     Only provide the final answer—do not include explanations or steps.                   
                     ${problemText}`, 
