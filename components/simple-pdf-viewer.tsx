@@ -63,7 +63,7 @@ export const SimplePdfViewer: React.FC<SimplePdfViewerProps> = ({
                                                 )}
                                             </ShowSearchPopover>
                                         </div>
-
+                                                {/*last education*/}
                                         {/* Center - Page navigation */}
                                         <div className="flex items-center gap-2 mx-auto">
                                             <GoToPreviousPage>
