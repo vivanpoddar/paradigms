@@ -166,7 +166,7 @@ export const AnnotationLayer: React.FC<AnnotationLayerProps> = ({
                 <div
                     key={annotation.id}
                     data-annotation-id={annotation.id}
-                    className={`absolute pointer-events-auto cursor-pointer transition-opacity hover:opacity-80 ${
+                    className={`absolute pointer-events-auto cursor-pointer transition-all duration-200 hover:opacity-80 ${
                         annotation.type === 'highlight' 
                             ? 'border-2' 
                             : annotation.type === 'note'
@@ -463,21 +463,32 @@ export const AnnotationTooltipLayer: React.FC<AnnotationTooltipLayerProps> = ({
 
     return (
         <>
+            {/* Backdrop overlay when any tooltip is open */}
+            {selectedAnnotations.size > 0 && (
+                <div
+                    className={`fixed inset-0 bg-black transition-opacity duration-200 ease-out z-30 pointer-events-none ${
+                        Array.from(selectedAnnotations.values()).some(tooltip => tooltip.isVisible) ? 'bg-opacity-20' : 'bg-opacity-0'
+                    }`}
+                />
+            )}
+
+            {/* Render all active tooltips */}
             {Array.from(selectedAnnotations.entries()).map(([annotationId, { annotation, position, isVisible, isEditing }]) => (
-                isVisible && (
-                    <div
-                        key={annotationId}
-                        className={`fixed bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg p-4 max-w-sm transition-all duration-200 ease-out ${
-                            frontAnnotationId === annotationId ? 'z-50' : 'z-40'
-                        }`}
-                        style={{
-                            left: Math.min(position.x, window.innerWidth - 384),
-                            top: Math.max(16, Math.min(position.y - 100, window.innerHeight - 200)),
-                            transform: isVisible ? 'scale(1)' : 'scale(0.95)',
-                            opacity: isVisible ? 1 : 0,
-                        }}
-                        onClick={() => setFrontAnnotationId(annotationId)}
-                    >
+                <div
+                    key={annotationId}
+                    className={`fixed bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg p-4 max-w-sm pointer-events-auto transition-all duration-200 ease-out cursor-pointer ${
+                        isVisible 
+                            ? 'opacity-100 scale-100 translate-y-0' 
+                            : 'opacity-0 scale-95 translate-y-2'
+                    }`}
+                    style={{
+                        left: Math.min(position.x, window.innerWidth - 384),
+                        top: Math.max(16, Math.min(position.y - 100, window.innerHeight - 200)),
+                        transform: `translate(0, 0) ${!isVisible ? 'translateX(-8px) scale(0.95)' : ''}`,
+                        zIndex: frontAnnotationId === annotationId ? 50 : 40,
+                    }}
+                    onClick={() => setFrontAnnotationId(annotationId)}
+                >
                         <div className="flex items-center justify-between mb-3">
                             <div className="flex items-center gap-2">
                                 <div 
@@ -490,7 +501,7 @@ export const AnnotationTooltipLayer: React.FC<AnnotationTooltipLayerProps> = ({
                             </div>
                             <button
                                 onClick={() => handleCloseTooltip(annotationId)}
-                                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
                             >
                                 <X className="w-4 h-4" />
                             </button>
@@ -561,7 +572,7 @@ export const AnnotationTooltipLayer: React.FC<AnnotationTooltipLayerProps> = ({
                                         <>
                                             <button
                                                 onClick={() => handleSaveEdit(annotationId)}
-                                                className="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600"
+                                                className="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600 transition-colors"
                                             >
                                                 Save
                                             </button>
@@ -574,7 +585,7 @@ export const AnnotationTooltipLayer: React.FC<AnnotationTooltipLayerProps> = ({
                                                     }
                                                     return newMap;
                                                 })}
-                                                className="px-3 py-1 bg-gray-300 text-gray-700 rounded text-sm hover:bg-gray-400"
+                                                className="px-3 py-1 bg-gray-300 text-gray-700 rounded text-sm hover:bg-gray-400 transition-colors"
                                             >
                                                 Cancel
                                             </button>
@@ -582,7 +593,7 @@ export const AnnotationTooltipLayer: React.FC<AnnotationTooltipLayerProps> = ({
                                     )}
                                     <button
                                         onClick={() => handleDeleteAnnotation(annotationId)}
-                                        className="px-2 py-1 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded text-xs hover:bg-red-200 dark:hover:bg-red-800 flex items-center gap-1"
+                                        className="px-2 py-1 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded text-xs hover:bg-red-200 dark:hover:bg-red-800 transition-colors flex items-center gap-1"
                                     >
                                         <Trash2 className="w-3 h-3" />
                                     </button>
@@ -590,7 +601,6 @@ export const AnnotationTooltipLayer: React.FC<AnnotationTooltipLayerProps> = ({
                             </div>
                         </div>
                     </div>
-                )
             ))}
         </>
     );

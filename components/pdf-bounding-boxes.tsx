@@ -93,6 +93,45 @@ interface TooltipLayerProps {
 }
 
 export const TooltipLayer: React.FC<TooltipLayerProps> = ({ selectedBoxes, setSelectedBoxes, frontTooltipId, setFrontTooltipId, selectedFileName, onExplain, preloadedAnswers, onAnswerSaved }) => {
+    // Track which tooltips have their action menu expanded
+    const [expandedMenus, setExpandedMenus] = React.useState<Set<string>>(new Set());
+    
+    // Auto-expand menu for newly opened tooltips with animation delay
+    React.useEffect(() => {
+        const visibleTooltips = Array.from(selectedBoxes.entries())
+            .filter(([_, tooltip]) => tooltip.isVisible)
+            .map(([boxId, _]) => boxId);
+        
+        if (visibleTooltips.length > 0) {
+            // Add a slight delay to let the tooltip appear first, then expand the menu
+            setTimeout(() => {
+                setExpandedMenus(prev => {
+                    const newSet = new Set(prev);
+                    visibleTooltips.forEach(boxId => newSet.add(boxId));
+                    return newSet;
+                });
+            }, 300); // Delay to let tooltip animate in first
+        }
+    }, [selectedBoxes]);
+    
+    // Clean up expanded menus for closed tooltips
+    React.useEffect(() => {
+        const visibleBoxIds = new Set(
+            Array.from(selectedBoxes.entries())
+                .filter(([_, tooltip]) => tooltip.isVisible)
+                .map(([boxId, _]) => boxId)
+        );
+        
+        setExpandedMenus(prev => {
+            const newSet = new Set<string>();
+            prev.forEach(boxId => {
+                if (visibleBoxIds.has(boxId)) {
+                    newSet.add(boxId);
+                }
+            });
+            return newSet;
+        });
+    }, [selectedBoxes]);
     
     // Apply preloaded answers when tooltips become visible
     React.useEffect(() => {
@@ -373,38 +412,72 @@ export const TooltipLayer: React.FC<TooltipLayerProps> = ({ selectedBoxes, setSe
                         <X className="w-3 h-3" />
                     </button>
                 </div>
-                <div className="flex gap-2 mt-2">
+                
+                {/* Action Menu Toggle */}
+                <div className="mt-2 border-t border-gray-200 dark:border-gray-600 pt-2">
                     <button
-                        className="px-2 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
                         onClick={(e) => {
                             e.stopPropagation();
-                            handleSolve(boxId, tooltip.box.text);
-                        }}
-                        disabled={tooltip.isLoading}
-                    >
-                        {tooltip.isLoading ? (
-                            <>
-                                <Loader2 className="w-3 h-3 animate-spin" />
-                                Solving...
-                            </>
-                        ) : (
-                            tooltip.solution ? 'Solve Again' : 'Solve'
-                        )}
-                    </button>
-                    {tooltip.solution && !tooltip.isLoading && onExplain && (
-                        <button
-                            className="px-2 py-1 bg-green-500 text-white text-xs rounded hover:bg-green-600 transition-colors flex items-center gap-1"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                if (tooltip.solution) {
-                                    onExplain(tooltip.box.text, tooltip.solution);
+                            setExpandedMenus(prev => {
+                                const newSet = new Set(prev);
+                                if (newSet.has(boxId)) {
+                                    newSet.delete(boxId);
+                                } else {
+                                    newSet.add(boxId);
                                 }
-                            }}
-                        >
-                            <MessageCircle className="w-3 h-3" />
-                            Explain
-                        </button>
-                    )}
+                                return newSet;
+                            });
+                        }}
+                        className="w-full flex items-center justify-between px-2 py-1 text-xs text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 rounded transition-colors"
+                    >
+                        <span className="font-medium">Actions</span>
+                        <div className={`transform transition-transform duration-200 text-xs ${expandedMenus.has(boxId) ? 'rotate-180' : ''}`}>
+                            ▼
+                        </div>
+                    </button>
+                    
+                    {/* Animated Action Menu */}
+                    <div
+                        className={`overflow-hidden transition-all duration-300 ease-out ${
+                            expandedMenus.has(boxId) 
+                                ? 'max-h-20 opacity-100 mt-2' 
+                                : 'max-h-0 opacity-0'
+                        }`}
+                    >
+                        <div className="flex gap-2">
+                            <button
+                                className="px-2 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleSolve(boxId, tooltip.box.text);
+                                }}
+                                disabled={tooltip.isLoading}
+                            >
+                                {tooltip.isLoading ? (
+                                    <>
+                                        <Loader2 className="w-3 h-3 animate-spin" />
+                                        Solving...
+                                    </>
+                                ) : (
+                                    tooltip.solution ? 'Solve Again' : 'Solve'
+                                )}
+                            </button>
+                            {tooltip.solution && !tooltip.isLoading && onExplain && (
+                                <button
+                                    className="px-2 py-1 bg-green-500 text-white text-xs rounded hover:bg-green-600 transition-colors flex items-center gap-1"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (tooltip.solution) {
+                                            onExplain(tooltip.box.text, tooltip.solution);
+                                        }
+                                    }}
+                                >
+                                    <MessageCircle className="w-3 h-3" />
+                                    Explain
+                                </button>
+                            )}
+                        </div>
+                    </div>
                 </div>
             </div>
         ))}
