@@ -8,8 +8,10 @@ import { toolbarPlugin, ToolbarSlot } from '@react-pdf-viewer/toolbar';
 import { searchPlugin } from '@react-pdf-viewer/search';
 import { getFilePlugin } from '@react-pdf-viewer/get-file';
 import { fullScreenPlugin } from '@react-pdf-viewer/full-screen';
-import { Search, Download, Maximize2, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { Search, Download, Maximize2, ChevronLeft, ChevronRight, X, Palette } from 'lucide-react';
 import { BoundingBoxLayer, TooltipLayer } from './pdf-bounding-boxes';
+import { AnnotationLayer, AnnotationTooltipLayer } from './pdf-annotations';
+import { AnnotationMenu } from './annotation-menu';
 // Make sure that './pdf-bounding-boxes.tsx' exists and exports BoundingBoxLayer as a named export.
 
 import '@react-pdf-viewer/core/lib/styles/index.css';
@@ -27,6 +29,22 @@ interface BoundingBox {
     height: number;
     text: string;
     pageNumber: number;
+}
+
+// Types for annotation data
+interface Annotation {
+    id: string;
+    user_id: string;
+    document_name: string;
+    page_number: number;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    text: string;
+    color: string;
+    type: 'highlight' | 'note' | 'comment';
+    created_at: string;
 }
 
 interface PdfViewerWithOverlayProps {
@@ -48,6 +66,15 @@ export const PdfViewerWithOverlay: React.FC<PdfViewerWithOverlayProps> = ({
     const [selectedBoxes, setSelectedBoxes] = React.useState<Map<string, { box: BoundingBox; position: { x: number; y: number }; isVisible: boolean; solution?: string; isLoading?: boolean }>>(new Map());
     const [frontTooltipId, setFrontTooltipId] = React.useState<string | null>(null);
     const [preloadedAnswers, setPreloadedAnswers] = React.useState<Map<string, string>>(new Map());
+    
+    // Annotation states
+    const [annotations, setAnnotations] = React.useState<Annotation[]>([]);
+    const [selectedAnnotations, setSelectedAnnotations] = React.useState<Map<string, { annotation: Annotation; position: { x: number; y: number }; isVisible: boolean; isEditing?: boolean }>>(new Map());
+    const [frontAnnotationId, setFrontAnnotationId] = React.useState<string | null>(null);
+    const [isAnnotationMode, setIsAnnotationMode] = React.useState(false);
+    const [selectedAnnotationType, setSelectedAnnotationType] = React.useState<'highlight' | 'note' | 'comment'>('highlight');
+    const [selectedColor, setSelectedColor] = React.useState('#fbbf24');
+    
     const pdfContainerRef = React.useRef<HTMLDivElement>(null);
 
     // Block PDF scrolling when any tooltip is open
@@ -150,6 +177,86 @@ export const PdfViewerWithOverlay: React.FC<PdfViewerWithOverlayProps> = ({
         fetchBoundingBoxes();
     }, []);
 
+    // Fetch annotations from API
+    React.useEffect(() => {
+        const fetchAnnotations = async () => {
+            if (!user || !fileName) return;
+            
+            try {
+                const params = new URLSearchParams();
+                params.append('userId', user);
+                params.append('filename', fileName);
+                
+                const response = await fetch(`/api/annotations?${params.toString()}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('Fetched annotations:', data);
+                    setAnnotations(data);
+                } else {
+                    console.error('Failed to fetch annotations');
+                }
+            } catch (error) {
+                console.error('Error fetching annotations:', error);
+            }
+        };
+
+        fetchAnnotations();
+    }, [user, fileName]);
+
+    // Handle creating new annotation
+    const handleCreateAnnotation = async (x: number, y: number, width: number, height: number, pageNumber: number) => {
+        if (!user || !fileName) {
+            console.log('Missing user or fileName:', { user, fileName });
+            return;
+        }
+        
+        console.log('Creating annotation with:', { x, y, width, height, pageNumber, user, fileName });
+        
+        try {
+            const response = await fetch('/api/annotations', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    userId: user,
+                    documentName: fileName,
+                    pageNumber,
+                    x,
+                    y,
+                    width,
+                    height,
+                    text: '',
+                    color: selectedColor,
+                    type: selectedAnnotationType,
+                }),
+            });
+
+            if (response.ok) {
+                const newAnnotation = await response.json();
+                setAnnotations(prev => [...prev, newAnnotation]);
+                console.log('Created annotation:', newAnnotation);
+            } else {
+                const errorText = await response.text();
+                console.error('Failed to create annotation:', response.status, errorText);
+            }
+        } catch (error) {
+            console.error('Error creating annotation:', error);
+        }
+    };
+
+    // Handle annotation deletion
+    const handleAnnotationDeleted = (annotationId: string) => {
+        setAnnotations(prev => prev.filter(annotation => annotation.id !== annotationId));
+    };
+
+    // Handle annotation update
+    const handleAnnotationUpdated = (updatedAnnotation: Annotation) => {
+        setAnnotations(prev => prev.map(annotation => 
+            annotation.id === updatedAnnotation.id ? updatedAnnotation : annotation
+        ));
+    };
+
     const searchPluginInstance = searchPlugin();
     const getFilePluginInstance = getFilePlugin();
     const fullScreenPluginInstance = fullScreenPlugin();
@@ -168,7 +275,24 @@ export const PdfViewerWithOverlay: React.FC<PdfViewerWithOverlayProps> = ({
         ),
     });
     
+    // Create a custom plugin to render annotations on each page
+    const annotationPlugin = () => ({
+        renderPageLayer: (renderPageProps: any) => (
+            <AnnotationLayer
+                annotations={annotations}
+                renderPageProps={renderPageProps}
+                setSelectedAnnotations={setSelectedAnnotations}
+                setFrontAnnotationId={setFrontAnnotationId}
+                pageWidth={renderPageProps.pageWidth}
+                pageHeight={renderPageProps.pageHeight}
+                isAnnotationMode={isAnnotationMode}
+                onCreateAnnotation={handleCreateAnnotation}
+            />
+        ),
+    });
+    
     const boundingBoxPluginInstance = boundingBoxPlugin();
+    const annotationPluginInstance = annotationPlugin();
     
     const toolbarPluginInstance = toolbarPlugin();
     const { Toolbar } = toolbarPluginInstance;
@@ -181,109 +305,143 @@ export const PdfViewerWithOverlay: React.FC<PdfViewerWithOverlayProps> = ({
                 <div
                     className="bg-white dark:bg-black h-full flex flex-col"
                 >
-                    <div className="flex items-center sticky top-0 z-50 justify-between px-4 bg-white dark:bg-black shadow-sm">
-                        <Toolbar>
-                            {(props: ToolbarSlot) => {
-                                const {
-                                    CurrentPageInput,
-                                    GoToNextPage,
-                                    GoToPreviousPage,
-                                    NumberOfPages,
-                                    ShowSearchPopover,
-                                } = props;
-                                return (
-                                    <div className="flex items-center gap-2 w-full">
-                                        {/* Left side - Search controls */}
-                                        <div className="flex items-center gap-2">
-                                            <ShowSearchPopover>
-                                                {(props) => (
-                                                    <button 
-                                                        className="p-2 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-md transition-colors"
-                                                        onClick={props.onClick}
-                                                        title="Search"
-                                                    >
-                                                        <Search className="w-4 h-4 text-gray-600 dark:text-gray-300" />
-                                                    </button>
-                                                )}
-                                            </ShowSearchPopover>
-                                        </div>
-
-                                        {/* Center - Page navigation */}
-                                        <div className="flex items-center gap-2 mx-auto">
-                                            <GoToPreviousPage>
-                                                {(props: RenderGoToPageProps) => (
-                                                    <button
-                                                        className={`p-2 rounded-md transition-colors ${
-                                                            props.isDisabled 
-                                                                ? 'text-gray-400 cursor-not-allowed' 
-                                                                : 'text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                                                        }`}
-                                                        disabled={props.isDisabled}
-                                                        onClick={props.onClick}
-                                                        title="Previous page"
-                                                    >
-                                                        <ChevronLeft className="w-4 h-4" />
-                                                    </button>
-                                                )}
-                                            </GoToPreviousPage>
-                                            
-                                            <div className="flex items-center gap-2 bg-white dark:bg-black rounded-sm px-3 my-1">
-                                                <div className="w-16 dark:bg-black dark:text-white">
-                                                    <CurrentPageInput />
-                                                </div>
-                                                <span className="text-gray-500 dark:text-gray-400 text-sm">
-                                                    / <NumberOfPages />
-                                                </span>
+                    <div className="sticky top-0 z-50 bg-white dark:bg-black shadow-sm">
+                        <div className="flex items-center justify-between px-4">
+                            <Toolbar>
+                                {(props: ToolbarSlot) => {
+                                    const {
+                                        CurrentPageInput,
+                                        GoToNextPage,
+                                        GoToPreviousPage,
+                                        NumberOfPages,
+                                        ShowSearchPopover,
+                                    } = props;
+                                    return (
+                                        <div className="flex items-center gap-2 w-full">
+                                            {/* Left side - Search controls */}
+                                            <div className="flex items-center gap-2">
+                                                <ShowSearchPopover>
+                                                    {(props) => (
+                                                        <button 
+                                                            className="p-2 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-md transition-colors"
+                                                            onClick={props.onClick}
+                                                            title="Search"
+                                                        >
+                                                            <Search className="w-4 h-4 text-gray-600 dark:text-gray-300" />
+                                                        </button>
+                                                    )}
+                                                </ShowSearchPopover>
                                             </div>
-                                            
-                                            <GoToNextPage>
-                                                {(props: RenderGoToPageProps) => (
-                                                    <button
-                                                        className={`p-2 rounded-md transition-colors ${
-                                                            props.isDisabled 
-                                                                ? 'text-gray-400 cursor-not-allowed' 
-                                                                : 'text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                                                        }`}
-                                                        disabled={props.isDisabled}
-                                                        onClick={props.onClick}
-                                                        title="Next page"
-                                                    >
-                                                        <ChevronRight className="w-4 h-4" />
-                                                    </button>
-                                                )}
-                                            </GoToNextPage>
-                                        </div>
 
-                                        {/* Right side - Download and Full screen */}
-                                        <div className="flex items-center gap-2">
-                                            <DownloadComponent>
-                                                {(props) => (
-                                                    <button 
-                                                        className="p-2 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-md transition-colors"
-                                                        onClick={props.onClick}
-                                                        title="Download"
-                                                    >
-                                                        <Download className="w-4 h-4 text-gray-600 dark:text-gray-300" />
-                                                    </button>
-                                                )}
-                                            </DownloadComponent>
-                                            
-                                            <EnterFullScreen>
-                                                {(props) => (
-                                                    <button 
-                                                        className="p-2 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-md transition-colors"
-                                                        onClick={props.onClick}
-                                                        title="Full Screen"
-                                                    >
-                                                        <Maximize2 className="w-4 h-4 text-gray-600 dark:text-gray-300" />
-                                                    </button>
-                                                )}
-                                            </EnterFullScreen>
+                                            {/* Center - Page navigation */}
+                                            <div className="flex items-center gap-2 mx-auto">
+                                                <GoToPreviousPage>
+                                                    {(props: RenderGoToPageProps) => (
+                                                        <button
+                                                            className={`p-2 rounded-md transition-colors ${
+                                                                props.isDisabled 
+                                                                    ? 'text-gray-400 cursor-not-allowed' 
+                                                                    : 'text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                                                            }`}
+                                                            disabled={props.isDisabled}
+                                                            onClick={props.onClick}
+                                                            title="Previous page"
+                                                        >
+                                                            <ChevronLeft className="w-4 h-4" />
+                                                        </button>
+                                                    )}
+                                                </GoToPreviousPage>
+                                                
+                                                <div className="flex items-center gap-2 bg-white dark:bg-black rounded-sm px-3 my-1">
+                                                    <div className="w-16 dark:bg-black dark:text-white">
+                                                        <CurrentPageInput />
+                                                    </div>
+                                                    <span className="text-gray-500 dark:text-gray-400 text-sm">
+                                                        / <NumberOfPages />
+                                                    </span>
+                                                </div>
+                                                
+                                                <GoToNextPage>
+                                                    {(props: RenderGoToPageProps) => (
+                                                        <button
+                                                            className={`p-2 rounded-md transition-colors ${
+                                                                props.isDisabled 
+                                                                    ? 'text-gray-400 cursor-not-allowed' 
+                                                                    : 'text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                                                            }`}
+                                                            disabled={props.isDisabled}
+                                                            onClick={props.onClick}
+                                                            title="Next page"
+                                                        >
+                                                            <ChevronRight className="w-4 h-4" />
+                                                        </button>
+                                                    )}
+                                                </GoToNextPage>
+                                            </div>
+
+                                            {/* Right side - Annotations toggle, Download and Full screen */}
+                                            <div className="flex items-center gap-2">
+                                                <button
+                                                    onClick={() => setIsAnnotationMode(!isAnnotationMode)}
+                                                    className={`p-2 rounded-md transition-colors ${
+                                                        isAnnotationMode
+                                                            ? 'bg-blue-500 text-white hover:bg-blue-600'
+                                                            : 'text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                                                    }`}
+                                                    title={isAnnotationMode ? 'Exit annotation mode' : 'Enter annotation mode'}
+                                                >
+                                                    {isAnnotationMode ? (
+                                                        <X className="w-4 h-4" />
+                                                    ) : (
+                                                        <Palette className="w-4 h-4" />
+                                                    )}
+                                                </button>
+                                                
+                                                <div className="border-l border-gray-300 dark:border-gray-600 pl-2">
+                                                    <DownloadComponent>
+                                                        {(props) => (
+                                                            <button 
+                                                                className="p-2 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-md transition-colors"
+                                                                onClick={props.onClick}
+                                                                title="Download"
+                                                            >
+                                                                <Download className="w-4 h-4 text-gray-600 dark:text-gray-300" />
+                                                            </button>
+                                                        )}
+                                                    </DownloadComponent>
+                                                    
+                                                    <EnterFullScreen>
+                                                        {(props) => (
+                                                            <button 
+                                                                className="p-2 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-md transition-colors"
+                                                                onClick={props.onClick}
+                                                                title="Full Screen"
+                                                            >
+                                                                <Maximize2 className="w-4 h-4 text-gray-600 dark:text-gray-300" />
+                                                            </button>
+                                                        )}
+                                                    </EnterFullScreen>
+                                                </div>
+                                            </div>
                                         </div>
-                                    </div>
-                                );
-                            }}
-                        </Toolbar>
+                                    );
+                                }}
+                            </Toolbar>
+                        </div>
+                        
+                        {/* Annotations toolbar on second line - only show when annotation mode is active */}
+                        {isAnnotationMode && (
+                            <div className="px-4 py-2 border-t border-gray-200 dark:border-gray-700">
+                                <AnnotationMenu
+                                    isAnnotationMode={isAnnotationMode}
+                                    onToggleAnnotationMode={() => setIsAnnotationMode(!isAnnotationMode)}
+                                    selectedAnnotationType={selectedAnnotationType}
+                                    onAnnotationTypeChange={setSelectedAnnotationType}
+                                    selectedColor={selectedColor}
+                                    onColorChange={setSelectedColor}
+                                />
+                            </div>
+                        )}
                     </div>
                     <div className="flex-1 overflow-hidden bg-white dark:bg-white" ref={pdfContainerRef}>
                         <Viewer 
@@ -293,7 +451,8 @@ export const PdfViewerWithOverlay: React.FC<PdfViewerWithOverlayProps> = ({
                                 searchPluginInstance, 
                                 getFilePluginInstance, 
                                 fullScreenPluginInstance,
-                                boundingBoxPluginInstance
+                                boundingBoxPluginInstance,
+                                annotationPluginInstance
                             ]} 
                         />
                     </div>
@@ -301,10 +460,12 @@ export const PdfViewerWithOverlay: React.FC<PdfViewerWithOverlayProps> = ({
             </Worker>
 
             {/* Backdrop overlay when any tooltip is open */}
-            {selectedBoxes.size > 0 && (
+            {(selectedBoxes.size > 0 || selectedAnnotations.size > 0) && (
                 <div
                     className={`fixed inset-0 bg-black transition-opacity duration-200 ease-out z-40 pointer-events-none ${
-                        Array.from(selectedBoxes.values()).some(tooltip => tooltip.isVisible) ? 'bg-opacity-20' : 'bg-opacity-0'
+                        Array.from(selectedBoxes.values()).some(tooltip => tooltip.isVisible) || 
+                        Array.from(selectedAnnotations.values()).some(tooltip => tooltip.isVisible) 
+                            ? 'bg-opacity-20' : 'bg-opacity-0'
                     }`}
                 />
             )}
@@ -319,6 +480,18 @@ export const PdfViewerWithOverlay: React.FC<PdfViewerWithOverlayProps> = ({
                 onExplain={onExplain}
                 preloadedAnswers={preloadedAnswers}
                 onAnswerSaved={handleAnswerSaved}
+            />
+
+            {/* Render annotation tooltips */}
+            <AnnotationTooltipLayer
+                selectedAnnotations={selectedAnnotations}
+                setSelectedAnnotations={setSelectedAnnotations}
+                frontAnnotationId={frontAnnotationId}
+                setFrontAnnotationId={setFrontAnnotationId}
+                userId={user}
+                documentName={fileName}
+                onAnnotationDeleted={handleAnnotationDeleted}
+                onAnnotationUpdated={handleAnnotationUpdated}
             />
         </div>
     );
