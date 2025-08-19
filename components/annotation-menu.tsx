@@ -24,8 +24,6 @@ export const AnnotationMenu: React.FC<AnnotationMenuProps> = ({
         { color: '#60a5fa', name: 'Blue' },
         { color: '#34d399', name: 'Green' },
         { color: '#a78bfa', name: 'Purple' },
-        { color: '#fb7185', name: 'Pink' },
-        { color: '#f97316', name: 'Orange' },
     ];
 
     const annotationTypes = [

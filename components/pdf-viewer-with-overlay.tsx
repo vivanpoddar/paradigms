@@ -212,6 +212,50 @@ export const PdfViewerWithOverlay: React.FC<PdfViewerWithOverlayProps> = ({
         
         console.log('Creating annotation with:', { x, y, width, height, pageNumber, user, fileName });
         
+        // Create optimistic annotation with temporary ID
+        const tempId = `temp-${Date.now()}-${Math.random()}`;
+        const optimisticAnnotation = {
+            id: tempId,
+            user_id: user,
+            document_name: fileName,
+            page_number: pageNumber,
+            x,
+            y,
+            width,
+            height,
+            text: '',
+            color: selectedColor,
+            type: selectedAnnotationType,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+        };
+        
+        // Update UI immediately with optimistic annotation
+        setAnnotations(prev => [...prev, optimisticAnnotation]);
+        
+        // If it's a note or comment annotation, automatically open the text editor
+        if (selectedAnnotationType === 'note' || selectedAnnotationType === 'comment') {
+            setTimeout(() => {
+                // Create a dummy position for the tooltip
+                const position = {
+                    x: window.innerWidth / 2,
+                    y: window.innerHeight / 2
+                };
+                
+                setSelectedAnnotations(prev => {
+                    const newMap = new Map(prev);
+                    newMap.set(tempId, {
+                        annotation: optimisticAnnotation,
+                        position,
+                        isVisible: true,
+                        isEditing: true
+                    });
+                    return newMap;
+                });
+            }, 100);
+        }
+        
+        // Perform server creation asynchronously
         try {
             const response = await fetch('/api/annotations', {
                 method: 'POST',
@@ -233,38 +277,47 @@ export const PdfViewerWithOverlay: React.FC<PdfViewerWithOverlayProps> = ({
             });
 
             if (response.ok) {
-                const newAnnotation = await response.json();
-                setAnnotations(prev => [...prev, newAnnotation]);
-                console.log('Created annotation:', newAnnotation);
+                const serverAnnotation = await response.json();
                 
-                // If it's a note or comment annotation, automatically open the text editor
-                if (selectedAnnotationType === 'note' || selectedAnnotationType === 'comment') {
-                    setTimeout(() => {
-                        // Create a dummy position for the tooltip
-                        const position = {
-                            x: window.innerWidth / 2,
-                            y: window.innerHeight / 2
-                        };
-                        
-                        setSelectedAnnotations(prev => {
-                            const newMap = new Map(prev);
-                            newMap.set(newAnnotation.id, {
-                                annotation: newAnnotation,
-                                position,
-                                isVisible: true,
-                                isEditing: true
-                            });
-                            return newMap;
+                // Replace optimistic annotation with server annotation
+                setAnnotations(prev => prev.map(ann => 
+                    ann.id === tempId ? serverAnnotation : ann
+                ));
+                
+                // Update tooltip with real annotation ID if it's open
+                setSelectedAnnotations(prev => {
+                    const newMap = new Map(prev);
+                    const tooltip = newMap.get(tempId);
+                    if (tooltip) {
+                        newMap.delete(tempId);
+                        newMap.set(serverAnnotation.id, {
+                            ...tooltip,
+                            annotation: serverAnnotation
                         });
-                        setFrontAnnotationId(newAnnotation.id);
-                    }, 100);
-                }
+                    }
+                    return newMap;
+                });
+                
+                console.log('Created annotation:', serverAnnotation);
             } else {
-                const errorText = await response.text();
-                console.error('Failed to create annotation:', response.status, errorText);
+                console.error('Failed to create annotation on server');
+                // Remove optimistic annotation on failure
+                setAnnotations(prev => prev.filter(ann => ann.id !== tempId));
+                setSelectedAnnotations(prev => {
+                    const newMap = new Map(prev);
+                    newMap.delete(tempId);
+                    return newMap;
+                });
             }
         } catch (error) {
             console.error('Error creating annotation:', error);
+            // Remove optimistic annotation on error
+            setAnnotations(prev => prev.filter(ann => ann.id !== tempId));
+            setSelectedAnnotations(prev => {
+                const newMap = new Map(prev);
+                newMap.delete(tempId);
+                return newMap;
+            });
         }
     };
 

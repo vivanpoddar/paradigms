@@ -276,8 +276,6 @@ export const AnnotationTooltipLayer: React.FC<AnnotationTooltipLayerProps> = ({
         '#60a5fa', // Blue
         '#34d399', // Green
         '#a78bfa', // Purple
-        '#fb7185', // Pink
-        '#fbbf24', // Orange
     ];
 
     const handleCloseTooltip = (annotationId: string) => {
@@ -309,6 +307,33 @@ export const AnnotationTooltipLayer: React.FC<AnnotationTooltipLayerProps> = ({
     };
 
     const handleSaveEdit = async (annotationId: string) => {
+        // Optimistic update - update UI immediately
+        const currentAnnotation = selectedAnnotations.get(annotationId)?.annotation;
+        if (!currentAnnotation) return;
+        
+        const optimisticUpdate = {
+            ...currentAnnotation,
+            text: editingText,
+            color: editingColor,
+            updated_at: new Date().toISOString()
+        };
+        
+        // Update UI immediately
+        onAnnotationUpdated?.(optimisticUpdate);
+        setSelectedAnnotations(prev => {
+            const newMap = new Map(prev);
+            const tooltip = newMap.get(annotationId);
+            if (tooltip) {
+                newMap.set(annotationId, { 
+                    ...tooltip, 
+                    annotation: optimisticUpdate,
+                    isEditing: false 
+                });
+            }
+            return newMap;
+        });
+        
+        // Perform server update asynchronously
         try {
             const response = await fetch(`/api/annotations?id=${annotationId}&userId=${userId}`, {
                 method: 'PUT',
@@ -322,28 +347,59 @@ export const AnnotationTooltipLayer: React.FC<AnnotationTooltipLayerProps> = ({
             });
 
             if (response.ok) {
-                const updatedAnnotation = await response.json();
-                onAnnotationUpdated?.(updatedAnnotation);
-                
+                const serverAnnotation = await response.json();
+                // Update with server response (in case there are differences)
+                onAnnotationUpdated?.(serverAnnotation);
                 setSelectedAnnotations(prev => {
                     const newMap = new Map(prev);
                     const tooltip = newMap.get(annotationId);
                     if (tooltip) {
                         newMap.set(annotationId, { 
                             ...tooltip, 
-                            annotation: updatedAnnotation,
-                            isEditing: false 
+                            annotation: serverAnnotation
                         });
                     }
                     return newMap;
                 });
+            } else {
+                // If update failed, revert to original
+                onAnnotationUpdated?.(currentAnnotation);
+                console.error('Failed to update annotation on server');
             }
         } catch (error) {
+            // If network error, revert to original
+            onAnnotationUpdated?.(currentAnnotation);
             console.error('Error updating annotation:', error);
         }
     };
 
     const handleQuickSave = async (annotationId: string, text: string, color: string) => {
+        // Optimistic update - update UI immediately
+        const currentAnnotation = selectedAnnotations.get(annotationId)?.annotation;
+        if (!currentAnnotation) return;
+        
+        const optimisticUpdate = {
+            ...currentAnnotation,
+            text,
+            color,
+            updated_at: new Date().toISOString()
+        };
+        
+        // Update UI immediately
+        onAnnotationUpdated?.(optimisticUpdate);
+        setSelectedAnnotations(prev => {
+            const newMap = new Map(prev);
+            const tooltip = newMap.get(annotationId);
+            if (tooltip) {
+                newMap.set(annotationId, { 
+                    ...tooltip, 
+                    annotation: optimisticUpdate
+                });
+            }
+            return newMap;
+        });
+        
+        // Perform server update asynchronously
         try {
             const response = await fetch(`/api/annotations?id=${annotationId}&userId=${userId}`, {
                 method: 'PUT',
@@ -357,38 +413,51 @@ export const AnnotationTooltipLayer: React.FC<AnnotationTooltipLayerProps> = ({
             });
 
             if (response.ok) {
-                const updatedAnnotation = await response.json();
-                onAnnotationUpdated?.(updatedAnnotation);
-                
+                const serverAnnotation = await response.json();
+                // Update with server response
+                onAnnotationUpdated?.(serverAnnotation);
                 setSelectedAnnotations(prev => {
                     const newMap = new Map(prev);
                     const tooltip = newMap.get(annotationId);
                     if (tooltip) {
                         newMap.set(annotationId, { 
                             ...tooltip, 
-                            annotation: updatedAnnotation
+                            annotation: serverAnnotation
                         });
                     }
                     return newMap;
                 });
+            } else {
+                // If update failed, revert to original
+                onAnnotationUpdated?.(currentAnnotation);
+                console.error('Failed to update annotation on server');
             }
         } catch (error) {
+            // If network error, revert to original
+            onAnnotationUpdated?.(currentAnnotation);
             console.error('Error updating annotation:', error);
         }
     };
 
     const handleDeleteAnnotation = async (annotationId: string) => {
+        // Optimistic update - remove immediately from UI
+        onAnnotationDeleted?.(annotationId);
+        handleCloseTooltip(annotationId);
+        
+        // Perform deletion asynchronously
         try {
             const response = await fetch(`/api/annotations?id=${annotationId}&userId=${userId}`, {
                 method: 'DELETE',
             });
 
-            if (response.ok) {
-                onAnnotationDeleted?.(annotationId);
-                handleCloseTooltip(annotationId);
+            if (!response.ok) {
+                // If deletion failed, we would need to restore the annotation
+                // For now, just log the error
+                console.error('Failed to delete annotation on server');
             }
         } catch (error) {
             console.error('Error deleting annotation:', error);
+            // In a production app, you might want to restore the annotation here
         }
     };
 
