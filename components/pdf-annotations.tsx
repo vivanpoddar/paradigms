@@ -166,7 +166,7 @@ export const AnnotationLayer: React.FC<AnnotationLayerProps> = ({
                 <div
                     key={annotation.id}
                     data-annotation-id={annotation.id}
-                    className={`absolute pointer-events-auto cursor-pointer transition-all duration-200 hover:opacity-80 ${
+                    className={`absolute pointer-events-auto cursor-pointer transition-all duration-200 ${
                         annotation.type === 'highlight' 
                             ? 'border-2' 
                             : annotation.type === 'note'

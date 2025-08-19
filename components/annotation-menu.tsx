@@ -36,7 +36,6 @@ export const AnnotationMenu: React.FC<AnnotationMenuProps> = ({
         <div className="flex items-center gap-4">
             {/* Annotation type selector */}
             <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-600 dark:text-gray-400 font-medium">Type:</span>
                 <div className="flex items-center gap-1">
                     {annotationTypes.map(({ type, icon: Icon, name }) => (
                         <button
@@ -57,7 +56,6 @@ export const AnnotationMenu: React.FC<AnnotationMenuProps> = ({
 
             {/* Color picker */}
             <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-600 dark:text-gray-400 font-medium">Color:</span>
                 <div className="flex items-center gap-1">
                     {colors.map(({ color, name }) => (
                         <button
