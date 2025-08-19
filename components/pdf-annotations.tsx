@@ -63,6 +63,12 @@ export const AnnotationLayer: React.FC<AnnotationLayerProps> = ({
     const handleMouseDown = (e: React.MouseEvent) => {
         if (!isAnnotationMode) return;
         
+        // Check if we're clicking on an existing annotation
+        const target = e.target as HTMLElement;
+        if (target.closest('[data-annotation-id]')) {
+            return; // Don't start selection if clicking on an existing annotation
+        }
+        
         const rect = e.currentTarget.getBoundingClientRect();
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
@@ -159,22 +165,29 @@ export const AnnotationLayer: React.FC<AnnotationLayerProps> = ({
             {pageAnnotations.map((annotation) => (
                 <div
                     key={annotation.id}
+                    data-annotation-id={annotation.id}
                     className={`absolute pointer-events-auto cursor-pointer transition-opacity hover:opacity-80 ${
-                        annotation.type === 'highlight' ? 'border-2' : 'border-2 border-dashed'
+                        annotation.type === 'highlight' 
+                            ? 'border-2' 
+                            : annotation.type === 'note'
+                            ? 'border-2 border-dashed bg-white/90'
+                            : 'border-2 border-dotted bg-blue-50/90'
                     }`}
                     style={{
                         left: `${(annotation.x / renderPageProps.width) * 100}%`,
                         top: `${(annotation.y / renderPageProps.height) * 100}%`,
                         width: `${(annotation.width / renderPageProps.width) * 100}%`,
                         height: `${(annotation.height / renderPageProps.height) * 100}%`,
-                        backgroundColor: annotation.color + '20', // 20% opacity
+                        backgroundColor: annotation.type === 'highlight' 
+                            ? annotation.color + '20'
+                            : annotation.type === 'note'
+                            ? 'white'
+                            : '#dbeafe',
                         borderColor: annotation.color,
                         zIndex: 1000,
                     }}
                     title={annotation.text || `${annotation.type} annotation`}
                     onClick={(e) => {
-                        if (isAnnotationMode) return; // Don't open tooltips in annotation mode
-                        
                         e.stopPropagation();
                         const rect = e.currentTarget.getBoundingClientRect();
                         const position = {
@@ -209,6 +222,13 @@ export const AnnotationLayer: React.FC<AnnotationLayerProps> = ({
                         {annotation.type === 'note' && <Type className="w-2 h-2 text-white" />}
                         {annotation.type === 'comment' && <MessageSquare className="w-2 h-2 text-white" />}
                     </div>
+                    
+                    {/* Show text content for note and comment annotations */}
+                    {(annotation.type === 'note' || annotation.type === 'comment') && annotation.text && (
+                        <div className="p-1 text-xs text-gray-800 overflow-hidden">
+                            {annotation.text.substring(0, 50)}{annotation.text.length > 50 ? '...' : ''}
+                        </div>
+                    )}
                 </div>
             ))}
             
@@ -249,7 +269,6 @@ export const AnnotationTooltipLayer: React.FC<AnnotationTooltipLayerProps> = ({
 }) => {
     const [editingText, setEditingText] = React.useState<string>('');
     const [editingColor, setEditingColor] = React.useState<string>('#fbbf24');
-    const [editingType, setEditingType] = React.useState<'highlight' | 'note' | 'comment'>('highlight');
 
     const colors = [
         '#fbbf24', // Yellow
@@ -278,7 +297,6 @@ export const AnnotationTooltipLayer: React.FC<AnnotationTooltipLayerProps> = ({
         
         setEditingText(annotation.text || '');
         setEditingColor(annotation.color);
-        setEditingType(annotation.type);
         
         setSelectedAnnotations(prev => {
             const newMap = new Map(prev);
@@ -300,7 +318,6 @@ export const AnnotationTooltipLayer: React.FC<AnnotationTooltipLayerProps> = ({
                 body: JSON.stringify({
                     text: editingText,
                     color: editingColor,
-                    type: editingType,
                 }),
             });
 
@@ -316,6 +333,40 @@ export const AnnotationTooltipLayer: React.FC<AnnotationTooltipLayerProps> = ({
                             ...tooltip, 
                             annotation: updatedAnnotation,
                             isEditing: false 
+                        });
+                    }
+                    return newMap;
+                });
+            }
+        } catch (error) {
+            console.error('Error updating annotation:', error);
+        }
+    };
+
+    const handleQuickSave = async (annotationId: string, text: string, color: string) => {
+        try {
+            const response = await fetch(`/api/annotations?id=${annotationId}&userId=${userId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    text,
+                    color,
+                }),
+            });
+
+            if (response.ok) {
+                const updatedAnnotation = await response.json();
+                onAnnotationUpdated?.(updatedAnnotation);
+                
+                setSelectedAnnotations(prev => {
+                    const newMap = new Map(prev);
+                    const tooltip = newMap.get(annotationId);
+                    if (tooltip) {
+                        newMap.set(annotationId, { 
+                            ...tooltip, 
+                            annotation: updatedAnnotation
                         });
                     }
                     return newMap;
@@ -360,15 +411,13 @@ export const AnnotationTooltipLayer: React.FC<AnnotationTooltipLayerProps> = ({
                     >
                         <div className="flex items-center justify-between mb-3">
                             <div className="flex items-center gap-2">
-                                <div className="flex items-center gap-1">
-                                    <div 
-                                        className="w-3 h-3 rounded-full"
-                                        style={{ backgroundColor: annotation.color }}
-                                    />
-                                    <span className="text-xs text-gray-500 dark:text-gray-400 capitalize">
-                                        {annotation.type}
-                                    </span>
-                                </div>
+                                <div 
+                                    className="w-3 h-3 rounded-full"
+                                    style={{ backgroundColor: annotation.color }}
+                                />
+                                <span className="text-xs text-gray-500 dark:text-gray-400 capitalize">
+                                    {annotation.type}
+                                </span>
                             </div>
                             <button
                                 onClick={() => handleCloseTooltip(annotationId)}
@@ -378,96 +427,99 @@ export const AnnotationTooltipLayer: React.FC<AnnotationTooltipLayerProps> = ({
                             </button>
                         </div>
 
-                        {isEditing ? (
-                            <div className="space-y-3">
-                                <textarea
-                                    value={editingText}
-                                    onChange={(e) => setEditingText(e.target.value)}
-                                    placeholder="Add annotation text..."
-                                    className="w-full p-2 border rounded resize-none text-sm dark:bg-gray-700 dark:border-gray-600"
-                                    rows={3}
-                                />
-                                
-                                <div className="flex items-center gap-2">
-                                    <span className="text-xs text-gray-500">Color:</span>
-                                    <div className="flex gap-1">
-                                        {colors.map((color) => (
-                                            <button
-                                                key={color}
-                                                onClick={() => setEditingColor(color)}
-                                                className={`w-5 h-5 rounded-full border-2 ${
-                                                    editingColor === color ? 'border-gray-800 dark:border-white' : 'border-gray-300'
-                                                }`}
-                                                style={{ backgroundColor: color }}
-                                            />
-                                        ))}
-                                    </div>
-                                </div>
-
-                                <div className="flex items-center gap-2">
-                                    <span className="text-xs text-gray-500">Type:</span>
-                                    <select
-                                        value={editingType}
-                                        onChange={(e) => setEditingType(e.target.value as 'highlight' | 'note' | 'comment')}
-                                        className="text-xs border rounded px-2 py-1 dark:bg-gray-700 dark:border-gray-600"
-                                    >
-                                        <option value="highlight">Highlight</option>
-                                        <option value="note">Note</option>
-                                        <option value="comment">Comment</option>
-                                    </select>
-                                </div>
-
-                                <div className="flex gap-2">
-                                    <button
-                                        onClick={() => handleSaveEdit(annotationId)}
-                                        className="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600"
-                                    >
-                                        Save
-                                    </button>
-                                    <button
-                                        onClick={() => setSelectedAnnotations(prev => {
-                                            const newMap = new Map(prev);
-                                            const tooltip = newMap.get(annotationId);
-                                            if (tooltip) {
-                                                newMap.set(annotationId, { ...tooltip, isEditing: false });
+                        <div className="space-y-3">
+                            {/* Text content - always editable */}
+                            {(annotation.type === 'note' || annotation.type === 'comment') && (
+                                <div>
+                                    <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">Text:</label>
+                                    <textarea
+                                        value={isEditing ? editingText : annotation.text || ''}
+                                        onChange={(e) => {
+                                            if (isEditing) {
+                                                setEditingText(e.target.value);
+                                            } else {
+                                                // Auto-save mode - update directly
+                                                handleQuickSave(annotationId, e.target.value, annotation.color);
                                             }
-                                            return newMap;
-                                        })}
-                                        className="px-3 py-1 bg-gray-300 text-gray-700 rounded text-sm hover:bg-gray-400"
-                                    >
-                                        Cancel
-                                    </button>
+                                        }}
+                                        onFocus={() => {
+                                            if (!isEditing) {
+                                                setEditingText(annotation.text || '');
+                                                setEditingColor(annotation.color);
+                                                handleEditAnnotation(annotationId);
+                                            }
+                                        }}
+                                        placeholder="Add text..."
+                                        className="w-full p-2 border rounded resize-none text-sm dark:bg-gray-700 dark:border-gray-600"
+                                        rows={2}
+                                    />
+                                </div>
+                            )}
+
+                            {/* Color picker - always visible */}
+                            <div>
+                                <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">Color:</label>
+                                <div className="flex gap-1">
+                                    {colors.map((color) => (
+                                        <button
+                                            key={color}
+                                            onClick={() => {
+                                                if (isEditing) {
+                                                    setEditingColor(color);
+                                                } else {
+                                                    handleQuickSave(annotationId, annotation.text || '', color);
+                                                }
+                                            }}
+                                            className={`w-6 h-6 rounded-full border-2 transition-all ${
+                                                (isEditing ? editingColor : annotation.color) === color
+                                                    ? 'border-gray-800 dark:border-white scale-110'
+                                                    : 'border-gray-300 dark:border-gray-600 hover:scale-105'
+                                            }`}
+                                            style={{ backgroundColor: color }}
+                                        />
+                                    ))}
                                 </div>
                             </div>
-                        ) : (
-                            <div className="space-y-3">
-                                {annotation.text && (
-                                    <p className="text-sm text-gray-700 dark:text-gray-300">
-                                        {annotation.text}
-                                    </p>
-                                )}
-                                
-                                <div className="text-xs text-gray-500 dark:text-gray-400">
-                                    Created: {new Date(annotation.created_at).toLocaleDateString()}
-                                </div>
 
+                            {/* Action buttons */}
+                            <div className="flex justify-between items-center pt-2 border-t border-gray-200 dark:border-gray-600">
+                                <div className="text-xs text-gray-500 dark:text-gray-400">
+                                    {new Date(annotation.created_at).toLocaleDateString()}
+                                </div>
+                                
                                 <div className="flex gap-2">
-                                    <button
-                                        onClick={() => handleEditAnnotation(annotationId)}
-                                        className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded text-xs hover:bg-gray-200 dark:hover:bg-gray-600"
-                                    >
-                                        Edit
-                                    </button>
+                                    {isEditing && (
+                                        <>
+                                            <button
+                                                onClick={() => handleSaveEdit(annotationId)}
+                                                className="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600"
+                                            >
+                                                Save
+                                            </button>
+                                            <button
+                                                onClick={() => setSelectedAnnotations(prev => {
+                                                    const newMap = new Map(prev);
+                                                    const tooltip = newMap.get(annotationId);
+                                                    if (tooltip) {
+                                                        newMap.set(annotationId, { ...tooltip, isEditing: false });
+                                                    }
+                                                    return newMap;
+                                                })}
+                                                className="px-3 py-1 bg-gray-300 text-gray-700 rounded text-sm hover:bg-gray-400"
+                                            >
+                                                Cancel
+                                            </button>
+                                        </>
+                                    )}
                                     <button
                                         onClick={() => handleDeleteAnnotation(annotationId)}
                                         className="px-2 py-1 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded text-xs hover:bg-red-200 dark:hover:bg-red-800 flex items-center gap-1"
                                     >
                                         <Trash2 className="w-3 h-3" />
-                                        Delete
                                     </button>
                                 </div>
                             </div>
-                        )}
+                        </div>
                     </div>
                 )
             ))}

@@ -236,6 +236,29 @@ export const PdfViewerWithOverlay: React.FC<PdfViewerWithOverlayProps> = ({
                 const newAnnotation = await response.json();
                 setAnnotations(prev => [...prev, newAnnotation]);
                 console.log('Created annotation:', newAnnotation);
+                
+                // If it's a note or comment annotation, automatically open the text editor
+                if (selectedAnnotationType === 'note' || selectedAnnotationType === 'comment') {
+                    setTimeout(() => {
+                        // Create a dummy position for the tooltip
+                        const position = {
+                            x: window.innerWidth / 2,
+                            y: window.innerHeight / 2
+                        };
+                        
+                        setSelectedAnnotations(prev => {
+                            const newMap = new Map(prev);
+                            newMap.set(newAnnotation.id, {
+                                annotation: newAnnotation,
+                                position,
+                                isVisible: true,
+                                isEditing: true
+                            });
+                            return newMap;
+                        });
+                        setFrontAnnotationId(newAnnotation.id);
+                    }, 100);
+                }
             } else {
                 const errorText = await response.text();
                 console.error('Failed to create annotation:', response.status, errorText);
