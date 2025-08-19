@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { File, FileText, Image, Download, Plus, ChevronLeft, ChevronRight, Folder, Trash2 } from "lucide-react";
 import { FileUpload } from "@/components/file-upload";
-import { PdfViewerWithOverlay } from "@/components/pdf-viewer-with-overlay";
+import { PdfTabViewer } from "@/components/pdf-tab-viewer";
 import { useFileManager, type UseFileManagerReturn } from "@/hooks/use-file-manager";
 
 const supabase = createClient();
@@ -67,6 +67,7 @@ export const FileBrowser = forwardRef<FileBrowserRef, FileBrowserProps>(({ onFil
   const [congressBills, setCongressBills] = useState<CongressBill[]>([]);
   const [billsLoading, setBillsLoading] = useState(false);
   const [billsError, setBillsError] = useState<string | null>(null);
+  const [loadingBillPdf, setLoadingBillPdf] = useState<string | null>(null);
 
   // Check if mobile
   useEffect(() => {
@@ -151,13 +152,7 @@ export const FileBrowser = forwardRef<FileBrowserRef, FileBrowserProps>(({ onFil
   const selectFile = async (file: FileItem) => {
     if (!userId) return;
     
-    setSelectedFile(file);
-    setSelectedBill(null); // Clear bill selection
-    setFileContent(null);
-    
-    // Notify parent component about the selected file
-    onFileSelect?.(file.name);
-    
+    // Always use tab system for PDFs
     try {
       const { data, error } = await supabase.storage
         .from('documents')
@@ -168,59 +163,69 @@ export const FileBrowser = forwardRef<FileBrowserRef, FileBrowserProps>(({ onFil
         return;
       }
 
-      // Handle different file types
       const mimetype = file.metadata?.mimetype || 'application/octet-stream';
-      if (mimetype.startsWith('text/') || 
-          mimetype === 'application/json') {
-        const text = await data.text();
-        setFileContent(text);
-      } else if (mimetype.startsWith('image/')) {
-        const blob = new Blob([data], { type: mimetype });
-        const imageUrl = URL.createObjectURL(blob);
-        setFileContent(imageUrl);
-      } else if (mimetype === 'application/pdf') {
+      
+      if (mimetype === 'application/pdf') {
         const blob = new Blob([data], { type: 'application/pdf' });
         const pdfUrl = URL.createObjectURL(blob);
-        setFileContent(pdfUrl);
-      } else {
-        setFileContent('Binary file - cannot display content');
+        
+        // Add to tab system
+        if ((window as any).addPdfTab) {
+          (window as any).addPdfTab(file.name, pdfUrl, file.name);
+        }
+        return;
       }
+      
+      // For non-PDF files, show in a simple viewer or handle differently
+      console.log('Non-PDF file selected:', file.name);
+      // You could add a simple text/image viewer here if needed
+      
     } catch (error) {
       console.error('Error reading file:', error);
     }
   };
 
-  const selectBill = (bill: CongressBill) => {
-    setSelectedBill(bill);
-    setSelectedFile(null); // Clear file selection
-    setFileContent(null);
+  const selectBill = async (bill: CongressBill) => {
+    // Always use tab system for bills
+    const billKey = `${bill.type}-${bill.number}-${bill.congress}`;
+    setLoadingBillPdf(billKey);
     
-    // Create a formatted text content for the bill
-    const billContent = `${bill.type.toUpperCase()} ${bill.number} - ${bill.congress}th Congress
-
-Title: ${bill.title}
-
-Introduced: ${new Date(bill.introducedDate).toLocaleDateString()}
-
-${bill.latestAction ? 
-  `Latest Action (${new Date(bill.latestAction.actionDate).toLocaleDateString()}): ${bill.latestAction.text}` : 
-  'No recent action recorded'}
-
-${bill.policyArea ? `Policy Area: ${bill.policyArea}` : ''}
-
-${bill.sponsors && bill.sponsors.length > 0 ? 
-  `Sponsors:\n${bill.sponsors.map(sponsor => 
-    `- ${sponsor.firstName} ${sponsor.lastName} (${sponsor.party}-${sponsor.state})`
-  ).join('\n')}` : 'No sponsors listed'}
-
-Full Bill URL: ${bill.url}
-
-Note: This is bill metadata. Visit the URL above to view the full bill text.`;
-
-    setFileContent(billContent);
-    
-    // Notify parent component
-    onFileSelect?.(`${bill.type} ${bill.number}`);
+    try {
+      // Fetch bill details to get PDF URL
+      const response = await fetch(
+        `/api/bill-details?congress=${bill.congress}&type=${bill.type}&number=${bill.number}`
+      );
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch bill details: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      if (data.error) {
+        throw new Error(data.error);
+      }
+      
+      if (data.pdfUrl) {
+        const pdfProxyUrl = `/api/bill-pdf?url=${encodeURIComponent(data.pdfUrl)}`;
+        const billTitle = `${bill.type.toUpperCase()} ${bill.number}`;
+        const fileName = `${billTitle}.pdf`;
+        
+        // Add to tab system
+        if ((window as any).addPdfTab) {
+          (window as any).addPdfTab(billTitle, pdfProxyUrl, fileName);
+        }
+        
+        setLoadingBillPdf(null);
+        return;
+      } else {
+        console.log('No PDF available for this bill');
+      }
+    } catch (error) {
+      console.error('Error fetching bill PDF:', error);
+    } finally {
+      setLoadingBillPdf(null);
+    }
   };
 
   const downloadFile = async (file: FileItem) => {
@@ -354,7 +359,7 @@ Note: This is bill metadata. Visit the URL above to view the full bill text.`;
             ? 'w-full'
             : isMobile && selectedFile 
               ? 'hidden' 
-              : 'w-full lg:w-2/5'
+              : 'w-full lg:w-1/4'
       }`}>
         <Card className="h-full rounded-none border-0 flex flex-col">
           <CardHeader className="border-b flex-shrink-0 p-2">
@@ -584,19 +589,23 @@ Note: This is bill metadata. Visit the URL above to view the full bill text.`;
                       </p>
                     </div>
                   ) : (
-                    congressBills.map((bill, index) => (
-                      <div
-                        key={`${bill.type}-${bill.number}-${bill.congress}`}
-                        className={`p-4 border-b cursor-pointer transition-colors ${
-                          selectedBill?.number === bill.number && selectedBill?.type === bill.type
-                            ? 'bg-primary/10 border-primary'
-                            : 'hover:bg-muted/50'
-                        }`}
-                        onClick={() => selectBill(bill)}
-                      >
-                        <div className="flex items-start gap-3">
-                          <FileText className="h-4 w-4 mt-1 flex-shrink-0" />
-                          <div className="flex-1 min-w-0">
+                    congressBills.map((bill, index) => {
+                      const billKey = `${bill.type}-${bill.number}-${bill.congress}`;
+                      const isLoading = loadingBillPdf === billKey;
+                      
+                      return (
+                        <div
+                          key={billKey}
+                          className={`p-4 border-b cursor-pointer transition-colors hover:bg-muted/50 ${isLoading ? 'opacity-75' : ''}`}
+                          onClick={() => !isLoading && selectBill(bill)}
+                        >
+                          <div className="flex items-start gap-3">
+                            {isLoading ? (
+                              <div className="h-4 w-4 mt-1 animate-spin rounded-full border-2 border-current border-t-transparent flex-shrink-0" />
+                            ) : (
+                              <FileText className="h-4 w-4 mt-1 flex-shrink-0" />
+                            )}
+                            <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1">
                               <span className="text-sm font-medium">
                                 {bill.type.toUpperCase()} {bill.number}
@@ -639,7 +648,8 @@ Note: This is bill metadata. Visit the URL above to view the full bill text.`;
                           </div>
                         </div>
                       </div>
-                    ))
+                      );
+                    })
                   )
                 )}
               </div>
@@ -648,7 +658,7 @@ Note: This is bill metadata. Visit the URL above to view the full bill text.`;
         </Card>
       </div>
 
-      {/* Right Side - File Display - Hidden when forcing file list or on mobile */}
+      {/* Right Side - Content Display */}
       <div className={`flex-1 flex flex-col ${
         forceShowFileList
           ? 'hidden'
@@ -658,87 +668,15 @@ Note: This is bill metadata. Visit the URL above to view the full bill text.`;
               ? 'w-full' 
               : 'hidden lg:flex'
       }`}>
-        <Card className="h-full rounded-none border-0 flex flex-col">
-          <CardHeader className="border-b flex-shrink-0 p-2">
-            <CardTitle className="text-sm flex items-center justify-between">
-              <span>
-                {selectedFile ? selectedFile.name : 
-                 selectedBill ? `${selectedBill.type.toUpperCase()} ${selectedBill.number}` : 
-                 'Select a file or bill to view'}
-              </span>
-              {isMobile && (selectedFile || selectedBill) && !forceShowFileList && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setSelectedFile(null);
-                    setSelectedBill(null);
-                    setFileContent(null);
-                    onFileSelect?.(null);
-                  }}
-                  className="h-6 w-6 p-0 lg:hidden"
-                  title="Back to file list"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-              )}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-0 flex-1 flex flex-col">
-            {selectedFile || selectedBill ? (
-              <div className="flex-1 flex flex-col">
-                <div className="flex-1 mobile-pdf-container bg-white lg:h-[90vh] overflow-auto mobile-scroll">
-                  {selectedBill ? (
-                    // Display bill content as formatted text
-                    <pre className="whitespace-pre-wrap text-sm font-mono bg-muted/30 p-4 rounded overflow-auto min-h-0 mobile-pdf-container lg:h-[90vh] flex-1 m-2 mobile-scroll">
-                      {fileContent}
-                    </pre>
-                  ) : selectedFile && fileContent ? (
-                    (selectedFile.metadata?.mimetype || '').startsWith('image/') ? (
-                      <div className="p-2">
-                        <img
-                          src={fileContent}
-                          alt={selectedFile.name}
-                          className="max-w-full h-auto rounded"
-                        />
-                      </div>
-                    ) : selectedFile.metadata?.mimetype === 'application/pdf' ? (
-                      <PdfViewerWithOverlay
-                        pdfUrl={fileContent}
-                        user={userId ?? ""}
-                        fileName={selectedFile.name}
-                        onExplain={onExplain}
-                      />
-                    ) : (selectedFile.metadata?.mimetype || '').startsWith('text/') ||
-                       selectedFile.metadata?.mimetype === 'application/json' ? (
-                      <pre className="whitespace-pre-wrap text-sm font-mono bg-muted/30 p-4 rounded overflow-auto min-h-0 mobile-pdf-container lg:h-[90vh] flex-1 m-2 mobile-scroll">
-                        {fileContent}
-                      </pre>
-                    ) : (
-                      <div className="flex items-center justify-center flex-1 min-h-0">
-                        <p className="text-muted-foreground text-center">
-                          {fileContent}
-                        </p>
-                      </div>
-                    )
-                  ) : (
-                    <div className="flex items-center justify-center flex-1 min-h-0">
-                      <p className="text-muted-foreground text-center">
-                        Loading content...
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            ) : (
-              <div className="flex items-center justify-center flex-1 min-h-0">
-                <p className="text-muted-foreground text-center">
-                  Click on a file or congress bill from the list to view its content
-                </p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        {/* Tab View Mode - Always use tab system */}
+        <PdfTabViewer
+          onExplain={onExplain}
+          userId={userId ?? ""}
+          chatRoomName={userId ? `user-${userId}` : "default-room"}
+          chatUsername={userId ?? "user"}
+          selectedFileName={selectedFile?.name || selectedBill?.title || null}
+          onFileRefresh={refreshFiles}
+        />
       </div>
     </div>
   );

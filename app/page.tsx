@@ -2,19 +2,14 @@
 
 import { FileBrowser, FileBrowserRef } from "@/components/file-browser";
 import { Navbar } from "@/components/navbar";
-import { RealtimeChat, RealtimeChatRef } from "@/components/realtime-chat";
 import { SimplePdfViewer } from "@/components/simple-pdf-viewer";
 import { createClient } from "@/lib/supabase/client";
 import { useEffect, useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, MessageCircle, Trash2, Menu, X, FileText, Eye, FileIcon } from "lucide-react";
-import { useChatHistory } from "@/hooks/use-chat-history";
+import { Menu, X, FileText, Eye, FileIcon } from "lucide-react";
 
 export default function Home() {
   const [user, setUser] = useState<any>(null);
-  const [isChatCollapsed, setIsChatCollapsed] = useState(false);
-  const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
-  const chatRef = useRef<RealtimeChatRef>(null);
   const fileBrowserRef = useRef<FileBrowserRef>(null);
   
   // Mobile state management
@@ -22,12 +17,7 @@ export default function Home() {
   const [showMobileFileBrowser, setShowMobileFileBrowser] = useState(false);
   const [showMobilePdfViewer, setShowMobilePdfViewer] = useState(false);
   const [selectedFileUrl, setSelectedFileUrl] = useState<string | null>(null);
-
-  // Initialize chat history hook
-  const { clearHistory, isLoading: isClearingHistory } = useChatHistory({
-    userId: user?.id || '',
-    selectedFileName,
-  });
+  const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
 
   useEffect(() => {
     const getUser = async () => {
@@ -58,49 +48,18 @@ export default function Home() {
 
   // Keyboard shortcuts
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.ctrlKey || e.metaKey) {
-        if (e.key === 'b' || e.key === 'B') {
-          e.preventDefault();
-          setIsChatCollapsed(prev => !prev);
-        }
-      }
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Remove chat-related shortcuts since chat is now integrated into PDF tab viewer
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  const handleClearHistory = async () => {
-    if (!user?.id) return;
-    
-    try {
-      await clearHistory();
-      // Clear current chat contents immediately
-      chatRef.current?.clearCurrentMessages();
-    } catch (error) {
-      console.error('Failed to clear chat history:', error);
-    }
-  };
-
   const handleExplain = (problemText: string, solution: string) => {
-    // Expand chat if it's collapsed
-    if (isChatCollapsed) {
-      setIsChatCollapsed(false);
-    }
-    
-    // On mobile, chat is already visible by default
-    // Just close overlays if they're open
-    if (isMobile && (showMobileFileBrowser || showMobilePdfViewer)) {
-      setShowMobileFileBrowser(false);
-      setShowMobilePdfViewer(false);
-    }
-    
-    // Open the explanation context in chat
-    chatRef.current?.openExplainContext(problemText, solution);
-  };
-
-  const handleFileRefresh = async () => {
+    // Chat is now integrated into PDF tab viewer, so this function is simplified
+    console.log('Explain called with:', problemText, solution);
+  };  const handleFileRefresh = async () => {
     console.log('Refreshing file list...');
     await fileBrowserRef.current?.refreshFiles();
   };
@@ -190,17 +149,6 @@ export default function Home() {
                 <span className="text-muted-foreground">Select a document</span>
               )}
             </div>
-            
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleClearHistory}
-              disabled={isClearingHistory}
-              className="flex items-center gap-2"
-              title="Clear chat history"
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
           </div>
         )}
         
@@ -259,94 +207,10 @@ export default function Home() {
           )}
           
           {/* Mobile: Show Chat by Default */}
-          {isMobile ? (
-            <div className="w-full flex flex-col flex-1 min-h-0 mobile-viewport-fix">
-              <div className="flex-1 max-h-[100vh] overflow-y-hidden min-h-0 mobile-chat-container overflow-hidden">
-                <RealtimeChat 
-                  ref={chatRef}
-                  roomName="general-chat" 
-                  username={user?.email?.split('@')[0] || 'anonymous'}
-                  enableDocumentQuery={true}
-                  selectedFileName={selectedFileName}
-                  onFileRefresh={handleFileRefresh}
-                />
-              </div>
-            </div>
-          ) : (
-            <>
-              {/* Desktop Layout - Main content area - File Browser */}
-              <div className={`flex-1 transition-all duration-300 ${isChatCollapsed ? 'w-full' : 'lg:w-3/5'} border-r border-border`}>
-                <FileBrowser ref={fileBrowserRef} onFileSelect={handleFileSelect} onExplain={handleExplain} isVisible={!isMobile} />
-              </div>
-              
-              {/* Desktop Layout - Side panel - Realtime Chat */}
-              <div className={`transition-all duration-300 flex flex-col ${isChatCollapsed ? 'w-12' : 'w-full lg:w-2/5'}`}>
-                <div className={`border-b border-border p-2 bg-muted/30 flex items-center ${isChatCollapsed ? 'justify-center' : 'justify-between'}`}>
-                  {!isChatCollapsed && (
-                    <div>
-                      <h2 className="text-xs font-semibold">AI Assistant</h2>
-                      <p className="text-xs text-muted-foreground">
-                        {selectedFileName ? (
-                          <>Chat with <span className="font-medium">{selectedFileName}</span></>
-                        ) : (
-                          'Select a document to start chatting'
-                        )}
-                      </p>
-                    </div>
-                  )}
-                  <div className="flex items-center gap-2">
-                    {!isChatCollapsed && selectedFileName && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleClearHistory}
-                        disabled={isClearingHistory}
-                        className="h-5 w-5 p-0"
-                        title="Clear chat history"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    )}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setIsChatCollapsed(!isChatCollapsed)}
-                      className="h-5 w-5 p-0"
-                      title={isChatCollapsed ? "Expand chat (Ctrl+B)" : "Collapse chat (Ctrl+B)"}
-                    >
-                      {isChatCollapsed ? <ChevronLeft className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
-                    </Button>
-                  </div>
-                </div>
-                {isChatCollapsed && (
-                  <div 
-                    className="flex-1 flex flex-col items-center justify-start pt-4 cursor-pointer hover:bg-muted/50 transition-colors"
-                    onClick={() => setIsChatCollapsed(false)}
-                    title="Click to expand chat (Ctrl+B)"
-                  >
-                    <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                      <MessageCircle className="h-5 w-5" />
-                      <div className="collapsed-panel-text">
-                        Chat
-                      </div>
-                    </div>
-                  </div>
-                )}
-                {!isChatCollapsed && (
-                  <div className="flex-1 max-h-[89vh] overflow-y-scroll">
-                    <RealtimeChat
-                      ref={chatRef}
-                      roomName="general-chat" 
-                      username={user?.email?.split('@')[0] || 'anonymous'}
-                      enableDocumentQuery={true}
-                      selectedFileName={selectedFileName}
-                      onFileRefresh={handleFileRefresh}
-                    />
-                  </div>
-                )}
-              </div>
-            </>
-          )}
+          {/* Desktop Layout - Full width File Browser with integrated chat */}
+          <div className="w-full">
+            <FileBrowser ref={fileBrowserRef} onFileSelect={handleFileSelect} onExplain={handleExplain} isVisible={!isMobile} />
+          </div>
         </div>
       </div>
     </main>

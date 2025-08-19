@@ -3,7 +3,7 @@
 ## Overview
 The file browser component now features two main sections:
 1. **Your Files** - User uploaded documents
-2. **Congress Bills** - Latest bills from Congress.gov API
+2. **Congress Bills** - Latest bills from Congress.gov API with **PDF viewing capability**
 
 ## Features
 
@@ -17,6 +17,7 @@ The file browser component now features two main sections:
 ### Congress Bills Section
 - Automatically fetches the latest 50 bills from Congress.gov
 - Real-time data from the official Congress.gov API
+- **NEW: PDF viewing** - Click on any bill to view the actual PDF document
 - Bill metadata including:
   - Bill number and type (HR, S, etc.)
   - Title and description
@@ -24,20 +25,38 @@ The file browser component now features two main sections:
   - Policy area (if available)
   - Congress session number
 
+## PDF Integration
+
+### Automatic PDF Loading
+When a Congress bill is selected:
+1. **Fetches bill details** from Congress.gov API
+2. **Locates PDF version** of the bill text
+3. **Displays PDF** using the same viewer as uploaded files
+4. **Supports annotations** on Congress bill PDFs
+5. **Fallback to text** if PDF is unavailable
+
+### PDF Sources
+- **Enrolled Bills**: Final versions signed into law
+- **Engrossed Bills**: Passed by one chamber
+- **Introduced Bills**: Original versions as submitted
+- **House/Senate Versions**: Chamber-specific versions
+
 ## API Integration
 
-### Congress.gov API
-- **Endpoint**: `https://api.congress.gov/v3/bill`
-- **Parameters**: 
-  - `limit=50` - Fetch last 50 bills
-  - `sort=updateDate:desc` - Most recently updated first
-- **Authentication**: Uses server-side API key from environment variables
+### Congress.gov API Endpoints
+- **Bills List**: `https://api.congress.gov/v3/bill`
+- **Bill Details**: `https://api.congress.gov/v3/bill/{congress}/{type}/{number}`
+- **Text Versions**: `https://api.congress.gov/v3/bill/{congress}/{type}/{number}/text`
 
-### Internal API Route
-- **Route**: `/api/congress-bills`
-- **Method**: GET
-- **Query Parameters**: 
-  - `limit` (optional, defaults to 50)
+### Internal API Routes
+- **Bills List**: `/api/congress-bills` - Fetches bill summaries
+- **Bill Details**: `/api/bill-details` - Gets specific bill with PDF URLs
+- **PDF Proxy**: `/api/bill-pdf` - Proxies PDF content from Congress.gov
+
+### Request Flow
+```
+User clicks bill → /api/bill-details → Congress.gov API → PDF URL → /api/bill-pdf → PDF display
+```
 
 ## Data Structure
 

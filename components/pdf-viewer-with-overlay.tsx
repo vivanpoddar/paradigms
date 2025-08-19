@@ -164,18 +164,24 @@ export const PdfViewerWithOverlay: React.FC<PdfViewerWithOverlayProps> = ({
                 const response = await fetch(`/api/bounding-boxes?${params.toString()}`);
                 if (response.ok) {
                     const data = await response.json();
-                    console.log('Fetched bounding boxes:', data);
+                    console.log('Fetched bounding boxes for', fileName, ':', data);
                     setApiBoundingBoxes(data);
                 } else {
                     console.error('Failed to fetch bounding boxes');
+                    setApiBoundingBoxes([]);
                 }
             } catch (error) {
                 console.error('Error fetching bounding boxes:', error);
+                setApiBoundingBoxes([]);
             }
         };
 
-        fetchBoundingBoxes();
-    }, []);
+        if (user && fileName) {
+            fetchBoundingBoxes();
+        } else {
+            setApiBoundingBoxes([]);
+        }
+    }, [user, fileName]);
 
     // Fetch annotations from API
     React.useEffect(() => {
