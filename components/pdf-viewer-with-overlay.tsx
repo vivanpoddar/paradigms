@@ -181,7 +181,7 @@ export const PdfViewerWithOverlay: React.FC<PdfViewerWithOverlayProps> = ({
                 <div
                     className="bg-white dark:bg-black h-full flex flex-col"
                 >
-                    <div className="flex items-center justify-between px-4">
+                    <div className="flex items-center sticky top-0 z-50 justify-between px-4 bg-white dark:bg-black shadow-sm">
                         <Toolbar>
                             {(props: ToolbarSlot) => {
                                 const {
