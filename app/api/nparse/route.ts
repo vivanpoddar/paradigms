@@ -7,8 +7,46 @@ import fs from 'fs'
 import FormData from 'form-data'
 import fetch from 'node-fetch'
 import { GoogleAuth } from 'google-auth-library'
+import { PDFDocument } from 'pdf-lib'
 
 console.log('Processing nparse route...')
+
+// Function to chunk PDF into segments of specified page count
+const chunkPDF = async (pdfBuffer: Buffer, chunkSize: number = 15): Promise<Buffer[]> => {
+  try {
+    const pdfDoc = await PDFDocument.load(pdfBuffer);
+    const totalPages = pdfDoc.getPageCount();
+    const chunks: Buffer[] = [];
+    
+    console.log(`📄 Total pages in PDF: ${totalPages}`);
+    console.log(`📑 Chunking into segments of ${chunkSize} pages`);
+    
+    for (let i = 0; i < totalPages; i += chunkSize) {
+      const endPage = Math.min(i + chunkSize - 1, totalPages - 1);
+      console.log(`📋 Creating chunk: pages ${i + 1} to ${endPage + 1}`);
+      
+      // Create new PDF document for this chunk
+      const chunkDoc = await PDFDocument.create();
+      
+      // Copy pages to the chunk document
+      const pageIndices = Array.from({ length: endPage - i + 1 }, (_, idx) => i + idx);
+      const copiedPages = await chunkDoc.copyPages(pdfDoc, pageIndices);
+      
+      // Add copied pages to chunk document
+      copiedPages.forEach((page) => chunkDoc.addPage(page));
+      
+      // Save chunk as buffer
+      const chunkBytes = await chunkDoc.save();
+      chunks.push(Buffer.from(chunkBytes));
+    }
+    
+    console.log(`✅ Successfully created ${chunks.length} PDF chunks`);
+    return chunks;
+  } catch (error) {
+    console.error('❌ Error chunking PDF:', error);
+    throw new Error(`Failed to chunk PDF: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+};
 
 // Type definitions for LlamaIndex response
 interface LlamaIndexDocument {
@@ -116,64 +154,144 @@ export async function POST(request: NextRequest) {
         tempFilePath = join(tmpdir(), tempFileName);
         await writeFile(tempFilePath, buffer);
 
-        // Process document with Google Document AI (Gemini OCR)
-        const processWithDocumentAI = async (): Promise<any> => {
-            try {
-            // Authenticate using service account
-            const auth = new GoogleAuth({
-                keyFile: '/Users/vpoddar/Documents/learnai/serviceaccount.json',
-                scopes: 'https://www.googleapis.com/auth/cloud-platform'
-            });
-            const client = await auth.getClient();
-            const accessToken = await client.getAccessToken();
+        // Chunk the PDF into 15-page segments
+        console.log('📄 Starting PDF chunking process...');
+        const pdfChunks = await chunkPDF(buffer, 15);
+        console.log(`✅ Created ${pdfChunks.length} PDF chunks`);
 
-            if (!accessToken.token) {
-                console.error('❌ Failed to get access token');
-                return null;
-            }
-
-            // Read the file as base64
-            const fileBuffer = await fs.promises.readFile(tempFilePath!);
-            const base64Content = fileBuffer.toString('base64');
-
-            const requestBody = {       
-                    "rawDocument": {
-                    "mimeType": "application/pdf",
-                        "content": base64Content
-                },
-            };
-
-            const response = await fetch(
-                'https://us-documentai.googleapis.com/v1/projects/39073705270/locations/us/processors/1ef30fee3f5f7c68:process',
-                {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${accessToken.token}`,
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(requestBody)
-                }
+        if (pdfChunks.length === 0) {
+            return NextResponse.json(
+                { error: 'Failed to chunk PDF - no chunks created' },
+                { status: 500 }
             );
+        }
 
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.error('❌ Document AI processing failed:', {
-                status: response.status,
-                statusText: response.statusText,
-                errorText
+        // Process document with Google Document AI (Gemini OCR) for each chunk
+        const processChunkWithDocumentAI = async (chunkBuffer: Buffer, chunkIndex: number): Promise<any> => {
+            try {
+                console.log(`🔄 Processing chunk ${chunkIndex + 1} with Document AI...`);
+                
+                // Authenticate using service account
+                const auth = new GoogleAuth({
+                    keyFile: '/Users/vpoddar/Documents/learnai/serviceaccount.json',
+                    scopes: 'https://www.googleapis.com/auth/cloud-platform'
                 });
+                const client = await auth.getClient();
+                const accessToken = await client.getAccessToken();
+
+                if (!accessToken.token) {
+                    console.error('❌ Failed to get access token');
+                    return null;
+                }
+
+                // Convert chunk buffer to base64
+                const base64Content = chunkBuffer.toString('base64');
+
+                const requestBody = {       
+                    "rawDocument": {
+                        "mimeType": "application/pdf",
+                        "content": base64Content
+                    },
+                };
+
+                const response = await fetch(
+                    'https://us-documentai.googleapis.com/v1/projects/39073705270/locations/us/processors/1ef30fee3f5f7c68:process',
+                    {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${accessToken.token}`,
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(requestBody)
+                    }
+                );
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error(`❌ Document AI processing failed for chunk ${chunkIndex + 1}:`, {
+                        status: response.status,
+                        statusText: response.statusText,
+                        errorText
+                    });
+                    return null;
+                }
+
+                const result = await response.json() as any;
+                console.log(`✅ Successfully processed chunk ${chunkIndex + 1}`);
+                return result;
+
+            } catch (error) {
+                console.error(`Document AI processing error for chunk ${chunkIndex + 1}:`, error);
                 return null;
             }
+        };
 
-            const result = await response.json() as any;
+        // Process all chunks in parallel
+        console.log('🔄 Processing all PDF chunks with Document AI...');
+        const chunkPromises = pdfChunks.map((chunk, index) => 
+            processChunkWithDocumentAI(chunk, index)
+        );
+        const chunkResults = await Promise.all(chunkPromises);
 
-            return result;
+        // Filter out failed chunks
+        const successfulChunkResults = chunkResults.filter(result => result !== null);
 
-        } catch (error) {
-            console.error("Document AI processing error:", error);
-            return null;
+        if (successfulChunkResults.length === 0) {
+            return NextResponse.json(
+                { error: 'Failed to process any PDF chunks with Google Document AI' },
+                { status: 500 }
+            );
         }
-      };
+
+        console.log(`✅ Successfully processed ${successfulChunkResults.length}/${pdfChunks.length} chunks`);
+
+        // Combine results from all chunks
+        let combinedText = '';
+        let combinedPages: any[] = [];
+        let combinedEntities: any[] = [];
+        let totalPageOffset = 0;
+
+        successfulChunkResults.forEach((chunkResult, chunkIndex) => {
+            if (chunkResult.document && chunkResult.document.text) {
+                combinedText += chunkResult.document.text + '\n\n';
+            }
+
+            if (chunkResult.document && chunkResult.document.pages) {
+                combinedPages = combinedPages.concat(chunkResult.document.pages);
+            }
+
+            if (chunkResult.document && chunkResult.document.entities) {
+                // Adjust page references for entities to account for chunk offset
+                const adjustedEntities = chunkResult.document.entities.map((entityGroup: any) => ({
+                    ...entityGroup,
+                    properties: entityGroup.properties.map((entity: any) => ({
+                        ...entity,
+                        pageAnchor: {
+                            ...entity.pageAnchor,
+                            pageRefs: entity.pageAnchor.pageRefs.map((pageRef: any) => ({
+                                ...pageRef,
+                                page: pageRef.page + totalPageOffset
+                            }))
+                        }
+                    }))
+                }));
+                combinedEntities = combinedEntities.concat(adjustedEntities);
+            }
+
+            // Update page offset for next chunk
+            if (chunkResult.document && chunkResult.document.pages) {
+                totalPageOffset += chunkResult.document.pages.length;
+            }
+        });
+
+        // Create combined document result
+        const documentAIResult = {
+            document: {
+                text: combinedText.trim(),
+                pages: combinedPages,
+                entities: combinedEntities
+            }
+        };
 
       // Upload processed text to LlamaIndex
       const uploadToLlamaIndex = async (documentText: string): Promise<any | null> => {
@@ -256,9 +374,7 @@ export async function POST(request: NextRequest) {
             }
         };
 
-        // Process document with Google Document AI first
-        const documentAIResult = await processWithDocumentAI();
-
+        // Process parsed JSON from combined results
         let parsedJson: { page: { lines: any[]; pageWidth: any; pageHeight: any }[] } = {
             page: []
         };
@@ -363,18 +479,22 @@ export async function POST(request: NextRequest) {
             indexingCompleted,
             parsedJsonPath,
             processingTimeMs,
-            ocrMethod: 'gemini-ocr'
+            ocrMethod: 'gemini-ocr-chunked',
+            chunksProcessed: successfulChunkResults.length,
+            totalChunks: pdfChunks.length
         };
 
         return NextResponse.json(
             { 
-            message: 'File parsed and uploaded successfully with Google Document AI (Gemini OCR)',
+            message: `File parsed and uploaded successfully with Google Document AI (Gemini OCR) - Processed ${successfulChunkResults.length}/${pdfChunks.length} chunks`,
             documentsCreated: 1,
             llamaIndexUploaded: true,
             indexingCompleted,
             parsedJsonPath,
             uploadFinishData,
-            ocrMethod: 'gemini-ocr'
+            ocrMethod: 'gemini-ocr-chunked',
+            chunksProcessed: successfulChunkResults.length,
+            totalChunks: pdfChunks.length
             },
             { status: 200 }
         );

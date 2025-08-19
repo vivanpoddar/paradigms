@@ -20,6 +20,27 @@ interface FileItem {
   metadata: Record<string, any>;
 }
 
+interface CongressBill {
+  number: string;
+  title: string;
+  congress: number;
+  type: string;
+  introducedDate: string;
+  url: string;
+  policyArea?: string;
+  sponsors?: Array<{
+    bioguideId: string;
+    firstName: string;
+    lastName: string;
+    party: string;
+    state: string;
+  }>;
+  latestAction?: {
+    actionDate: string;
+    text: string;
+  };
+}
+
 interface FileBrowserProps {
   onFileSelect?: (fileName: string | null) => void;
   onExplain?: (problemText: string, solution: string) => void;
@@ -36,11 +57,16 @@ export const FileBrowser = forwardRef<FileBrowserRef, FileBrowserProps>(({ onFil
   const { files, loading, userId, refreshFiles, addNewFile, removeFile } = useFileManager();
   
   const [selectedFile, setSelectedFile] = useState<FileItem | null>(null);
+  const [selectedBill, setSelectedBill] = useState<CongressBill | null>(null);
   const [fileContent, setFileContent] = useState<string | null>(null);
   const [showUpload, setShowUpload] = useState(false);
   const [isFileListCollapsed, setIsFileListCollapsed] = useState(false);
   const [deletingFile, setDeletingFile] = useState<string | null>(null);
   const [isMobile, setIsMobile] = useState(false);
+  const [activeSection, setActiveSection] = useState<'files' | 'bills'>('files');
+  const [congressBills, setCongressBills] = useState<CongressBill[]>([]);
+  const [billsLoading, setBillsLoading] = useState(false);
+  const [billsError, setBillsError] = useState<string | null>(null);
 
   // Check if mobile
   useEffect(() => {
@@ -51,6 +77,57 @@ export const FileBrowser = forwardRef<FileBrowserRef, FileBrowserProps>(({ onFil
     checkIsMobile();
     window.addEventListener('resize', checkIsMobile);
     return () => window.removeEventListener('resize', checkIsMobile);
+  }, []);
+
+  // Fetch congress bills
+  const fetchCongressBills = async () => {
+    setBillsLoading(true);
+    setBillsError(null);
+    
+    try {
+      // Use the API key from server-side environment
+      const response = await fetch('/api/congress-bills?limit=50');
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch bills: ${response.status} ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      
+      if (data.error) {
+        throw new Error(data.error);
+      }
+      
+      const formattedBills: CongressBill[] = data.bills?.map((bill: any) => ({
+        number: bill.number,
+        title: bill.title || 'No title available',
+        congress: bill.congress,
+        type: bill.type,
+        introducedDate: bill.latestAction?.actionDate || bill.updateDate || 'Unknown',
+        url: bill.url,
+        policyArea: bill.policyArea?.name,
+        sponsors: bill.sponsors?.map((sponsor: any) => ({
+          bioguideId: sponsor.bioguideId,
+          firstName: sponsor.firstName,
+          lastName: sponsor.lastName,
+          party: sponsor.party,
+          state: sponsor.state,
+        })) || [],
+        latestAction: bill.latestAction
+      })) || [];
+      
+      setCongressBills(formattedBills);
+    } catch (error) {
+      console.error('Error fetching congress bills:', error);
+      setBillsError(error instanceof Error ? error.message : 'Failed to fetch congress bills');
+    } finally {
+      setBillsLoading(false);
+    }
+  };
+
+  // Load congress bills when component mounts
+  useEffect(() => {
+    fetchCongressBills();
   }, []);
 
   // Listen for auth state changes to clear selected file when user logs out
@@ -75,6 +152,7 @@ export const FileBrowser = forwardRef<FileBrowserRef, FileBrowserProps>(({ onFil
     if (!userId) return;
     
     setSelectedFile(file);
+    setSelectedBill(null); // Clear bill selection
     setFileContent(null);
     
     // Notify parent component about the selected file
@@ -110,6 +188,39 @@ export const FileBrowser = forwardRef<FileBrowserRef, FileBrowserProps>(({ onFil
     } catch (error) {
       console.error('Error reading file:', error);
     }
+  };
+
+  const selectBill = (bill: CongressBill) => {
+    setSelectedBill(bill);
+    setSelectedFile(null); // Clear file selection
+    setFileContent(null);
+    
+    // Create a formatted text content for the bill
+    const billContent = `${bill.type.toUpperCase()} ${bill.number} - ${bill.congress}th Congress
+
+Title: ${bill.title}
+
+Introduced: ${new Date(bill.introducedDate).toLocaleDateString()}
+
+${bill.latestAction ? 
+  `Latest Action (${new Date(bill.latestAction.actionDate).toLocaleDateString()}): ${bill.latestAction.text}` : 
+  'No recent action recorded'}
+
+${bill.policyArea ? `Policy Area: ${bill.policyArea}` : ''}
+
+${bill.sponsors && bill.sponsors.length > 0 ? 
+  `Sponsors:\n${bill.sponsors.map(sponsor => 
+    `- ${sponsor.firstName} ${sponsor.lastName} (${sponsor.party}-${sponsor.state})`
+  ).join('\n')}` : 'No sponsors listed'}
+
+Full Bill URL: ${bill.url}
+
+Note: This is bill metadata. Visit the URL above to view the full bill text.`;
+
+    setFileContent(billContent);
+    
+    // Notify parent component
+    onFileSelect?.(`${bill.type} ${bill.number}`);
   };
 
   const downloadFile = async (file: FileItem) => {
@@ -149,6 +260,7 @@ export const FileBrowser = forwardRef<FileBrowserRef, FileBrowserProps>(({ onFil
     
     if (selectedFile?.id === file.id) {
       setSelectedFile(null);
+      setSelectedBill(null);
       setFileContent(null);
       onFileSelect?.(null);
     }
@@ -247,8 +359,58 @@ export const FileBrowser = forwardRef<FileBrowserRef, FileBrowserProps>(({ onFil
         <Card className="h-full rounded-none border-0 flex flex-col">
           <CardHeader className="border-b flex-shrink-0 p-2">
             <CardTitle className="flex items-center justify-between text-sm">
-              {!isFileListCollapsed && !isMobile && "Your Files"}
-              {!isFileListCollapsed && forceShowFileList && "Your Files"}
+              {!isFileListCollapsed && !isMobile && (
+                <div className="flex items-center gap-4">
+                  <div className="flex gap-1">
+                    <button
+                      onClick={() => setActiveSection('files')}
+                      className={`px-3 py-1 rounded text-xs transition-colors ${
+                        activeSection === 'files'
+                          ? 'bg-primary text-primary-foreground'
+                          : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                      }`}
+                    >
+                      Your Files ({visibleFiles.length})
+                    </button>
+                    <button
+                      onClick={() => setActiveSection('bills')}
+                      className={`px-3 py-1 rounded text-xs transition-colors ${
+                        activeSection === 'bills'
+                          ? 'bg-primary text-primary-foreground'
+                          : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                      }`}
+                    >
+                      Congress Bills ({congressBills.length})
+                    </button>
+                  </div>
+                </div>
+              )}
+              {!isFileListCollapsed && forceShowFileList && (
+                <div className="flex items-center gap-4">
+                  <div className="flex gap-1">
+                    <button
+                      onClick={() => setActiveSection('files')}
+                      className={`px-3 py-1 rounded text-xs transition-colors ${
+                        activeSection === 'files'
+                          ? 'bg-primary text-primary-foreground'
+                          : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                      }`}
+                    >
+                      Your Files ({visibleFiles.length})
+                    </button>
+                    <button
+                      onClick={() => setActiveSection('bills')}
+                      className={`px-3 py-1 rounded text-xs transition-colors ${
+                        activeSection === 'bills'
+                          ? 'bg-primary text-primary-foreground'
+                          : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                      }`}
+                    >
+                      Congress Bills ({congressBills.length})
+                    </button>
+                  </div>
+                </div>
+              )}
               {isFileListCollapsed && !isMobile && (
                 <div className="flex justify-center w-full">
                   <Button
@@ -264,23 +426,25 @@ export const FileBrowser = forwardRef<FileBrowserRef, FileBrowserProps>(({ onFil
               )}
               {!isFileListCollapsed && (
                 <div className="flex gap-1">
+                  {activeSection === 'files' && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowUpload(!showUpload)}
+                      className="h-7 text-xs"
+                    >
+                      <Plus className="h-3 w-3 mr-1" />
+                      Upload
+                    </Button>
+                  )}
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setShowUpload(!showUpload)}
+                    onClick={activeSection === 'files' ? refreshFiles : fetchCongressBills}
+                    disabled={activeSection === 'files' ? loading : billsLoading}
                     className="h-7 text-xs"
                   >
-                    <Plus className="h-3 w-3 mr-1" />
-                    Upload
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={refreshFiles}
-                    disabled={loading}
-                    className="h-7 text-xs"
-                  >
-                    {loading ? 'Loading...' : 'Refresh'}
+                    {(activeSection === 'files' ? loading : billsLoading) ? 'Loading...' : 'Refresh'}
                   </Button>
                   {!forceShowFileList && (
                     <Button
@@ -301,93 +465,182 @@ export const FileBrowser = forwardRef<FileBrowserRef, FileBrowserProps>(({ onFil
             <div 
               className="flex-1 flex flex-col items-center justify-start pt-4 cursor-pointer hover:bg-muted/50 transition-colors"
               onClick={() => setIsFileListCollapsed(false)}
-              title={`Click to expand file list (${visibleFiles.length} files) - Ctrl+E`}
+              title={`Click to expand file list (${visibleFiles.length} files, ${congressBills.length} bills) - Ctrl+E`}
             >
               <div className="flex flex-col items-center gap-2 text-muted-foreground">
                 <div className="relative">
                   <Folder className="h-5 w-5" />
-                  {visibleFiles.length > 0 && (
+                  {(visibleFiles.length + congressBills.length) > 0 && (
                     <span className="absolute -top-2 -right-2 bg-primary text-primary-foreground text-xs rounded-full h-4 w-4 flex items-center justify-center">
-                      {visibleFiles.length > 9 ? '9+' : visibleFiles.length}
+                      {(visibleFiles.length + congressBills.length) > 9 ? '9+' : (visibleFiles.length + congressBills.length)}
                     </span>
                   )}
                 </div>
                 <div className="collapsed-panel-text">
-                  Files
+                  Files & Bills
                 </div>
               </div>
             </div>
           )}
           {!isFileListCollapsed && (
             <CardContent className="p-0 flex-1 flex flex-col">
-              {showUpload && (
+              {showUpload && activeSection === 'files' && (
                 <div className="p-4 border-b bg-muted/30 flex-shrink-0">
                   <FileUpload onUploadSuccess={refreshFiles} />
                 </div>
               )}
               <div className="flex-1 overflow-y-auto">
-                {visibleFiles.length === 0 ? (
-                  <div className="flex items-center justify-center h-64">
-                    <p className="text-muted-foreground text-center">
-                      No files uploaded yet
-                    </p>
-                  </div>
-                ) : (
-                  visibleFiles.map((file) => (
-                    <div
-                      key={file.id}
-                      className={`p-4 border-b cursor-pointer transition-colors ${
-                        selectedFile?.id === file.id
-                          ? 'bg-primary/10 border-primary'
-                          : 'hover:bg-muted/50'
-                      } ${deletingFile === file.id ? 'opacity-50 pointer-events-none' : ''}`}
-                      onClick={() => deletingFile !== file.id && selectFile(file)}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3 flex-1 min-w-0">
-                          {getFileIcon(file.metadata?.mimetype || '')}
-                          <div className="flex flex-col min-w-0">
-                            <span className="truncate text-sm font-medium">
-                              {file.name}
-                            </span>
-                            <span className="text-xs text-muted-foreground">
-                              {formatFileSize(file.metadata?.size || 0)}
-                            </span>
+                {activeSection === 'files' ? (
+                  visibleFiles.length === 0 ? (
+                    <div className="flex items-center justify-center h-64">
+                      <p className="text-muted-foreground text-center">
+                        No files uploaded yet
+                      </p>
+                    </div>
+                  ) : (
+                    visibleFiles.map((file) => (
+                      <div
+                        key={file.id}
+                        className={`p-4 border-b cursor-pointer transition-colors ${
+                          selectedFile?.id === file.id
+                            ? 'bg-primary/10 border-primary'
+                            : 'hover:bg-muted/50'
+                        } ${deletingFile === file.id ? 'opacity-50 pointer-events-none' : ''}`}
+                        onClick={() => deletingFile !== file.id && selectFile(file)}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                            {getFileIcon(file.metadata?.mimetype || '')}
+                            <div className="flex flex-col min-w-0">
+                              <span className="truncate text-sm font-medium">
+                                {file.name}
+                              </span>
+                              <span className="text-xs text-muted-foreground">
+                                {formatFileSize(file.metadata?.size || 0)}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="flex gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                downloadFile(file);
+                              }}
+                              title="Download file"
+                            >
+                              <Download className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                deleteFile(file);
+                              }}
+                              disabled={deletingFile === file.id}
+                              title="Delete file and chat history"
+                              className=""
+                            >
+                              {deletingFile === file.id ? (
+                                <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                              ) : (
+                                <Trash2 className="h-4 w-4" />
+                              )}
+                            </Button>
                           </div>
                         </div>
-                        <div className="flex gap-1">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              downloadFile(file);
-                            }}
-                            title="Download file"
-                          >
-                            <Download className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              deleteFile(file);
-                            }}
-                            disabled={deletingFile === file.id}
-                            title="Delete file and chat history"
-                            className=""
-                          >
-                            {deletingFile === file.id ? (
-                              <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                            ) : (
-                              <Trash2 className="h-4 w-4" />
-                            )}
-                          </Button>
-                        </div>
+                      </div>
+                    ))
+                  )
+                ) : (
+                  // Congress Bills Section
+                  billsLoading ? (
+                    <div className="flex items-center justify-center h-64">
+                      <p className="text-muted-foreground text-center">
+                        Loading congress bills...
+                      </p>
+                    </div>
+                  ) : billsError ? (
+                    <div className="flex items-center justify-center h-64">
+                      <div className="text-center">
+                        <p className="text-destructive text-sm mb-2">Error loading bills:</p>
+                        <p className="text-muted-foreground text-xs">{billsError}</p>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={fetchCongressBills}
+                          className="mt-2"
+                        >
+                          Try Again
+                        </Button>
                       </div>
                     </div>
-                  ))
+                  ) : congressBills.length === 0 ? (
+                    <div className="flex items-center justify-center h-64">
+                      <p className="text-muted-foreground text-center">
+                        No congress bills available
+                      </p>
+                    </div>
+                  ) : (
+                    congressBills.map((bill, index) => (
+                      <div
+                        key={`${bill.type}-${bill.number}-${bill.congress}`}
+                        className={`p-4 border-b cursor-pointer transition-colors ${
+                          selectedBill?.number === bill.number && selectedBill?.type === bill.type
+                            ? 'bg-primary/10 border-primary'
+                            : 'hover:bg-muted/50'
+                        }`}
+                        onClick={() => selectBill(bill)}
+                      >
+                        <div className="flex items-start gap-3">
+                          <FileText className="h-4 w-4 mt-1 flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-sm font-medium">
+                                {bill.type.toUpperCase()} {bill.number}
+                              </span>
+                              <span className="text-xs text-muted-foreground">
+                                {bill.congress}th Congress
+                              </span>
+                            </div>
+                            <p className="text-sm text-muted-foreground mb-1" style={{
+                              display: '-webkit-box',
+                              WebkitLineClamp: 2,
+                              WebkitBoxOrient: 'vertical',
+                              overflow: 'hidden'
+                            }}>
+                              {bill.title}
+                            </p>
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs text-muted-foreground">
+                                {bill.latestAction ? 
+                                  `Last: ${new Date(bill.latestAction.actionDate).toLocaleDateString()}` :
+                                  `Introduced: ${new Date(bill.introducedDate).toLocaleDateString()}`
+                                }
+                              </span>
+                              {bill.policyArea && (
+                                <span className="text-xs bg-muted px-2 py-1 rounded">
+                                  {bill.policyArea}
+                                </span>
+                              )}
+                            </div>
+                            {bill.latestAction && (
+                              <p className="text-xs text-muted-foreground mt-1" style={{
+                                display: '-webkit-box',
+                                WebkitLineClamp: 1,
+                                WebkitBoxOrient: 'vertical',
+                                overflow: 'hidden'
+                              }}>
+                                {bill.latestAction.text}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )
                 )}
               </div>
             </CardContent>
@@ -408,13 +661,18 @@ export const FileBrowser = forwardRef<FileBrowserRef, FileBrowserProps>(({ onFil
         <Card className="h-full rounded-none border-0 flex flex-col">
           <CardHeader className="border-b flex-shrink-0 p-2">
             <CardTitle className="text-sm flex items-center justify-between">
-              <span>{selectedFile ? selectedFile.name : 'Select a file to view'}</span>
-              {isMobile && selectedFile && !forceShowFileList && (
+              <span>
+                {selectedFile ? selectedFile.name : 
+                 selectedBill ? `${selectedBill.type.toUpperCase()} ${selectedBill.number}` : 
+                 'Select a file or bill to view'}
+              </span>
+              {isMobile && (selectedFile || selectedBill) && !forceShowFileList && (
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => {
                     setSelectedFile(null);
+                    setSelectedBill(null);
                     setFileContent(null);
                     onFileSelect?.(null);
                   }}
@@ -427,10 +685,15 @@ export const FileBrowser = forwardRef<FileBrowserRef, FileBrowserProps>(({ onFil
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0 flex-1 flex flex-col">
-            {selectedFile ? (
+            {selectedFile || selectedBill ? (
               <div className="flex-1 flex flex-col">
                 <div className="flex-1 mobile-pdf-container bg-white lg:h-[90vh] overflow-auto mobile-scroll">
-                  {fileContent ? (
+                  {selectedBill ? (
+                    // Display bill content as formatted text
+                    <pre className="whitespace-pre-wrap text-sm font-mono bg-muted/30 p-4 rounded overflow-auto min-h-0 mobile-pdf-container lg:h-[90vh] flex-1 m-2 mobile-scroll">
+                      {fileContent}
+                    </pre>
+                  ) : selectedFile && fileContent ? (
                     (selectedFile.metadata?.mimetype || '').startsWith('image/') ? (
                       <div className="p-2">
                         <img
@@ -461,7 +724,7 @@ export const FileBrowser = forwardRef<FileBrowserRef, FileBrowserProps>(({ onFil
                   ) : (
                     <div className="flex items-center justify-center flex-1 min-h-0">
                       <p className="text-muted-foreground text-center">
-                        Loading file content...
+                        Loading content...
                       </p>
                     </div>
                   )}
@@ -470,7 +733,7 @@ export const FileBrowser = forwardRef<FileBrowserRef, FileBrowserProps>(({ onFil
             ) : (
               <div className="flex items-center justify-center flex-1 min-h-0">
                 <p className="text-muted-foreground text-center">
-                  Click on a file from the list to view its content
+                  Click on a file or congress bill from the list to view its content
                 </p>
               </div>
             )}
