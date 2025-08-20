@@ -8,10 +8,12 @@ import { toolbarPlugin, ToolbarSlot } from '@react-pdf-viewer/toolbar';
 import { searchPlugin } from '@react-pdf-viewer/search';
 import { getFilePlugin } from '@react-pdf-viewer/get-file';
 import { fullScreenPlugin } from '@react-pdf-viewer/full-screen';
-import { Search, Download, Maximize2, ChevronLeft, ChevronRight, X, Palette } from 'lucide-react';
+import { Search, Download, Maximize2, ChevronLeft, ChevronRight, X, Palette, FileText } from 'lucide-react';
 import { BoundingBoxLayer, TooltipLayer } from './pdf-bounding-boxes';
 import { AnnotationLayer, AnnotationTooltipLayer } from './pdf-annotations';
 import { AnnotationMenu } from './annotation-menu';
+import { ExtractionInfoMenu } from './extraction-info-menu';
+import { useExtraction } from '../hooks/use-extraction';
 // Make sure that './pdf-bounding-boxes.tsx' exists and exports BoundingBoxLayer as a named export.
 
 import '@react-pdf-viewer/core/lib/styles/index.css';
@@ -53,6 +55,10 @@ interface PdfViewerWithOverlayProps {
     user?: string; // Optional user ID for fetching bounding boxes
     fileName?: string;
     onExplain?: (problemText: string, solution: string) => void;
+    // Extraction-related props
+    bucketName?: string;
+    uploadPath?: string;
+    userId?: string;
 }
 
 export const PdfViewerWithOverlay: React.FC<PdfViewerWithOverlayProps> = ({ 
@@ -60,7 +66,10 @@ export const PdfViewerWithOverlay: React.FC<PdfViewerWithOverlayProps> = ({
     user,
     boundingBoxes = [], 
     fileName = "",
-    onExplain
+    onExplain,
+    bucketName,
+    uploadPath,
+    userId
 }) => {
     const [apiBoundingBoxes, setApiBoundingBoxes] = React.useState<BoundingBox[]>([]);
     const [selectedBoxes, setSelectedBoxes] = React.useState<Map<string, { box: BoundingBox; position: { x: number; y: number }; isVisible: boolean; solution?: string; isLoading?: boolean }>>(new Map());
@@ -74,6 +83,37 @@ export const PdfViewerWithOverlay: React.FC<PdfViewerWithOverlayProps> = ({
     const [isAnnotationMode, setIsAnnotationMode] = React.useState(false);
     const [selectedAnnotationType, setSelectedAnnotationType] = React.useState<'highlight' | 'note' | 'comment'>('highlight');
     const [selectedColor, setSelectedColor] = React.useState('#fbbf24');
+    
+    // Extraction states
+    const [isExtractionMenuOpen, setIsExtractionMenuOpen] = React.useState(false);
+    
+    // Use extraction hook if we have the required props
+    const { 
+        extractionResult, 
+        isLoading: isExtractionLoading, 
+        error: extractionError, 
+        refetch: refetchExtraction,
+        hasData: hasExtractionData
+    } = useExtraction(
+        fileName,
+        bucketName,
+        uploadPath,
+        userId
+    );
+    
+    // Debug logging
+    React.useEffect(() => {
+        console.log('🔍 Extraction Debug Info:', {
+            fileName,
+            bucketName,
+            uploadPath,
+            userId,
+            hasExtractionData,
+            isExtractionLoading,
+            extractionError,
+            extractionResult: extractionResult ? 'Present' : 'None'
+        });
+    }, [fileName, bucketName, uploadPath, userId, hasExtractionData, isExtractionLoading, extractionError, extractionResult]);
     
     const pdfContainerRef = React.useRef<HTMLDivElement>(null);
 
@@ -461,8 +501,46 @@ export const PdfViewerWithOverlay: React.FC<PdfViewerWithOverlayProps> = ({
                                                 </GoToNextPage>
                                             </div>
 
-                                            {/* Right side - Annotations toggle, Download and Full screen */}
+                                            {/* Right side - Extraction, Annotations toggle, Download and Full screen */}
                                             <div className="flex items-center gap-2">
+                                                {/* Extraction Info Button - Show if we have required props or data */}
+                                                {(fileName && bucketName && uploadPath && userId) && (
+                                                    <button
+                                                        onClick={() => setIsExtractionMenuOpen(!isExtractionMenuOpen)}
+                                                        className={`p-2 rounded-md transition-colors relative ${
+                                                            isExtractionMenuOpen
+                                                                ? 'bg-green-500 text-white hover:bg-green-600'
+                                                                : hasExtractionData
+                                                                ? 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-800'
+                                                                : 'text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                                                        }`}
+                                                        title={
+                                                            isExtractionMenuOpen 
+                                                                ? 'Hide extraction data' 
+                                                                : hasExtractionData 
+                                                                ? 'Show extraction data' 
+                                                                : isExtractionLoading 
+                                                                ? 'Extracting document data...'
+                                                                : extractionError
+                                                                ? `Extraction failed: ${extractionError}. Click to retry.`
+                                                                : 'Extract document data'
+                                                        }
+                                                        disabled={isExtractionLoading}
+                                                    >
+                                                        {isExtractionLoading ? (
+                                                            <div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full"></div>
+                                                        ) : (
+                                                            <FileText className="w-4 h-4" />
+                                                        )}
+                                                        {hasExtractionData && (
+                                                            <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white dark:border-gray-900"></div>
+                                                        )}
+                                                        {extractionError && !hasExtractionData && (
+                                                            <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white dark:border-gray-900"></div>
+                                                        )}
+                                                    </button>
+                                                )}
+
                                                 <button
                                                     onClick={() => setIsAnnotationMode(!isAnnotationMode)}
                                                     className={`p-2 rounded-md transition-colors ${
@@ -575,6 +653,28 @@ export const PdfViewerWithOverlay: React.FC<PdfViewerWithOverlayProps> = ({
                 onAnnotationDeleted={handleAnnotationDeleted}
                 onAnnotationUpdated={handleAnnotationUpdated}
             />
+            
+            {/* Extraction Info Menu */}
+            {(fileName && bucketName && uploadPath && userId) && (
+                <ExtractionInfoMenu
+                    extractionResult={extractionResult || {}}
+                    isOpen={isExtractionMenuOpen}
+                    onToggle={() => setIsExtractionMenuOpen(!isExtractionMenuOpen)}
+                />
+            )}
+            
+            {/* Debug overlay - remove in production */}
+            {process.env.NODE_ENV === 'development' && (
+                <div className="fixed bottom-4 left-4 bg-black text-white p-2 rounded text-xs z-50">
+                    <div>fileName: {fileName || 'undefined'}</div>
+                    <div>bucketName: {bucketName || 'undefined'}</div>
+                    <div>uploadPath: {uploadPath || 'undefined'}</div>
+                    <div>userId: {userId || 'undefined'}</div>
+                    <div>hasData: {hasExtractionData ? 'true' : 'false'}</div>
+                    <div>loading: {isExtractionLoading ? 'true' : 'false'}</div>
+                    <div>error: {extractionError || 'none'}</div>
+                </div>
+            )}
         </div>
     );
 };

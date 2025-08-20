@@ -169,9 +169,15 @@ export const FileBrowser = forwardRef<FileBrowserRef, FileBrowserProps>(({ onFil
         const blob = new Blob([data], { type: 'application/pdf' });
         const pdfUrl = URL.createObjectURL(blob);
         
-        // Add to tab system
+        // Add to tab system with extraction data
         if ((window as any).addPdfTab) {
-          (window as any).addPdfTab(file.name, pdfUrl, file.name);
+          (window as any).addPdfTab(
+            file.name, 
+            pdfUrl, 
+            file.name,
+            'documents', // bucketName
+            `${userId}/${file.name}` // uploadPath
+          );
         }
         return;
       }
@@ -211,9 +217,15 @@ export const FileBrowser = forwardRef<FileBrowserRef, FileBrowserProps>(({ onFil
         const billTitle = `${bill.type.toUpperCase()} ${bill.number}`;
         const fileName = `${billTitle}.pdf`;
         
-        // Add to tab system
+        // Add to tab system with extraction data (bills don't have extraction data since they're external)
         if ((window as any).addPdfTab) {
-          (window as any).addPdfTab(billTitle, pdfProxyUrl, fileName);
+          (window as any).addPdfTab(
+            billTitle, 
+            pdfProxyUrl, 
+            fileName,
+            undefined, // bucketName - bills are external, no extraction data
+            undefined  // uploadPath - bills are external, no extraction data
+          );
         }
         
         setLoadingBillPdf(null);

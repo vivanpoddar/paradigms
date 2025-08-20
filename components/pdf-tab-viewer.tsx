@@ -13,6 +13,9 @@ interface PdfTab {
   pdfUrl: string;
   userId: string;
   fileName: string;
+  // Extraction-related data
+  bucketName?: string;
+  uploadPath?: string;
 }
 
 interface PdfTabViewerProps {
@@ -64,13 +67,15 @@ export const PdfTabViewer: React.FC<PdfTabViewerProps> = ({
     setChatContext(activeTab ? activeTab.fileName : null);
   }, [activeTabId, tabs]);
 
-  const addTab = (title: string, pdfUrl: string, fileName: string) => {
+  const addTab = (title: string, pdfUrl: string, fileName: string, bucketName?: string, uploadPath?: string) => {
     const newTab: PdfTab = {
       id: Date.now().toString(),
       title,
       pdfUrl,
       userId,
-      fileName
+      fileName,
+      bucketName,
+      uploadPath
     };
 
     setTabs(prev => [...prev, newTab]);
@@ -357,6 +362,9 @@ export const PdfTabViewer: React.FC<PdfTabViewerProps> = ({
                     pdfUrl={getActiveTab()!.pdfUrl}
                     user={getActiveTab()!.userId}
                     fileName={getActiveTab()!.fileName}
+                    bucketName={getActiveTab()!.bucketName}
+                    uploadPath={getActiveTab()!.uploadPath}
+                    userId={getActiveTab()!.userId}
                     onExplain={onExplain}
                   />
                 </div>
@@ -376,6 +384,9 @@ export const PdfTabViewer: React.FC<PdfTabViewerProps> = ({
                       pdfUrl={getActiveTab()!.pdfUrl}
                       user={getActiveTab()!.userId}
                       fileName={getActiveTab()!.fileName}
+                      bucketName={getActiveTab()!.bucketName}
+                      uploadPath={getActiveTab()!.uploadPath}
+                      userId={getActiveTab()!.userId}
                       onExplain={onExplain}
                     />
                   </div>
@@ -440,6 +451,9 @@ export const PdfTabViewer: React.FC<PdfTabViewerProps> = ({
                         pdfUrl={tab.pdfUrl}
                         user={tab.userId}
                         fileName={tab.fileName}
+                        bucketName={tab.bucketName}
+                        uploadPath={tab.uploadPath}
+                        userId={tab.userId}
                         onExplain={onExplain}
                       />
                     </div>
