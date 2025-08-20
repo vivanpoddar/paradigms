@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
       `
 
       console.log('Creating query engine...');
-      const fileNameTxt = fileName.replace(/\.[^.]+$/, '') + '.txt';
+      const fileNameTxt = fileName.replace(/\.[^.]+$/, '') + '_ocr.txt';
       console.log('File name for query:', fileNameTxt);
       console.log('Multi-modal retrieval:', multiModal);
       
