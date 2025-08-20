@@ -5,7 +5,6 @@ import { join } from 'path'
 import { tmpdir } from 'os'
 import fs from 'fs'
 import FormData from 'form-data'
-import fetch from 'node-fetch'
 import { GoogleAuth } from 'google-auth-library'
 import { PDFDocument } from 'pdf-lib'
 
@@ -166,121 +165,234 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Process document with Google Document AI (Gemini OCR) for each chunk
-        const processChunkWithDocumentAI = async (chunkBuffer: Buffer, chunkIndex: number): Promise<any> => {
+        // First, upload all PDF chunks to Google Cloud Storage
+        const uploadChunksToGCS = async (pdfChunks: Buffer[]): Promise<string[]> => {
             try {
-                console.log(`🔄 Processing chunk ${chunkIndex + 1} with Document AI...`);
+                console.log('� Uploading PDF chunks to Google Cloud Storage...');
                 
-                // Authenticate using service account
-                const auth = new GoogleAuth({
-                    keyFile: '/Users/vpoddar/Documents/learnai/serviceaccount.json',
-                    scopes: 'https://www.googleapis.com/auth/cloud-platform'
+                // Initialize Google Cloud Storage
+                const { Storage } = require('@google-cloud/storage');
+                const storage = new Storage({
+                    keyFilename: '/Users/vpoddar/Documents/learnai/serviceaccount.json',
+                    projectId: '39073705270'
                 });
-                const client = await auth.getClient();
-                const accessToken = await client.getAccessToken();
 
-                if (!accessToken.token) {
-                    console.error('❌ Failed to get access token');
-                    return null;
-                }
-
-                // Convert chunk buffer to base64
-                const base64Content = chunkBuffer.toString('base64');
-
-                const requestBody = {       
-                    "rawDocument": {
-                        "mimeType": "application/pdf",
-                        "content": base64Content
-                    },
-                };
-
-                const response = await fetch(
-                    'https://us-documentai.googleapis.com/v1/projects/39073705270/locations/us/processors/1ef30fee3f5f7c68:process',
-                    {
-                        method: 'POST',
-                        headers: {
-                            'Authorization': `Bearer ${accessToken.token}`,
-                            'Content-Type': 'application/json',
+                const bucketName = 'paradigms-documents';
+                const bucket = storage.bucket(bucketName);
+                const uploadedUris: string[] = [];
+                
+                // Upload each chunk to GCS
+                for (let i = 0; i < pdfChunks.length; i++) {
+                    const chunkFileName = `${fileName.replace(/\.(pdf|doc|docx)$/i, '')}_chunk_${i + 1}.pdf`;
+                    const file = bucket.file(`chunks/${userId}/${chunkFileName}`);
+                    
+                    console.log(`📤 Uploading chunk ${i + 1}/${pdfChunks.length}: ${chunkFileName}`);
+                    
+                    await file.save(pdfChunks[i], {
+                        metadata: {
+                            contentType: 'application/pdf',
                         },
-                        body: JSON.stringify(requestBody)
-                    }
-                );
-
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    console.error(`❌ Document AI processing failed for chunk ${chunkIndex + 1}:`, {
-                        status: response.status,
-                        statusText: response.statusText,
-                        errorText
                     });
-                    return null;
+                    
+                    const gcsUri = `gs://${bucketName}/chunks/${userId}/${chunkFileName}`;
+                    uploadedUris.push(gcsUri);
+                    console.log(`✅ Uploaded chunk ${i + 1}: ${gcsUri}`);
                 }
-
-                const result = await response.json() as any;
-                console.log(`✅ Successfully processed chunk ${chunkIndex + 1}`);
-                return result;
-
+                
+                console.log(`✅ Successfully uploaded ${uploadedUris.length} chunks to GCS`);
+                return uploadedUris;
             } catch (error) {
-                console.error(`Document AI processing error for chunk ${chunkIndex + 1}:`, error);
-                return null;
+                console.error('❌ Error uploading chunks to GCS:', error);
+                throw error;
             }
         };
 
-        // Process all chunks in parallel
-        console.log('🔄 Processing all PDF chunks with Document AI...');
-        const chunkPromises = pdfChunks.map((chunk, index) => 
-            processChunkWithDocumentAI(chunk, index)
-        );
-        const chunkResults = await Promise.all(chunkPromises);
+        // Process all chunks using Document AI batch processing
+        const processBatchWithDocumentAI = async (gcsUris: string[]): Promise<any> => {
+            try {
+                console.log('🔄 Starting Document AI batch processing...');
+                
+                const projectId = '39073705270';
+                const location = 'us';
+                const processorId = '83aeafbc915376ac';
+                const gcsOutputUri = 'paradigms-documents';
+                const gcsOutputUriPrefix = `batch_output/${userId}/${Date.now()}`;
 
-        // Filter out failed chunks
-        const successfulChunkResults = chunkResults.filter(result => result !== null);
+                // Initialize Document AI client
+                const { DocumentProcessorServiceClient } = require('@google-cloud/documentai').v1;
+                const client = new DocumentProcessorServiceClient({
+                    keyFilename: '/Users/vpoddar/Documents/learnai/serviceaccount.json'
+                });
 
-        if (successfulChunkResults.length === 0) {
+                const name = `projects/${projectId}/locations/${location}/processors/${processorId}`;
+
+                // Configure the batch process request with all chunk URIs
+                const documents = gcsUris.map(uri => ({
+                    gcsUri: uri,
+                    mimeType: 'application/pdf',
+                }));
+
+                const request = {
+                    name,
+                    inputDocuments: {
+                        gcsDocuments: {
+                            documents: documents,
+                        },
+                    },
+                    documentOutputConfig: {
+                        gcsOutputConfig: {
+                            gcsUri: `gs://${gcsOutputUri}/${gcsOutputUriPrefix}/`,
+                        },
+                    },
+                };
+
+                console.log(`🔄 Processing ${documents.length} documents in batch...`);
+
+                // Start batch processing operation
+                const [operation] = await client.batchProcessDocuments(request);
+
+                // Wait for operation to complete
+                console.log('⏳ Waiting for batch processing to complete...');
+                await operation.promise();
+                console.log('✅ Document batch processing complete');
+
+                // Download and process results
+                const { Storage } = require('@google-cloud/storage');
+                const storage = new Storage({
+                    keyFilename: '/Users/vpoddar/Documents/learnai/serviceaccount.json',
+                    projectId: projectId
+                });
+
+                const bucket = storage.bucket(gcsOutputUri);
+                const [files] = await bucket.getFiles({ prefix: gcsOutputUriPrefix });
+
+                console.log(`📥 Found ${files.length} result files, downloading...`);
+
+                // Process results with concurrency control
+                const { default: PQueue } = require('p-queue');
+                const queue = new PQueue({ concurrency: 5 });
+                const allResults: any[] = [];
+
+                const downloadTasks = files.map((fileInfo: any, index: number) => async () => {
+                    try {
+                        const [file] = await fileInfo.download();
+                        console.log(`📥 Processing result file ${index + 1}/${files.length}`);
+
+                        const document = JSON.parse(file.toString());
+                        const { text } = document;
+
+                        // Extract text helper function
+                        const getText = (textAnchor: any) => {
+                            if (!textAnchor.textSegments || textAnchor.textSegments.length === 0) {
+                                return '';
+                            }
+                            const startIndex = textAnchor.textSegments[0].startIndex || 0;
+                            const endIndex = textAnchor.textSegments[0].endIndex;
+                            return text.substring(startIndex, endIndex);
+                        };
+
+                        // Extract entities with page information
+                        const processedEntities: any[] = [];
+                        if (document.pages) {
+                            document.pages.forEach((page: any, pageIndex: number) => {
+                                if (page.formFields) {
+                                    page.formFields.forEach((field: any) => {
+                                        const fieldName = getText(field.fieldName.textAnchor);
+                                        const fieldValue = getText(field.fieldValue.textAnchor);
+                                        
+                                        if (fieldName.trim() || fieldValue.trim()) {
+                                            processedEntities.push({
+                                                type: 'form_field',
+                                                name: fieldName,
+                                                value: fieldValue,
+                                                page: pageIndex
+                                            });
+                                        }
+                                    });
+                                }
+                            });
+                        }
+
+                        return {
+                            document: {
+                                text: text,
+                                pages: document.pages,
+                                entities: processedEntities
+                            },
+                            fileIndex: index
+                        };
+                    } catch (error) {
+                        console.error(`❌ Error processing result file ${index + 1}:`, error);
+                        return null;
+                    }
+                });
+
+                const results = await queue.addAll(downloadTasks);
+                const validResults = results.filter((result: any) => result !== null);
+
+                console.log(`✅ Successfully processed ${validResults.length}/${files.length} result files`);
+                return validResults;
+
+            } catch (error) {
+                console.error('❌ Document AI batch processing error:', error);
+                throw error;
+            }
+        };
+
+        // Upload all PDF chunks to Google Cloud Storage first
+        console.log('� Starting upload of PDF chunks to Google Cloud Storage...');
+        const uploadedGcsUris = await uploadChunksToGCS(pdfChunks);
+
+        if (uploadedGcsUris.length === 0) {
             return NextResponse.json(
-                { error: 'Failed to process any PDF chunks with Google Document AI' },
+                { error: 'Failed to upload any PDF chunks to Google Cloud Storage' },
                 { status: 500 }
             );
         }
 
-        console.log(`✅ Successfully processed ${successfulChunkResults.length}/${pdfChunks.length} chunks`);
+        console.log(`✅ Successfully uploaded ${uploadedGcsUris.length} chunks to GCS`);
 
-        // Combine results from all chunks
+        // Process all uploaded chunks using Document AI batch processing
+        console.log('🔄 Starting Document AI batch processing...');
+        const batchResults = await processBatchWithDocumentAI(uploadedGcsUris);
+
+        if (!batchResults || batchResults.length === 0) {
+            return NextResponse.json(
+                { error: 'Failed to process any PDF chunks with Google Document AI batch processing' },
+                { status: 500 }
+            );
+        }
+
+        console.log(`✅ Successfully processed ${batchResults.length} documents with batch processing`);
+
+        // Combine results from all batch processed documents
         let combinedText = '';
         let combinedPages: any[] = [];
         let combinedEntities: any[] = [];
         let totalPageOffset = 0;
 
-        successfulChunkResults.forEach((chunkResult, chunkIndex) => {
-            if (chunkResult.document && chunkResult.document.text) {
-                combinedText += chunkResult.document.text + '\n\n';
+        batchResults.forEach((result: any, resultIndex: number) => {
+            if (result.document && result.document.text) {
+                combinedText += result.document.text + '\n\n';
             }
 
-            if (chunkResult.document && chunkResult.document.pages) {
-                combinedPages = combinedPages.concat(chunkResult.document.pages);
+            if (result.document && result.document.pages) {
+                combinedPages = combinedPages.concat(result.document.pages);
             }
 
-            if (chunkResult.document && chunkResult.document.entities) {
-                // Adjust page references for entities to account for chunk offset
-                const adjustedEntities = chunkResult.document.entities.map((entityGroup: any) => ({
-                    ...entityGroup,
-                    properties: entityGroup.properties.map((entity: any) => ({
-                        ...entity,
-                        pageAnchor: {
-                            ...entity.pageAnchor,
-                            pageRefs: entity.pageAnchor.pageRefs.map((pageRef: any) => ({
-                                ...pageRef,
-                                page: pageRef.page + totalPageOffset
-                            }))
-                        }
-                    }))
+            if (result.document && result.document.entities) {
+                // Adjust page references for entities to account for document offset
+                const adjustedEntities = result.document.entities.map((entity: any) => ({
+                    ...entity,
+                    pageOffset: totalPageOffset,
+                    documentIndex: resultIndex
                 }));
                 combinedEntities = combinedEntities.concat(adjustedEntities);
             }
 
-            // Update page offset for next chunk
-            if (chunkResult.document && chunkResult.document.pages) {
-                totalPageOffset += chunkResult.document.pages.length;
+            // Update page offset for next document
+            if (result.document && result.document.pages) {
+                totalPageOffset += result.document.pages.length;
             }
         });
 
@@ -301,6 +413,7 @@ export async function POST(request: NextRequest) {
           const textFilePath = join(tmpdir(), textFileName);
           await writeFile(textFilePath, documentText);
 
+          // Use form-data package for Node.js
           const fileFormData = new FormData();
           const fileStream = fs.createReadStream(textFilePath);
           
@@ -313,9 +426,10 @@ export async function POST(request: NextRequest) {
             method: "POST",
             headers: {
               "Accept": "application/json",
-              "Authorization": `Bearer ${process.env.LLAMA_CLOUD_API_KEY}`
+              "Authorization": `Bearer ${process.env.LLAMA_CLOUD_API_KEY}`,
+              ...fileFormData.getHeaders()
             },
-            body: fileFormData
+            body: fileFormData as any
           });
 
           // Clean up temporary text file
@@ -479,22 +593,24 @@ export async function POST(request: NextRequest) {
             indexingCompleted,
             parsedJsonPath,
             processingTimeMs,
-            ocrMethod: 'gemini-ocr-chunked',
-            chunksProcessed: successfulChunkResults.length,
-            totalChunks: pdfChunks.length
+            ocrMethod: 'gemini-ocr-batch-processing',
+            chunksProcessed: batchResults.length,
+            totalChunks: pdfChunks.length,
+            gcsUrisUploaded: uploadedGcsUris.length
         };
 
         return NextResponse.json(
             { 
-            message: `File parsed and uploaded successfully with Google Document AI (Gemini OCR) - Processed ${successfulChunkResults.length}/${pdfChunks.length} chunks`,
+            message: `File parsed and uploaded successfully with Google Document AI (Batch Processing) - Processed ${batchResults.length}/${pdfChunks.length} chunks`,
             documentsCreated: 1,
             llamaIndexUploaded: true,
             indexingCompleted,
             parsedJsonPath,
             uploadFinishData,
-            ocrMethod: 'gemini-ocr-chunked',
-            chunksProcessed: successfulChunkResults.length,
-            totalChunks: pdfChunks.length
+            ocrMethod: 'gemini-ocr-batch-processing',
+            chunksProcessed: batchResults.length,
+            totalChunks: pdfChunks.length,
+            gcsUrisUploaded: uploadedGcsUris.length
             },
             { status: 200 }
         );
