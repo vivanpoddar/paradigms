@@ -41,21 +41,6 @@ export const AnnotationLayer: React.FC<AnnotationLayerProps> = ({
     const [selectionStart, setSelectionStart] = React.useState<{ x: number; y: number } | null>(null);
     const [selectionEnd, setSelectionEnd] = React.useState<{ x: number; y: number } | null>(null);
 
-    // Debug logging
-    React.useEffect(() => {
-        console.log('AnnotationLayer props:', {
-            pageWidth,
-            pageHeight,
-            renderPageProps: {
-                width: renderPageProps.width,
-                height: renderPageProps.height,
-                pageIndex: renderPageProps.pageIndex
-            },
-            annotationsCount: annotations.length,
-            isAnnotationMode
-        });
-    }, [pageWidth, pageHeight, renderPageProps, annotations.length, isAnnotationMode]);
-
     const pageAnnotations = annotations.filter(
         (annotation) => annotation.page_number === renderPageProps.pageIndex + 1
     );

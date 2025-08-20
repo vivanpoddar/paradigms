@@ -101,20 +101,6 @@ export const PdfViewerWithOverlay: React.FC<PdfViewerWithOverlayProps> = ({
         userId
     );
     
-    // Debug logging
-    React.useEffect(() => {
-        console.log('🔍 Extraction Debug Info:', {
-            fileName,
-            bucketName,
-            uploadPath,
-            userId,
-            hasExtractionData,
-            isExtractionLoading,
-            extractionError,
-            extractionResult: extractionResult ? 'Present' : 'None'
-        });
-    }, [fileName, bucketName, uploadPath, userId, hasExtractionData, isExtractionLoading, extractionError, extractionResult]);
-    
     const pdfContainerRef = React.useRef<HTMLDivElement>(null);
 
     // Block PDF scrolling when any tooltip is open
