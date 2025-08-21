@@ -295,6 +295,7 @@ export async function POST(request: NextRequest) {
                         const processedEntities: any[] = [];
                         if (document.pages) {
                             document.pages.forEach((page: any, pageIndex: number) => {
+                                // Extract form fields
                                 if (page.formFields) {
                                     page.formFields.forEach((field: any) => {
                                         const fieldName = getText(field.fieldName.textAnchor);
@@ -310,6 +311,76 @@ export async function POST(request: NextRequest) {
                                         }
                                     });
                                 }
+
+                                // Extract text entities (if available)
+                                if (page.entities) {
+                                    page.entities.forEach((entity: any) => {
+                                        processedEntities.push({
+                                            type: entity.type || 'entity',
+                                            name: entity.mentionText || getText(entity.textAnchor) || '',
+                                            confidence: entity.confidence || 0,
+                                            page: pageIndex,
+                                            entityType: entity.type
+                                        });
+                                    });
+                                }
+
+                                // Extract tables
+                                if (page.tables) {
+                                    page.tables.forEach((table: any, tableIndex: number) => {
+                                        processedEntities.push({
+                                            type: 'table',
+                                            name: `Table ${tableIndex + 1}`,
+                                            rows: table.bodyRows ? table.bodyRows.length : 0,
+                                            columns: table.headerRows && table.headerRows[0] ? table.headerRows[0].cells.length : 0,
+                                            page: pageIndex
+                                        });
+                                    });
+                                }
+
+                                // Extract paragraphs
+                                if (page.paragraphs) {
+                                    page.paragraphs.forEach((paragraph: any, paragraphIndex: number) => {
+                                        const paragraphText = getText(paragraph.layout.textAnchor);
+                                        if (paragraphText.trim()) {
+                                            processedEntities.push({
+                                                type: 'paragraph',
+                                                name: `Paragraph ${paragraphIndex + 1}`,
+                                                text: paragraphText.substring(0, 100) + (paragraphText.length > 100 ? '...' : ''),
+                                                fullText: paragraphText,
+                                                page: pageIndex
+                                            });
+                                        }
+                                    });
+                                }
+
+                                // Extract lines
+                                if (page.lines) {
+                                    page.lines.forEach((line: any, lineIndex: number) => {
+                                        const lineText = getText(line.layout.textAnchor);
+                                        if (lineText.trim()) {
+                                            processedEntities.push({
+                                                type: 'line',
+                                                name: `Line ${lineIndex + 1}`,
+                                                text: lineText,
+                                                page: pageIndex
+                                            });
+                                        }
+                                    });
+                                }
+                            });
+                        }
+
+                        // Extract document-level entities if available
+                        if (document.entities) {
+                            document.entities.forEach((entity: any) => {
+                                processedEntities.push({
+                                    type: entity.type || 'document_entity',
+                                    name: entity.mentionText || '',
+                                    confidence: entity.confidence || 0,
+                                    page: -1, // Document level
+                                    entityType: entity.type
+                                });
                             });
                         }
 
@@ -363,7 +434,104 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        console.log(`✅ Successfully processed ${batchResults.length} documents with batch processing`);
+                console.log(`✅ Successfully processed ${batchResults.length} documents with batch processing`);
+
+        // Function to collect and organize all entity types
+        const collectAndSaveEntityTypes = async (results: any[], fileName: string): Promise<any> => {
+            try {
+                console.log('🔄 Collecting and organizing all entity types...');
+                
+                const entityCollection = {
+                    metadata: {
+                        originalFileName: fileName,
+                        processingDate: new Date().toISOString(),
+                        totalChunksProcessed: results.length,
+                        userId: userId
+                    },
+                    entityTypes: {
+                        form_fields: [],
+                        entities: [],
+                        tables: [],
+                        paragraphs: [],
+                        lines: [],
+                        document_entities: []
+                    } as any,
+                    entityTypesSummary: {} as any,
+                    allEntitiesByPage: {} as any
+                };
+
+                // Collect all entities from all batch results
+                let allEntities: any[] = [];
+                results.forEach((result: any, resultIndex: number) => {
+                    if (result.document && result.document.entities) {
+                        result.document.entities.forEach((entity: any) => {
+                            allEntities.push({
+                                ...entity,
+                                chunkIndex: resultIndex,
+                                originalChunk: resultIndex
+                            });
+                        });
+                    }
+                });
+
+                // Organize entities by type
+                allEntities.forEach((entity: any) => {
+                    const entityType = entity.type || 'unknown';
+                    
+                    // Initialize array for this entity type if it doesn't exist
+                    if (!entityCollection.entityTypes[entityType]) {
+                        entityCollection.entityTypes[entityType] = [];
+                    }
+                    
+                    // Add entity to the appropriate type array
+                    entityCollection.entityTypes[entityType].push(entity);
+                    
+                    // Track by page
+                    const pageKey = `page_${entity.page || 0}`;
+                    if (!entityCollection.allEntitiesByPage[pageKey]) {
+                        entityCollection.allEntitiesByPage[pageKey] = [];
+                    }
+                    entityCollection.allEntitiesByPage[pageKey].push(entity);
+                });
+
+                // Create summary of entity types
+                Object.keys(entityCollection.entityTypes).forEach(type => {
+                    entityCollection.entityTypesSummary[type] = {
+                        count: entityCollection.entityTypes[type].length,
+                        examples: entityCollection.entityTypes[type].slice(0, 3).map((entity: any) => ({
+                            name: entity.name || entity.text || 'N/A',
+                            page: entity.page || 0,
+                            chunk: entity.chunkIndex || 0
+                        }))
+                    };
+                });
+
+                // Save entity collection to file
+                const entityFileName = fileName.replace(/\.(pdf|doc|docx)$/i, '_entity_types_collection.json');
+                const entityFilePath = join(entityFileName);
+                
+                await writeFile(entityFilePath, JSON.stringify(entityCollection, null, 2));
+                console.log(`✅ Entity types collection saved to: ${entityFilePath}`);
+
+                return {
+                    entityCollection,
+                    entityFilePath,
+                    entityFileName,
+                    totalEntityTypes: Object.keys(entityCollection.entityTypes).length,
+                    totalEntities: allEntities.length
+                };
+
+            } catch (error) {
+                console.error('❌ Error collecting entity types:', error);
+                throw error;
+            }
+        };
+
+        // Collect all entity types into a single file
+        const entityTypesResult = await collectAndSaveEntityTypes(batchResults, fileName);
+        console.log(`✅ Collected ${entityTypesResult.totalEntityTypes} different entity types with ${entityTypesResult.totalEntities} total entities`);
+
+        // Combine results from all batch processed documents
 
         // must occur once
         let combinedText = '';
@@ -562,12 +730,15 @@ export async function POST(request: NextRequest) {
             ocrMethod: 'gemini-ocr-batch-processing',
             chunksProcessed: batchResults.length,
             totalChunks: pdfChunks.length,
-            gcsUrisUploaded: uploadedGcsUris.length
+            gcsUrisUploaded: uploadedGcsUris.length,
+            entityTypesCollected: entityTypesResult.totalEntityTypes,
+            totalEntitiesExtracted: entityTypesResult.totalEntities,
+            entityTypesFile: entityTypesResult.entityFileName
         };
 
         return NextResponse.json(
             { 
-            message: `File parsed and uploaded successfully with Google Document AI (Batch Processing) - Processed ${batchResults.length}/${pdfChunks.length} chunks`,
+            message: `File parsed and uploaded successfully with Google Document AI (Batch Processing) - Processed ${batchResults.length}/${pdfChunks.length} chunks and extracted ${entityTypesResult.totalEntityTypes} entity types`,
             documentsCreated: 1,
             llamaIndexUploaded: true,
             indexingCompleted,
@@ -575,7 +746,14 @@ export async function POST(request: NextRequest) {
             ocrMethod: 'gemini-ocr-batch-processing',
             chunksProcessed: batchResults.length,
             totalChunks: pdfChunks.length,
-            gcsUrisUploaded: uploadedGcsUris.length
+            gcsUrisUploaded: uploadedGcsUris.length,
+            entityTypesCollection: {
+                fileName: entityTypesResult.entityFileName,
+                filePath: entityTypesResult.entityFilePath,
+                totalEntityTypes: entityTypesResult.totalEntityTypes,
+                totalEntities: entityTypesResult.totalEntities,
+                entityTypesSummary: entityTypesResult.entityCollection.entityTypesSummary
+            }
             },
             { status: 200 }
         );

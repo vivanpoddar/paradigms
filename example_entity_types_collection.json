@@ -1,0 +1,325 @@
+{
+  "metadata": {
+    "originalFileName": "sample_legislative_document.pdf",
+    "processingDate": "2025-08-21T10:30:00.000Z",
+    "totalChunksProcessed": 3,
+    "userId": "user123"
+  },
+  "entityTypes": {
+    "form_field": [
+      {
+        "type": "form_field",
+        "name": "Bill Number",
+        "value": "H.R. 1234",
+        "page": 0,
+        "chunkIndex": 0
+      },
+      {
+        "type": "form_field",
+        "name": "Sponsor",
+        "value": "Rep. John Smith (R-TX)",
+        "page": 0,
+        "chunkIndex": 0
+      }
+    ],
+    "sponsors": [
+      {
+        "type": "sponsors",
+        "name": "Rep. John Smith (R-TX)",
+        "confidence": 0.95,
+        "page": 1,
+        "entityType": "sponsors",
+        "chunkIndex": 0
+      },
+      {
+        "type": "sponsors", 
+        "name": "Sen. Jane Doe (D-CA)",
+        "confidence": 0.92,
+        "page": 1,
+        "entityType": "sponsors",
+        "chunkIndex": 0
+      }
+    ],
+    "appropriations": [
+      {
+        "type": "appropriations",
+        "name": "$50 million for border security",
+        "confidence": 0.88,
+        "page": 5,
+        "entityType": "appropriations",
+        "chunkIndex": 1
+      },
+      {
+        "type": "appropriations",
+        "name": "$125.5 billion over 5 years",
+        "confidence": 0.91,
+        "page": 12,
+        "entityType": "appropriations",
+        "chunkIndex": 2
+      }
+    ],
+    "amendments": [
+      {
+        "type": "amendments",
+        "name": "Section 123 of Immigration Act amendment",
+        "confidence": 0.85,
+        "page": 8,
+        "entityType": "amendments",
+        "chunkIndex": 1
+      }
+    ],
+    "definitions": [
+      {
+        "type": "definitions",
+        "name": "Border security technology",
+        "confidence": 0.90,
+        "page": 3,
+        "entityType": "definitions",
+        "chunkIndex": 0
+      },
+      {
+        "type": "definitions",
+        "name": "Qualified immigrant",
+        "confidence": 0.87,
+        "page": 4,
+        "entityType": "definitions",
+        "chunkIndex": 0
+      }
+    ],
+    "effective_dates": [
+      {
+        "type": "effective_dates",
+        "name": "January 1, 2025",
+        "confidence": 0.93,
+        "page": 15,
+        "entityType": "effective_dates",
+        "chunkIndex": 2
+      }
+    ],
+    "enforcement": [
+      {
+        "type": "enforcement",
+        "name": "Civil penalties up to $10,000",
+        "confidence": 0.89,
+        "page": 18,
+        "entityType": "enforcement",
+        "chunkIndex": 2
+      }
+    ],
+    "table": [
+      {
+        "type": "table",
+        "name": "Table 1",
+        "rows": 5,
+        "columns": 4,
+        "page": 6,
+        "chunkIndex": 1
+      },
+      {
+        "type": "table",
+        "name": "Table 2", 
+        "rows": 3,
+        "columns": 2,
+        "page": 14,
+        "chunkIndex": 2
+      }
+    ],
+    "paragraph": [
+      {
+        "type": "paragraph",
+        "name": "Paragraph 1",
+        "text": "SECTION 1. SHORT TITLE. This Act may be cited as the 'Comprehensive Immigration Reform Act of 2024'...",
+        "fullText": "SECTION 1. SHORT TITLE. This Act may be cited as the 'Comprehensive Immigration Reform Act of 2024'.",
+        "page": 0,
+        "chunkIndex": 0
+      },
+      {
+        "type": "paragraph",
+        "name": "Paragraph 2",
+        "text": "SEC. 2. FINDINGS AND PURPOSE. The Congress finds that comprehensive immigration reform is necessary...",
+        "fullText": "SEC. 2. FINDINGS AND PURPOSE. The Congress finds that comprehensive immigration reform is necessary to address current challenges in the immigration system.",
+        "page": 1,
+        "chunkIndex": 0
+      }
+    ],
+    "line": [
+      {
+        "type": "line",
+        "name": "Line 1",
+        "text": "118th CONGRESS",
+        "page": 0,
+        "chunkIndex": 0
+      },
+      {
+        "type": "line",
+        "name": "Line 2", 
+        "text": "2d Session",
+        "page": 0,
+        "chunkIndex": 0
+      }
+    ],
+    "congressional_session": [
+      {
+        "type": "congressional_session",
+        "name": "118th Congress",
+        "confidence": 0.96,
+        "page": 0,
+        "entityType": "congressional_session",
+        "chunkIndex": 0
+      }
+    ],
+    "bill_title": [
+      {
+        "type": "bill_title",
+        "name": "Comprehensive Immigration Reform Act of 2024",
+        "confidence": 0.94,
+        "page": 0,
+        "entityType": "bill_title",
+        "chunkIndex": 0
+      }
+    ],
+    "committee_references": [
+      {
+        "type": "committee_references",
+        "name": "Committee on Homeland Security",
+        "confidence": 0.91,
+        "page": 2,
+        "entityType": "committee_references",
+        "chunkIndex": 0
+      },
+      {
+        "type": "committee_references",
+        "name": "Committee on the Judiciary",
+        "confidence": 0.88,
+        "page": 2,
+        "entityType": "committee_references",
+        "chunkIndex": 0
+      }
+    ]
+  },
+  "entityTypesSummary": {
+    "form_field": {
+      "count": 2,
+      "examples": [
+        {"name": "Bill Number", "page": 0, "chunk": 0},
+        {"name": "Sponsor", "page": 0, "chunk": 0}
+      ]
+    },
+    "sponsors": {
+      "count": 2,
+      "examples": [
+        {"name": "Rep. John Smith (R-TX)", "page": 1, "chunk": 0},
+        {"name": "Sen. Jane Doe (D-CA)", "page": 1, "chunk": 0}
+      ]
+    },
+    "appropriations": {
+      "count": 2,
+      "examples": [
+        {"name": "$50 million for border security", "page": 5, "chunk": 1},
+        {"name": "$125.5 billion over 5 years", "page": 12, "chunk": 2}
+      ]
+    },
+    "amendments": {
+      "count": 1,
+      "examples": [
+        {"name": "Section 123 of Immigration Act amendment", "page": 8, "chunk": 1}
+      ]
+    },
+    "definitions": {
+      "count": 2,
+      "examples": [
+        {"name": "Border security technology", "page": 3, "chunk": 0},
+        {"name": "Qualified immigrant", "page": 4, "chunk": 0}
+      ]
+    },
+    "effective_dates": {
+      "count": 1,
+      "examples": [
+        {"name": "January 1, 2025", "page": 15, "chunk": 2}
+      ]
+    },
+    "enforcement": {
+      "count": 1,
+      "examples": [
+        {"name": "Civil penalties up to $10,000", "page": 18, "chunk": 2}
+      ]
+    },
+    "table": {
+      "count": 2,
+      "examples": [
+        {"name": "Table 1", "page": 6, "chunk": 1},
+        {"name": "Table 2", "page": 14, "chunk": 2}
+      ]
+    },
+    "paragraph": {
+      "count": 2,
+      "examples": [
+        {"name": "Paragraph 1", "page": 0, "chunk": 0},
+        {"name": "Paragraph 2", "page": 1, "chunk": 0}
+      ]
+    },
+    "line": {
+      "count": 2,
+      "examples": [
+        {"name": "Line 1", "page": 0, "chunk": 0},
+        {"name": "Line 2", "page": 0, "chunk": 0}
+      ]
+    },
+    "congressional_session": {
+      "count": 1,
+      "examples": [
+        {"name": "118th Congress", "page": 0, "chunk": 0}
+      ]
+    },
+    "bill_title": {
+      "count": 1,
+      "examples": [
+        {"name": "Comprehensive Immigration Reform Act of 2024", "page": 0, "chunk": 0}
+      ]
+    },
+    "committee_references": {
+      "count": 2,
+      "examples": [
+        {"name": "Committee on Homeland Security", "page": 2, "chunk": 0},
+        {"name": "Committee on the Judiciary", "page": 2, "chunk": 0}
+      ]
+    }
+  },
+  "allEntitiesByPage": {
+    "page_0": [
+      {
+        "type": "form_field",
+        "name": "Bill Number",
+        "value": "H.R. 1234",
+        "page": 0,
+        "chunkIndex": 0
+      },
+      {
+        "type": "congressional_session",
+        "name": "118th Congress",
+        "confidence": 0.96,
+        "page": 0,
+        "entityType": "congressional_session",
+        "chunkIndex": 0
+      },
+      {
+        "type": "bill_title",
+        "name": "Comprehensive Immigration Reform Act of 2024",
+        "confidence": 0.94,
+        "page": 0,
+        "entityType": "bill_title",
+        "chunkIndex": 0
+      }
+    ],
+    "page_1": [
+      {
+        "type": "sponsors",
+        "name": "Rep. John Smith (R-TX)",
+        "confidence": 0.95,
+        "page": 1,
+        "entityType": "sponsors",
+        "chunkIndex": 0
+      }
+    ]
+  }
+}
