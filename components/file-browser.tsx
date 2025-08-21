@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useEffect, useState, forwardRef, useImperativeHandle } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { File, FileText, Image, Download, Plus, ChevronLeft, ChevronRight, Folder, Trash2 } from "lucide-react";
+import { File as FileIcon, FileText, Image, Download, Plus, ChevronLeft, ChevronRight, Folder, Trash2 } from "lucide-react";
 import { FileUpload } from "@/components/file-upload";
 import { PdfTabViewer } from "@/components/pdf-tab-viewer";
 import { useFileManager, type UseFileManagerReturn } from "@/hooks/use-file-manager";
@@ -68,6 +68,7 @@ export const FileBrowser = forwardRef<FileBrowserRef, FileBrowserProps>(({ onFil
   const [billsLoading, setBillsLoading] = useState(false);
   const [billsError, setBillsError] = useState<string | null>(null);
   const [loadingBillPdf, setLoadingBillPdf] = useState<string | null>(null);
+  const [processingBill, setProcessingBill] = useState<string | null>(null);
 
   // Check if mobile
   useEffect(() => {
@@ -228,6 +229,80 @@ export const FileBrowser = forwardRef<FileBrowserRef, FileBrowserProps>(({ onFil
     }
   };
 
+  const processBill = async (bill: CongressBill) => {
+    if (!userId) {
+      console.error('User not authenticated');
+      return;
+    }
+
+    const billKey = `${bill.type}-${bill.number}-${bill.congress}`;
+    
+    // Prevent processing if another bill is already being processed
+    if (processingBill) {
+      console.log('Another bill is already being processed. Please wait...');
+      return;
+    }
+
+    setProcessingBill(billKey);
+    
+    try {
+      // First, get the bill details to obtain the PDF URL
+      const detailsResponse = await fetch(
+        `/api/bill-details?congress=${bill.congress}&type=${bill.type}&number=${bill.number}`
+      );
+      
+      if (!detailsResponse.ok) {
+        throw new Error(`Failed to fetch bill details: ${detailsResponse.status}`);
+      }
+      
+      const detailsData = await detailsResponse.json();
+      
+      if (detailsData.error || !detailsData.pdfUrl) {
+        throw new Error('No PDF URL available for this bill');
+      }
+
+      // Create a form data object to send to the nparse API
+      const formData = new FormData();
+      
+      // We need to fetch the PDF and convert it to a file for the nparse API
+      const pdfResponse = await fetch(`/api/bill-pdf?url=${encodeURIComponent(detailsData.pdfUrl)}`);
+      
+      if (!pdfResponse.ok) {
+        throw new Error(`Failed to fetch PDF: ${pdfResponse.status}`);
+      }
+      
+      const pdfBlob = await pdfResponse.blob();
+      const billFileName = `${bill.type}_${bill.number}_${bill.congress}.pdf`;
+      const pdfFile = new File([pdfBlob], billFileName, { type: 'application/pdf' });
+      
+      formData.append('file', pdfFile);
+      formData.append('fileName', billFileName);
+
+      // Send to nparse API for processing
+      const processResponse = await fetch('/api/nparse', {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!processResponse.ok) {
+        const errorData = await processResponse.json();
+        throw new Error(errorData.error || `Processing failed: ${processResponse.status}`);
+      }
+
+      const processData = await processResponse.json();
+      console.log('✅ Bill processed successfully:', processData);
+      
+      // Optionally refresh files to show the newly processed bill
+      await refreshFiles();
+      
+    } catch (error) {
+      console.error('❌ Error processing bill:', error);
+      // You might want to show a toast notification here
+    } finally {
+      setProcessingBill(null);
+    }
+  };
+
   const downloadFile = async (file: FileItem) => {
     if (!userId) return;
     
@@ -343,7 +418,7 @@ export const FileBrowser = forwardRef<FileBrowserRef, FileBrowserProps>(({ onFil
     if (mimetype?.startsWith('image/')) return <Image className="h-4 w-4" />;
     if (mimetype?.startsWith('text/')) return <FileText className="h-4 w-4" />;
     if (mimetype === 'application/pdf') return <FileText className="h-4 w-4" />;
-    return <File className="h-4 w-4" />;
+    return <FileIcon className="h-4 w-4" />;
   };
 
   const visibleFiles = files.filter(file => !file.name.toLowerCase().endsWith('.json'));
@@ -592,12 +667,13 @@ export const FileBrowser = forwardRef<FileBrowserRef, FileBrowserProps>(({ onFil
                     congressBills.map((bill, index) => {
                       const billKey = `${bill.type}-${bill.number}-${bill.congress}`;
                       const isLoading = loadingBillPdf === billKey;
+                      const isProcessing = processingBill === billKey;
+                      const isAnyProcessing = processingBill !== null;
                       
                       return (
                         <div
                           key={billKey}
-                          className={`p-4 border-b cursor-pointer transition-colors hover:bg-muted/50 ${isLoading ? 'opacity-75' : ''}`}
-                          onClick={() => !isLoading && selectBill(bill)}
+                          className={`p-4 border-b transition-colors hover:bg-muted/50 ${(isLoading || isProcessing) ? 'opacity-75' : ''}`}
                         >
                           <div className="flex items-start gap-3">
                             {isLoading ? (
@@ -605,7 +681,10 @@ export const FileBrowser = forwardRef<FileBrowserRef, FileBrowserProps>(({ onFil
                             ) : (
                               <FileText className="h-4 w-4 mt-1 flex-shrink-0" />
                             )}
-                            <div className="flex-1 min-w-0">
+                            <div 
+                              className="flex-1 min-w-0 cursor-pointer"
+                              onClick={() => !isLoading && !isProcessing && selectBill(bill)}
+                            >
                             <div className="flex items-center gap-2 mb-1">
                               <span className="text-sm font-medium">
                                 {bill.type.toUpperCase()} {bill.number}
@@ -645,6 +724,25 @@ export const FileBrowser = forwardRef<FileBrowserRef, FileBrowserProps>(({ onFil
                                 {bill.latestAction.text}
                               </p>
                             )}
+                          </div>
+                          <div className="flex gap-1 ml-auto flex-shrink-0">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                processBill(bill);
+                              }}
+                              disabled={isAnyProcessing}
+                              title={isAnyProcessing ? "Processing another bill..." : "Process bill with Document AI"}
+                              className="h-7 w-7 p-0"
+                            >
+                              {isProcessing ? (
+                                <div className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                              ) : (
+                                <Plus className="h-3 w-3" />
+                              )}
+                            </Button>
                           </div>
                         </div>
                       </div>

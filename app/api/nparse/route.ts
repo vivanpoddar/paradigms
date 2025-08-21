@@ -107,46 +107,91 @@ export async function POST(request: NextRequest) {
   const processingStartTime = Date.now();
   
   try {
-    const { fileName, bucketName, uploadPath, userId } = await request.json()
+    // Parse FormData body
+    const formData = await request.formData();
+    const file = formData.get('file') as File;
+    const fileName = formData.get('fileName') as string;
 
     // Validate required fields
-    if (!fileName || !bucketName || !uploadPath || !userId) {
-      return NextResponse.json(
-        { error: 'Missing required fields: fileName, bucketName, uploadPath, userId' },
-        { status: 400 }
-      )
+    if (!file || !fileName) {
+      return new Response(JSON.stringify({ error: 'Missing required fields: file and fileName' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
     // Initialize Supabase client
     const supabase = await createClient()
 
-    // Download file from Supabase storage
-    const { data: fileData, error: downloadError } = await supabase.storage
-      .from(bucketName)
-      .download(uploadPath)
-
-    if (downloadError) {
-      console.error('Supabase download error:', downloadError)
+    // Get user from auth
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    
+    if (authError || !user) {
       return NextResponse.json(
-        { error: `Failed to download file: ${downloadError.message}` },
-        { status: 500 }
+        { error: 'Unauthorized' },
+        { status: 401 }
       )
     }
 
-    if (!fileData) {
-      return NextResponse.json(
-        { error: 'No file data received from Supabase' },
-        { status: 500 }
-      )
+    const userId = user.id
+    const bucketName = 'documents'  // Default bucket for file processing
+    const uploadPath = `${userId}/${fileName}`  // User-specific path
+
+    // Check if we need to download from Supabase or use the uploaded file directly
+    let fileBuffer: ArrayBuffer;
+    
+    if (file.size > 0) {
+      // Use the uploaded file directly
+      fileBuffer = await file.arrayBuffer();
+    } else {
+      // Download file from Supabase storage as fallback
+      const { data: fileData, error: downloadError } = await supabase.storage
+        .from(bucketName)
+        .download(uploadPath)
+
+      if (downloadError) {
+        console.error('Supabase download error:', downloadError)
+        return NextResponse.json(
+          { error: `Failed to download file: ${downloadError.message}` },
+          { status: 500 }
+        )
+      }
+
+      if (!fileData) {
+        return NextResponse.json(
+          { error: 'No file data received from Supabase' },
+          { status: 500 }
+        )
+      }
+      
+      fileBuffer = await fileData.arrayBuffer();
     }
+
+    // Upload file to Supabase Storage in documents bucket
+    console.log('📤 Uploading file to Supabase Storage...');
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from('documents')
+      .upload(uploadPath, fileBuffer, {
+        contentType: file.type || 'application/pdf',
+        upsert: true
+      });
+
+    if (uploadError) {
+      console.error('❌ Error uploading file to Supabase:', uploadError);
+      return NextResponse.json(
+        { error: `Failed to upload file: ${uploadError.message}` },
+        { status: 500 }
+      );
+    }
+
+    console.log('✅ File uploaded to Supabase Storage:', uploadData.path);
     
     // Declare temp file paths for cleanup
     let tempFilePath: string | undefined = undefined;
 
     try {
-        // Convert blob to buffer and write to temporary file
-        const arrayBuffer = await fileData.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
+        // Convert buffer and write to temporary file
+        const buffer = Buffer.from(fileBuffer);
         
         // Create a temporary file for the uploaded PDF
         const tempFileName = fileName; // Use original filename without UUID

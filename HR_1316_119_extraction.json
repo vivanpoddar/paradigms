@@ -1,0 +1,230 @@
+{
+  "metadata": {
+    "originalFileName": "HR_1316_119.pdf",
+    "processingDate": "2025-08-21T22:18:10.634Z",
+    "totalChunksProcessed": 2,
+    "userId": "56d1a9f1-0649-472f-9d00-dc81b27d764b"
+  },
+  "entityTypes": {
+    "bill_id": [
+      {
+        "type": "bill_id",
+        "name": "H. R. 1316",
+        "confidence": 0.99940938,
+        "page": -1,
+        "entityType": "bill_id",
+        "chunkIndex": 0,
+        "originalChunk": 0
+      },
+      {
+        "type": "bill_id",
+        "name": "H. R. 1316",
+        "confidence": 0.99940938,
+        "page": -1,
+        "entityType": "bill_id",
+        "chunkIndex": 1,
+        "originalChunk": 1
+      }
+    ],
+    "congressional_session": [
+      {
+        "type": "congressional_session",
+        "name": "One Hundred Nineteenth Congress",
+        "confidence": 0.99906927,
+        "page": -1,
+        "entityType": "congressional_session",
+        "chunkIndex": 0,
+        "originalChunk": 0
+      },
+      {
+        "type": "congressional_session",
+        "name": "One Hundred Nineteenth Congress",
+        "confidence": 0.99906927,
+        "page": -1,
+        "entityType": "congressional_session",
+        "chunkIndex": 1,
+        "originalChunk": 1
+      }
+    ],
+    "enacting_clause": [
+      {
+        "type": "enacting_clause",
+        "name": "Be it enacted by the Senate and House of Representatives of\nthe United States of America in Congress assembled,",
+        "confidence": 0.99994016,
+        "page": -1,
+        "entityType": "enacting_clause",
+        "chunkIndex": 0,
+        "originalChunk": 0
+      },
+      {
+        "type": "enacting_clause",
+        "name": "Be it enacted by the Senate and House of Representatives of\nthe United States of America in Congress assembled,",
+        "confidence": 0.99994016,
+        "page": -1,
+        "entityType": "enacting_clause",
+        "chunkIndex": 1,
+        "originalChunk": 1
+      }
+    ],
+    "effective_date": [],
+    "findings_purpose": [],
+    "sponsor": [],
+    "sunset_clause": [],
+    "amendments_to_existing_law": [],
+    "appropriations": [],
+    "definitions": [],
+    "implementation_enforcement": [],
+    "provisions": [],
+    "committee_references": [],
+    "penalties": []
+  },
+  "entityTypesSummary": {
+    "bill_id": {
+      "count": 2,
+      "examples": [
+        {
+          "name": "H. R. 1316",
+          "page": -1,
+          "chunk": 0
+        },
+        {
+          "name": "H. R. 1316",
+          "page": -1,
+          "chunk": 1
+        }
+      ]
+    },
+    "congressional_session": {
+      "count": 2,
+      "examples": [
+        {
+          "name": "One Hundred Nineteenth Congress",
+          "page": -1,
+          "chunk": 0
+        },
+        {
+          "name": "One Hundred Nineteenth Congress",
+          "page": -1,
+          "chunk": 1
+        }
+      ]
+    },
+    "enacting_clause": {
+      "count": 2,
+      "examples": [
+        {
+          "name": "Be it enacted by the Senate and House of Representatives of\nthe United States of America in Congress assembled,",
+          "page": -1,
+          "chunk": 0
+        },
+        {
+          "name": "Be it enacted by the Senate and House of Representatives of\nthe United States of America in Congress assembled,",
+          "page": -1,
+          "chunk": 1
+        }
+      ]
+    },
+    "effective_date": {
+      "count": 0,
+      "examples": []
+    },
+    "findings_purpose": {
+      "count": 0,
+      "examples": []
+    },
+    "sponsor": {
+      "count": 0,
+      "examples": []
+    },
+    "sunset_clause": {
+      "count": 0,
+      "examples": []
+    },
+    "amendments_to_existing_law": {
+      "count": 0,
+      "examples": []
+    },
+    "appropriations": {
+      "count": 0,
+      "examples": []
+    },
+    "definitions": {
+      "count": 0,
+      "examples": []
+    },
+    "implementation_enforcement": {
+      "count": 0,
+      "examples": []
+    },
+    "provisions": {
+      "count": 0,
+      "examples": []
+    },
+    "committee_references": {
+      "count": 0,
+      "examples": []
+    },
+    "penalties": {
+      "count": 0,
+      "examples": []
+    }
+  },
+  "allEntitiesByPage": {
+    "page_-1": [
+      {
+        "type": "bill_id",
+        "name": "H. R. 1316",
+        "confidence": 0.99940938,
+        "page": -1,
+        "entityType": "bill_id",
+        "chunkIndex": 0,
+        "originalChunk": 0
+      },
+      {
+        "type": "congressional_session",
+        "name": "One Hundred Nineteenth Congress",
+        "confidence": 0.99906927,
+        "page": -1,
+        "entityType": "congressional_session",
+        "chunkIndex": 0,
+        "originalChunk": 0
+      },
+      {
+        "type": "enacting_clause",
+        "name": "Be it enacted by the Senate and House of Representatives of\nthe United States of America in Congress assembled,",
+        "confidence": 0.99994016,
+        "page": -1,
+        "entityType": "enacting_clause",
+        "chunkIndex": 0,
+        "originalChunk": 0
+      },
+      {
+        "type": "bill_id",
+        "name": "H. R. 1316",
+        "confidence": 0.99940938,
+        "page": -1,
+        "entityType": "bill_id",
+        "chunkIndex": 1,
+        "originalChunk": 1
+      },
+      {
+        "type": "congressional_session",
+        "name": "One Hundred Nineteenth Congress",
+        "confidence": 0.99906927,
+        "page": -1,
+        "entityType": "congressional_session",
+        "chunkIndex": 1,
+        "originalChunk": 1
+      },
+      {
+        "type": "enacting_clause",
+        "name": "Be it enacted by the Senate and House of Representatives of\nthe United States of America in Congress assembled,",
+        "confidence": 0.99994016,
+        "page": -1,
+        "entityType": "enacting_clause",
+        "chunkIndex": 1,
+        "originalChunk": 1
+      }
+    ]
+  }
+}
