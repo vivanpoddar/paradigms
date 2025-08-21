@@ -365,8 +365,29 @@ export async function POST(request: NextRequest) {
 
         console.log(`✅ Successfully processed ${batchResults.length} documents with batch processing`);
 
-        // Combine results from all batch processed documents
+        // must occur once
         let combinedText = '';
+        let billId = '';
+        let congressionalSession = '';
+        let enactingClause = '';
+        let effectiveDate = '';
+        let findingsPurpose = '';
+        let sponsor = [{name: '', party: '', state: ''}];
+        let sunset_clause = '';
+        let notes = '';
+
+        //can occur multiple times
+        let amendments_to_existing_law= [{lawReference: '', modification: ''}];
+        let appropriations = [{amount: '', purpose: ''}];
+        let definitions = [{term: '', meaning: ''}];
+        let implementationEnforcement = {
+            agency: '',
+            penalties: '',
+            responsibilities: ''
+        };
+        let provisions = [{heading: '', sectionNumber: '', text: ''}];
+        let miscellaneous = '';
+        
         let combinedPages: any[] = [];
         let combinedEntities: any[] = [];
         let totalPageOffset = 0;
