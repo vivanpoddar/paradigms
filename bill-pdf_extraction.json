@@ -1,12 +1,11 @@
 {
   "metadata": {
     "originalFileName": "bill-pdf.pdf",
-    "processingDate": "2025-08-21T21:51:11.074Z",
-    "totalChunksProcessed": 7,
+    "processingDate": "2025-08-21T21:56:18.709Z",
+    "totalChunksProcessed": 8,
     "userId": "56d1a9f1-0649-472f-9d00-dc81b27d764b"
   },
   "entityTypes": {
-    "billId": [],
     "bill_id": [
       {
         "type": "bill_id",
@@ -56,7 +55,7 @@
       {
         "type": "bill_id",
         "name": "H. R. 5011",
-        "confidence": 0.9997018,
+        "confidence": 0.99986482,
         "page": -1,
         "entityType": "bill_id",
         "chunkIndex": 5,
@@ -70,10 +69,17 @@
         "entityType": "bill_id",
         "chunkIndex": 6,
         "originalChunk": 6
+      },
+      {
+        "type": "bill_id",
+        "name": "H. R. 5011",
+        "confidence": 0.9997018,
+        "page": -1,
+        "entityType": "bill_id",
+        "chunkIndex": 7,
+        "originalChunk": 7
       }
     ],
-    "bill_title": [],
-    "congressionalSession": [],
     "congressional_session": [
       {
         "type": "congressional_session",
@@ -168,7 +174,7 @@
       {
         "type": "congressional_session",
         "name": "119TH CONGRESS",
-        "confidence": 0.99975556,
+        "confidence": 0.99984205,
         "page": -1,
         "entityType": "congressional_session",
         "chunkIndex": 5,
@@ -177,7 +183,7 @@
       {
         "type": "congressional_session",
         "name": "1ST SESSION",
-        "confidence": 0.99969536,
+        "confidence": 0.99963766,
         "page": -1,
         "entityType": "congressional_session",
         "chunkIndex": 5,
@@ -200,26 +206,26 @@
         "entityType": "congressional_session",
         "chunkIndex": 6,
         "originalChunk": 6
+      },
+      {
+        "type": "congressional_session",
+        "name": "119TH CONGRESS",
+        "confidence": 0.99975556,
+        "page": -1,
+        "entityType": "congressional_session",
+        "chunkIndex": 7,
+        "originalChunk": 7
+      },
+      {
+        "type": "congressional_session",
+        "name": "1ST SESSION",
+        "confidence": 0.99969536,
+        "page": -1,
+        "entityType": "congressional_session",
+        "chunkIndex": 7,
+        "originalChunk": 7
       }
     ],
-    "enactingClause": [],
-    "effectiveDate": [],
-    "effective_dates": [],
-    "findingsPurpose": [],
-    "sponsor": [],
-    "sponsors": [],
-    "sunset_clause": [],
-    "amendments_to_existing_law": [],
-    "amendments": [],
-    "appropriations": [],
-    "definitions": [],
-    "implementationEnforcement": [],
-    "enforcement": [],
-    "penalties": [],
-    "provisions": [],
-    "committee_references": [],
-    "funding_sources": [],
-    "reporting_requirements": [],
     "enacting_clause": [
       {
         "type": "enacting_clause",
@@ -263,8 +269,8 @@
         "confidence": 0.99490672,
         "page": -1,
         "entityType": "enacting_clause",
-        "chunkIndex": 5,
-        "originalChunk": 5
+        "chunkIndex": 6,
+        "originalChunk": 6
       },
       {
         "type": "enacting_clause",
@@ -272,18 +278,25 @@
         "confidence": 0.99490672,
         "page": -1,
         "entityType": "enacting_clause",
-        "chunkIndex": 6,
-        "originalChunk": 6
+        "chunkIndex": 7,
+        "originalChunk": 7
       }
-    ]
+    ],
+    "effective_date": [],
+    "findings_purpose": [],
+    "sponsor": [],
+    "sunset_clause": [],
+    "amendments_to_existing_law": [],
+    "appropriations": [],
+    "definitions": [],
+    "implementation_enforcement": [],
+    "provisions": [],
+    "committee_references": [],
+    "penalties": []
   },
   "entityTypesSummary": {
-    "billId": {
-      "count": 0,
-      "examples": []
-    },
     "bill_id": {
-      "count": 7,
+      "count": 8,
       "examples": [
         {
           "name": "H. R. 5011",
@@ -302,16 +315,8 @@
         }
       ]
     },
-    "bill_title": {
-      "count": 0,
-      "examples": []
-    },
-    "congressionalSession": {
-      "count": 0,
-      "examples": []
-    },
     "congressional_session": {
-      "count": 14,
+      "count": 16,
       "examples": [
         {
           "name": "119TH CONGRESS",
@@ -329,78 +334,6 @@
           "chunk": 1
         }
       ]
-    },
-    "enactingClause": {
-      "count": 0,
-      "examples": []
-    },
-    "effectiveDate": {
-      "count": 0,
-      "examples": []
-    },
-    "effective_dates": {
-      "count": 0,
-      "examples": []
-    },
-    "findingsPurpose": {
-      "count": 0,
-      "examples": []
-    },
-    "sponsor": {
-      "count": 0,
-      "examples": []
-    },
-    "sponsors": {
-      "count": 0,
-      "examples": []
-    },
-    "sunset_clause": {
-      "count": 0,
-      "examples": []
-    },
-    "amendments_to_existing_law": {
-      "count": 0,
-      "examples": []
-    },
-    "amendments": {
-      "count": 0,
-      "examples": []
-    },
-    "appropriations": {
-      "count": 0,
-      "examples": []
-    },
-    "definitions": {
-      "count": 0,
-      "examples": []
-    },
-    "implementationEnforcement": {
-      "count": 0,
-      "examples": []
-    },
-    "enforcement": {
-      "count": 0,
-      "examples": []
-    },
-    "penalties": {
-      "count": 0,
-      "examples": []
-    },
-    "provisions": {
-      "count": 0,
-      "examples": []
-    },
-    "committee_references": {
-      "count": 0,
-      "examples": []
-    },
-    "funding_sources": {
-      "count": 0,
-      "examples": []
-    },
-    "reporting_requirements": {
-      "count": 0,
-      "examples": []
     },
     "enacting_clause": {
       "count": 6,
@@ -421,6 +354,50 @@
           "chunk": 2
         }
       ]
+    },
+    "effective_date": {
+      "count": 0,
+      "examples": []
+    },
+    "findings_purpose": {
+      "count": 0,
+      "examples": []
+    },
+    "sponsor": {
+      "count": 0,
+      "examples": []
+    },
+    "sunset_clause": {
+      "count": 0,
+      "examples": []
+    },
+    "amendments_to_existing_law": {
+      "count": 0,
+      "examples": []
+    },
+    "appropriations": {
+      "count": 0,
+      "examples": []
+    },
+    "definitions": {
+      "count": 0,
+      "examples": []
+    },
+    "implementation_enforcement": {
+      "count": 0,
+      "examples": []
+    },
+    "provisions": {
+      "count": 0,
+      "examples": []
+    },
+    "committee_references": {
+      "count": 0,
+      "examples": []
+    },
+    "penalties": {
+      "count": 0,
+      "examples": []
     }
   },
   "allEntitiesByPage": {
@@ -599,7 +576,7 @@
       {
         "type": "bill_id",
         "name": "H. R. 5011",
-        "confidence": 0.9997018,
+        "confidence": 0.99986482,
         "page": -1,
         "entityType": "bill_id",
         "chunkIndex": 5,
@@ -608,7 +585,7 @@
       {
         "type": "congressional_session",
         "name": "119TH CONGRESS",
-        "confidence": 0.99975556,
+        "confidence": 0.99984205,
         "page": -1,
         "entityType": "congressional_session",
         "chunkIndex": 5,
@@ -617,18 +594,9 @@
       {
         "type": "congressional_session",
         "name": "1ST SESSION",
-        "confidence": 0.99969536,
+        "confidence": 0.99963766,
         "page": -1,
         "entityType": "congressional_session",
-        "chunkIndex": 5,
-        "originalChunk": 5
-      },
-      {
-        "type": "enacting_clause",
-        "name": "Be it enacted by the Senate and House of Representa- tives of the United States of America in Congress assembled,",
-        "confidence": 0.99490672,
-        "page": -1,
-        "entityType": "enacting_clause",
         "chunkIndex": 5,
         "originalChunk": 5
       },
@@ -667,6 +635,42 @@
         "entityType": "enacting_clause",
         "chunkIndex": 6,
         "originalChunk": 6
+      },
+      {
+        "type": "bill_id",
+        "name": "H. R. 5011",
+        "confidence": 0.9997018,
+        "page": -1,
+        "entityType": "bill_id",
+        "chunkIndex": 7,
+        "originalChunk": 7
+      },
+      {
+        "type": "congressional_session",
+        "name": "119TH CONGRESS",
+        "confidence": 0.99975556,
+        "page": -1,
+        "entityType": "congressional_session",
+        "chunkIndex": 7,
+        "originalChunk": 7
+      },
+      {
+        "type": "congressional_session",
+        "name": "1ST SESSION",
+        "confidence": 0.99969536,
+        "page": -1,
+        "entityType": "congressional_session",
+        "chunkIndex": 7,
+        "originalChunk": 7
+      },
+      {
+        "type": "enacting_clause",
+        "name": "Be it enacted by the Senate and House of Representa- tives of the United States of America in Congress assembled,",
+        "confidence": 0.99490672,
+        "page": -1,
+        "entityType": "enacting_clause",
+        "chunkIndex": 7,
+        "originalChunk": 7
       }
     ]
   }

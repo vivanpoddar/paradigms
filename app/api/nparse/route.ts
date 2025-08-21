@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { writeFile, unlink } from 'fs/promises'
+import { writeFile, readFile, unlink } from 'fs/promises'
 import { join } from 'path'
 import { tmpdir } from 'os'
 import fs from 'fs'
@@ -437,7 +437,7 @@ export async function POST(request: NextRequest) {
                 console.log(`✅ Successfully processed ${batchResults.length} documents with batch processing`);
 
         // Function to collect and organize all entity types
-        const collectAndSaveEntityTypes = async (results: any[], fileName: string): Promise<any> => {
+        const collectAndSaveEntityTypes = async (results: any[], fileName: string, supabase: any, userId: string): Promise<any> => {
             try {
                 console.log('🔄 Collecting and organizing all entity types...');
                 
@@ -449,18 +449,26 @@ export async function POST(request: NextRequest) {
                         userId: userId
                     },
                     entityTypes: {
-                        form_fields: [],
-                        entities: [],
-                        tables: [],
-                        paragraphs: [],
-                        lines: [],
-                        document_entities: []
+                        bill_id: [],
+                        congressional_session: [],
+                        enacting_clause: [],
+                        effective_date: [],
+                        findings_purpose: [],
+                        sponsor: [],
+                        sunset_clause: [],
+                        amendments_to_existing_law: [],
+                        appropriations: [],
+                        definitions: [],
+                        implementation_enforcement: [],
+                        provisions: [],
+                        committee_references: [],
+                        penalties: []
                     } as any,
                     entityTypesSummary: {} as any,
                     allEntitiesByPage: {} as any
                 };
 
-                // Collect all entities from all batch results
+                // Collect all entities from all batch results (will be filtered to legislative types only)
                 let allEntities: any[] = [];
                 results.forEach((result: any, resultIndex: number) => {
                     if (result.document && result.document.entities) {
@@ -474,24 +482,46 @@ export async function POST(request: NextRequest) {
                     }
                 });
 
-                // Organize entities by type
+                // Define the allowed legislative entity types based on the document structure
+                const allowedEntityTypes = [
+                    'congressional_session', 
+                    'enacting_clause',
+                    'effective_date',
+                    'findings_purpose',
+                    'Sponsor',
+                    'sunset_clause',
+                    'amendments_to_existing_law',
+                    'appropriations',
+                    'definitions',
+                    'implementation_enforcement',
+                    'provisions',
+                    'bill_id',
+                    'committee_references',
+                    'penalties',
+                ];
+
+                // Organize entities by type - only include allowed legislative types
                 allEntities.forEach((entity: any) => {
                     const entityType = entity.type || 'unknown';
+                    const entityName = entity.name || entity.text || entity.mentionText || '';
                     
-                    // Initialize array for this entity type if it doesn't exist
-                    if (!entityCollection.entityTypes[entityType]) {
-                        entityCollection.entityTypes[entityType] = [];
+                    // Only process entities that match our allowed legislative types AND have a non-blank name
+                    if (allowedEntityTypes.includes(entityType) && entityName.trim() !== '') {
+                        // Initialize array for this entity type if it doesn't exist
+                        if (!entityCollection.entityTypes[entityType]) {
+                            entityCollection.entityTypes[entityType] = [];
+                        }
+                        
+                        // Add entity to the appropriate type array
+                        entityCollection.entityTypes[entityType].push(entity);
+                        
+                        // Track by page
+                        const pageKey = `page_${entity.page || 0}`;
+                        if (!entityCollection.allEntitiesByPage[pageKey]) {
+                            entityCollection.allEntitiesByPage[pageKey] = [];
+                        }
+                        entityCollection.allEntitiesByPage[pageKey].push(entity);
                     }
-                    
-                    // Add entity to the appropriate type array
-                    entityCollection.entityTypes[entityType].push(entity);
-                    
-                    // Track by page
-                    const pageKey = `page_${entity.page || 0}`;
-                    if (!entityCollection.allEntitiesByPage[pageKey]) {
-                        entityCollection.allEntitiesByPage[pageKey] = [];
-                    }
-                    entityCollection.allEntitiesByPage[pageKey].push(entity);
                 });
 
                 // Create summary of entity types
@@ -507,11 +537,32 @@ export async function POST(request: NextRequest) {
                 });
 
                 // Save entity collection to file
-                const entityFileName = fileName.replace(/\.(pdf|doc|docx)$/i, '_entity_types_collection.json');
+                const entityFileName = fileName.replace(/\.(pdf|doc|docx)$/i, '_extraction.json');
                 const entityFilePath = join(entityFileName);
                 
                 await writeFile(entityFilePath, JSON.stringify(entityCollection, null, 2));
                 console.log(`✅ Entity types collection saved to: ${entityFilePath}`);
+
+                // Upload entity collection to Supabase Storage
+                try {
+                    const entityFileBuffer = await readFile(entityFilePath);
+                    const supabaseEntityPath = `${userId}/${entityFileName}`;
+                    
+                    const { data: uploadData, error: uploadError } = await supabase.storage
+                        .from('bill_info')
+                        .upload(supabaseEntityPath, entityFileBuffer, {
+                            contentType: 'application/json',
+                            upsert: true
+                        });
+
+                    if (uploadError) {
+                        console.error('❌ Error uploading entity collection to Supabase:', uploadError);
+                    } else {
+                        console.log(`✅ Entity collection uploaded to Supabase Storage: bill_info/${supabaseEntityPath}`);
+                    }
+                } catch (uploadError) {
+                    console.error('❌ Error uploading entity collection to Supabase:', uploadError);
+                }
 
                 return {
                     entityCollection,
@@ -528,7 +579,7 @@ export async function POST(request: NextRequest) {
         };
 
         // Collect all entity types into a single file
-        const entityTypesResult = await collectAndSaveEntityTypes(batchResults, fileName);
+        const entityTypesResult = await collectAndSaveEntityTypes(batchResults, fileName, supabase, userId);
         console.log(`✅ Collected ${entityTypesResult.totalEntityTypes} different entity types with ${entityTypesResult.totalEntities} total entities`);
 
         // Combine results from all batch processed documents
