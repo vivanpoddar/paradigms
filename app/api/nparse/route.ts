@@ -5,8 +5,8 @@ import { join } from 'path'
 import { tmpdir } from 'os'
 import fs from 'fs'
 import FormData from 'form-data'
-import { GoogleAuth } from 'google-auth-library'
 import { PDFDocument } from 'pdf-lib'
+import fetch from 'node-fetch'
 
 console.log('Processing nparse route...')
 
@@ -216,7 +216,7 @@ export async function POST(request: NextRequest) {
                 const location = 'us';
                 const processorId = '83aeafbc915376ac';
                 const gcsOutputUri = 'paradigms-documents';
-                const gcsOutputUriPrefix = `batch_output/${userId}/${Date.now()}`;
+                const gcsOutputUriPrefix = `batch_output/${userId}/${fileName.replace(/\.(pdf|doc|docx)$/i, '')}`;
 
                 // Initialize Document AI client
                 const { DocumentProcessorServiceClient } = require('@google-cloud/documentai').v1;
@@ -406,123 +406,87 @@ export async function POST(request: NextRequest) {
         };
 
       // Upload processed text to LlamaIndex
-      const uploadToLlamaIndex = async (documentText: string): Promise<any | null> => {
-        try {
-          // Create a temporary text file with the OCR results
-          const textFileName = fileName.replace(/\.(pdf|doc|docx)$/i, '_ocr.txt');
-          const textFilePath = join(tmpdir(), textFileName);
-          await writeFile(textFilePath, documentText);
+        const uploadToLlamaIndex = async (documentText: string): Promise<any | null> => {
+            try {
+                // Create a temporary text file with the OCR results
+                const textFileName = fileName.replace(/\.(pdf|doc|docx)$/i, '_ocr.txt');
+                const textFilePath = join(tmpdir(), textFileName);
+                await writeFile(textFilePath, documentText);
 
-          // Use form-data package for Node.js
-          const fileFormData = new FormData();
-          const fileStream = fs.createReadStream(textFilePath);
-          
-          fileFormData.append("upload_file", fileStream);
-          fileFormData.append("external_file_id", `${fileName}_gemini_ocr_${Date.now()}`);
-          fileFormData.append("project_id", "2a2234b3-7c0c-4436-b09c-db61e7e5b546");
-          fileFormData.append("pipeline_id", "f159f09f-bb0c-4414-aaeb-084c8167cdf1");
+                const fileFormData = new FormData();
+                const fileStream = fs.createReadStream(textFilePath);
 
-          const fileUploadResponse = await fetch("https://api.cloud.llamaindex.ai/api/v1/files", {
-            method: "POST",
-            headers: {
-              "Accept": "application/json",
-              "Authorization": `Bearer ${process.env.LLAMA_CLOUD_API_KEY}`,
-              ...fileFormData.getHeaders()
-            },
-            body: fileFormData as any
-          });
+                fileFormData.append("upload_file", fileStream);
+                fileFormData.append("external_file_id", `${fileName}_gemini_ocr_${Date.now()}`);
+                fileFormData.append("project_id", "2a2234b3-7c0c-4436-b09c-db61e7e5b546");
+                fileFormData.append("pipeline_id", "f159f09f-bb0c-4414-aaeb-084c8167cdf1");
 
-          // Clean up temporary text file
-          await unlink(textFilePath);
-
-          if (!fileUploadResponse.ok) {
-            const errorText = await fileUploadResponse.text();
-            console.error('❌ File upload failed:', {
-              status: fileUploadResponse.status,
-              statusText: fileUploadResponse.statusText,
-              errorText
-            });
-            return null;
-          }
-
-          const fileResult = await fileUploadResponse.json() as { id?: string; [key: string]: any };
-          
-          // Add the file to the pipeline if it has an ID
-            if (fileResult && fileResult.id) {
-                try {
-                const addToPipelineResponse = await fetch(`https://api.cloud.llamaindex.ai/api/v1/pipelines/f159f09f-bb0c-4414-aaeb-084c8167cdf1/files`, {
-                    method: "PUT",
+                // Use node-fetch for Node.js stream compatibility
+                const fileUploadResponse = await fetch("https://api.cloud.llamaindex.ai/api/v1/files", {
+                    method: "POST",
                     headers: {
-                    "Content-Type": "application/json",
-                    "Accept": "application/json",
-                    "Authorization": `Bearer ${process.env.LLAMA_CLOUD_API_KEY}`
+                        ...fileFormData.getHeaders(),
+                        "Accept": "application/json",
+                        "Authorization": `Bearer ${process.env.LLAMA_CLOUD_API_KEY}`
                     },
-                    body: JSON.stringify([{
-                    file_id: fileResult.id,
-                    custom_metadata: {
-                        fileName: fileName,
-                        userId: userId,
-                        uploadPath: uploadPath,
-                        bucketName: bucketName,
-                        processingDate: new Date().toISOString(),
-                        documentType: 'document-gemini-ocr',
-                        source: 'google-document-ai'
+                    body: fileFormData
+                });
+
+                // Clean up temporary text file
+                await unlink(textFilePath);
+
+                if (!fileUploadResponse.ok) {
+                    const errorText = await fileUploadResponse.text();
+                    console.error('❌ File upload failed:', {
+                        status: fileUploadResponse.status,
+                        statusText: fileUploadResponse.statusText,
+                        errorText
+                    });
+                    return null;
+                }
+
+                const fileResult = await fileUploadResponse.json() as { id?: string;[key: string]: any };
+
+                // Add the file to the pipeline if it has an ID
+                if (fileResult && fileResult.id) {
+                    try {
+                        const addToPipelineResponse = await fetch(`https://api.cloud.llamaindex.ai/api/v1/pipelines/f159f09f-bb0c-4414-aaeb-084c8167cdf1/files`, {
+                            method: "PUT",
+                            headers: {
+                                "Content-Type": "application/json",
+                                "Accept": "application/json",
+                                "Authorization": `Bearer ${process.env.LLAMA_CLOUD_API_KEY}`
+                            },
+                            body: JSON.stringify([{
+                                file_id: fileResult.id,
+                                custom_metadata: {
+                                    fileName: fileName,
+                                    userId: userId,
+                                    uploadPath: uploadPath,
+                                    bucketName: bucketName,
+                                    processingDate: new Date().toISOString(),
+                                    documentType: 'document-gemini-ocr',
+                                    source: 'google-document-ai'
+                                }
+                            }])
+                        });
+
+                        if (!addToPipelineResponse.ok) {
+                            const errorText = await addToPipelineResponse.text();
+                            console.error('❌ Pipeline addition failed:', errorText);
+                        }
+
+                    } catch (pipelineError) {
+                        console.error("Pipeline addition failed:", pipelineError);
                     }
-                    }])
-                });
-
-                if (!addToPipelineResponse.ok) {
-                    const errorText = await addToPipelineResponse.text();
-                    console.error('❌ Pipeline addition failed:', errorText);
                 }
 
-                } catch (pipelineError) {
-                console.error("Pipeline addition failed:", pipelineError);
-                }
-            }
-            
-            return fileResult;
+                return fileResult;
             } catch (error) {
-            console.error("File upload error:", error);
-            return null;
+                console.error("File upload error:", error);
+                return null;
             }
         };
-
-        // Process parsed JSON from combined results
-        let parsedJson: { page: { lines: any[]; pageWidth: any; pageHeight: any }[] } = {
-            page: []
-        };
-
-        const llmData = documentAIResult.document
-        const entities = llmData.entities;
-
-        llmData.pages.forEach((page: any, pageIndex: any) => {
-            parsedJson.page.push({ lines: [], pageWidth: page.dimension.width, pageHeight: page.dimension.height });
-        })
-
-        entities.forEach((page:any, pageIndex:any) => {
-            const pageWidth = parsedJson.page[pageIndex].pageWidth;
-            const pageHeight = parsedJson.page[pageIndex].pageHeight;
-            page.properties.forEach((entity:any, entityIndex:any) => {
-                const vertices = entity.pageAnchor.pageRefs[0].boundingPoly.normalizedVertices;
-                const topLeft = vertices[0];
-                const bottomRight = vertices[2];
-
-
-                parsedJson.page[pageIndex].lines.push({
-                    "text": entity.mentionText,
-                    "type": "text",
-                    "textType": "Q",
-                    "region": {
-                        "top_left_x": Math.round(topLeft.x * pageWidth),
-                        "top_left_y": Math.round(topLeft.y * pageHeight),
-                        "width": Math.round((bottomRight.x - topLeft.x) * pageWidth),
-                        "height": Math.round((bottomRight.y - topLeft.y) * pageHeight)
-                    },
-                    "line": entityIndex,
-                });
-            });
-        });
 
         if (!documentAIResult) {
             return NextResponse.json(
@@ -551,28 +515,10 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Wait for pipeline indexing to complete
         let indexingCompleted = false;
         if (llamaIndexResult) {
             const pipelineId = "f159f09f-bb0c-4414-aaeb-084c8167cdf1";
             indexingCompleted = await waitForPipelineIndexingCompletion(pipelineId, 120000); // 2 minute timeout
-        }
-
-        // Upload parsedJson as a JSON file to the same bucket for consistency
-        const parsedJsonPath = uploadPath.replace(/\.(pdf|doc|docx)$/i, '_parsed.json');
-        const { error: uploadError } = await supabase.storage
-            .from(bucketName)
-            .upload(parsedJsonPath, JSON.stringify(parsedJson), {
-            contentType: 'application/json',
-            upsert: true,
-            });
-
-        if (uploadError) {
-            console.error('Error uploading parsed JSON:', uploadError);
-            return NextResponse.json(
-            { error: `Failed to upload parsed JSON: ${uploadError.message}` },
-            { status: 500 }
-            );
         }
 
         // Clean up temporary file
@@ -591,7 +537,6 @@ export async function POST(request: NextRequest) {
             uploadPath,
             documentsCreated: 1,
             indexingCompleted,
-            parsedJsonPath,
             processingTimeMs,
             ocrMethod: 'gemini-ocr-batch-processing',
             chunksProcessed: batchResults.length,
@@ -605,7 +550,6 @@ export async function POST(request: NextRequest) {
             documentsCreated: 1,
             llamaIndexUploaded: true,
             indexingCompleted,
-            parsedJsonPath,
             uploadFinishData,
             ocrMethod: 'gemini-ocr-batch-processing',
             chunksProcessed: batchResults.length,
