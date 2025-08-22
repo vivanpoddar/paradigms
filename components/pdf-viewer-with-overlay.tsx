@@ -181,41 +181,6 @@ export const PdfViewerWithOverlay: React.FC<PdfViewerWithOverlayProps> = ({
             return newMap;
         });
     }, []);
-
-    // Note: Removed general click handler to allow multiple tooltip interaction
-
-    // Fetch bounding boxes from API
-    React.useEffect(() => {
-        const fetchBoundingBoxes = async () => {
-            try {
-                const params = new URLSearchParams();
-                if (user) params.append('userId', user);
-                if (fileName) {
-                    const baseFileName = fileName.replace(/\.[^/.]+$/, '');
-                    params.append('filename', baseFileName);
-                }
-                const response = await fetch(`/api/bounding-boxes?${params.toString()}`);
-                if (response.ok) {
-                    const data = await response.json();
-                    console.log('Fetched bounding boxes for', fileName, ':', data);
-                    setApiBoundingBoxes(data);
-                } else {
-                    console.error('Failed to fetch bounding boxes');
-                    setApiBoundingBoxes([]);
-                }
-            } catch (error) {
-                console.error('Error fetching bounding boxes:', error);
-                setApiBoundingBoxes([]);
-            }
-        };
-
-        if (user && fileName) {
-            fetchBoundingBoxes();
-        } else {
-            setApiBoundingBoxes([]);
-        }
-    }, [user, fileName]);
-
     // Fetch annotations from API
     React.useEffect(() => {
         const fetchAnnotations = async () => {

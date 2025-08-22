@@ -540,49 +540,48 @@ export const FileBrowser = forwardRef<FileBrowserRef, FileBrowserProps>(({ onFil
               ? 'hidden' 
               : 'w-full lg:w-1/4'
       }`}>
-        <Card className="h-full rounded-none border-0 flex flex-col">
-          <CardHeader className="border-b flex-shrink-0 p-2">
+        <Card className="h-full rounded-none border-0 flex flex-col ">
+          <CardHeader className="border-b flex-shrink-0 p-2 bg-[#FF5100] dark:bg-[#702300]">
             <CardTitle className="flex items-center justify-between text-sm">
               {!isFileListCollapsed && !isMobile && (
                 <div className="flex items-center gap-4">
                   <div className="flex gap-1">
-                    <button
+                    <Button
+                      variant="outline"
+                      size="sm"
                       onClick={() => setActiveSection('files')}
-                      className={`px-3 py-1 rounded text-xs transition-colors ${
-                        activeSection === 'files'
-                          ? 'bg-primary text-primary-foreground'
-                          : 'bg-muted text-muted-foreground hover:bg-muted/80'
-                      }`}
+                      className="h-7 text-xs"
                     >
-                      Your Files ({visibleFiles.length})
-                    </button>
-                    <button
+                      Files ({visibleFiles.length})
+                    </Button>
+                    <Button
+                      variant='outline'
+                      size='sm'
                       onClick={() => setActiveSection('bills')}
-                      className={`px-3 py-1 rounded text-xs transition-colors ${
-                        activeSection === 'bills'
-                          ? 'bg-primary text-primary-foreground'
-                          : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                      className={`text-xs h-7
                       }`}
                     >
-                      Congress Bills ({billSearchQuery.trim() ? `${displayedBills.length} results` : congressBills.length})
-                    </button>
+                      Bills
+                    </Button>
                   </div>
                 </div>
               )}
               {!isFileListCollapsed && forceShowFileList && (
                 <div className="flex items-center gap-4">
                   <div className="flex gap-1">
-                    <button
+                    <Button
+                      variant='outline'
                       onClick={() => setActiveSection('files')}
-                      className={`px-3 py-1 rounded text-xs transition-colors ${
+                      className={` transition-colors ${
                         activeSection === 'files'
                           ? 'bg-primary text-primary-foreground'
                           : 'bg-muted text-muted-foreground hover:bg-muted/80'
                       }`}
                     >
                       Your Files ({visibleFiles.length})
-                    </button>
-                    <button
+                    </Button>
+                    <Button
+                      variant='outline'
                       onClick={() => setActiveSection('bills')}
                       className={`px-3 py-1 rounded text-xs transition-colors ${
                         activeSection === 'bills'
@@ -591,7 +590,7 @@ export const FileBrowser = forwardRef<FileBrowserRef, FileBrowserProps>(({ onFil
                       }`}
                     >
                       Congress Bills ({billSearchQuery.trim() ? `${displayedBills.length} results` : congressBills.length})
-                    </button>
+                    </Button>
                   </div>
                 </div>
               )}
@@ -601,10 +600,10 @@ export const FileBrowser = forwardRef<FileBrowserRef, FileBrowserProps>(({ onFil
                     variant="ghost"
                     size="sm"
                     onClick={() => setIsFileListCollapsed(!isFileListCollapsed)}
-                    className="h-6 w-6 p-0"
+                    className="h-7 w-7 p-0"
                     title={isFileListCollapsed ? "Expand file list (Ctrl+E)" : "Collapse file list (Ctrl+E)"}
                   >
-                    {isFileListCollapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
+                    {isFileListCollapsed ? <ChevronRight className="h-10 w-4" /> : <ChevronLeft className="h-10 w-4" />}
                   </Button>
                 </div>
               )}
@@ -635,10 +634,10 @@ export const FileBrowser = forwardRef<FileBrowserRef, FileBrowserProps>(({ onFil
                       variant="ghost"
                       size="sm"
                       onClick={() => setIsFileListCollapsed(!isFileListCollapsed)}
-                      className="h-6 w-6 p-0 hidden lg:flex"
+                      className="h-7 w-7 p-0 hidden lg:flex"
                       title={isFileListCollapsed ? "Expand file list (Ctrl+E)" : "Collapse file list (Ctrl+E)"}
                     >
-                      {isFileListCollapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
+                      {isFileListCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
                     </Button>
                   )}
                 </div>
