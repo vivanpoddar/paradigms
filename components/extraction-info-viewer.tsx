@@ -63,6 +63,7 @@ export const ExtractionInfoViewer: React.FC<ExtractionInfoViewerProps> = ({
   const [showDetails, setShowDetails] = useState(false);
   const [selectedEntityType, setSelectedEntityType] = useState<string | null>(null);
 
+  // Don't render if not open
   if (!isOpen) return null;
 
   // Convert entityTypes structure to the format expected by the rest of the component
@@ -86,7 +87,7 @@ export const ExtractionInfoViewer: React.FC<ExtractionInfoViewerProps> = ({
     ? { [selectedEntityType]: entityGroups[selectedEntityType] }
     : entityGroups;
 
-  // Side panel version
+  // Side panel version - simple show/hide
   return (
     <div className="fixed right-0 top-0 h-full w-80 bg-white border-l border-gray-200 shadow-lg z-50 flex flex-col">
       {/* Header */}

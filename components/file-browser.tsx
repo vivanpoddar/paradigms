@@ -947,8 +947,8 @@ export const FileBrowser = forwardRef<FileBrowserRef, FileBrowserProps>(({ onFil
           userId={userId ?? ""}
           chatRoomName={userId ? `user-${userId}` : "default-room"}
           chatUsername={userId ?? "user"}
-          selectedFileName={selectedFile?.name || selectedBill?.title || null}
           onFileRefresh={refreshFiles}
+          isBillsActive={activeSection === 'bills'}
         />
       </div>
     </div>

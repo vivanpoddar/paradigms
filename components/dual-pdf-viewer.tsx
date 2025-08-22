@@ -21,6 +21,7 @@ interface DualPdfViewerProps {
   chatRoomName?: string;
   chatUsername?: string;
   onFileRefresh?: () => Promise<void>;
+  isBillsActive?: boolean;
 }
 
 export const DualPdfViewer: React.FC<DualPdfViewerProps> = ({ 
@@ -28,7 +29,8 @@ export const DualPdfViewer: React.FC<DualPdfViewerProps> = ({
   userId, 
   chatRoomName = "default-room",
   chatUsername = "user",
-  onFileRefresh
+  onFileRefresh,
+  isBillsActive = false
 }) => {
   const [primaryViewer, setPrimaryViewer] = useState<PdfViewer | null>(null);
   const [secondaryViewer, setSecondaryViewer] = useState<PdfViewer | null>(null);
@@ -55,6 +57,13 @@ export const DualPdfViewer: React.FC<DualPdfViewerProps> = ({
       setViewMode('single');
     }
   }, [isLargeViewport, viewMode]);
+
+  // Switch from chat mode when bills become active
+  useEffect(() => {
+    if (isBillsActive && viewMode === 'chat') {
+      setViewMode('single');
+    }
+  }, [isBillsActive, viewMode]);
 
   const addPdf = useCallback((title: string, pdfUrl: string, fileName: string) => {
     const newViewer: PdfViewer = {
@@ -121,7 +130,7 @@ export const DualPdfViewer: React.FC<DualPdfViewerProps> = ({
   };
 
   const enableChatMode = () => {
-    if (!isLargeViewport || !primaryViewer) return;
+    if (!isLargeViewport || !primaryViewer || isBillsActive) return;
     setViewMode('chat');
   };
 
@@ -212,9 +221,9 @@ export const DualPdfViewer: React.FC<DualPdfViewerProps> = ({
                   variant='outline'
                   size="sm"
                   onClick={enableChatMode}
-                  title="Chat mode"
+                  title={isBillsActive ? "Chat disabled for bills" : "Chat mode"}
                   className="h-7 w-7 p-0"
-                  disabled={!primaryViewer}
+                  disabled={!primaryViewer || isBillsActive}
                 >
                   <MessageCircle className="h-3 w-3" />
                 </Button>

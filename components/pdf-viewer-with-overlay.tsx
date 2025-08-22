@@ -88,23 +88,22 @@ export const PdfViewerWithOverlay: React.FC<PdfViewerWithOverlayProps> = ({
         if (!fileName) return;
         
         setIsLoadingExtraction(true);
+        setIsExtractionViewerOpen(true); // Open immediately to show loading state
+        
         try {
             const response = await fetch(`/api/extraction-info?filename=${encodeURIComponent(fileName)}`);
             const result = await response.json();
             
             if (response.ok) {
                 setExtractionData(result.extractionData);
-                setIsExtractionViewerOpen(true);
             } else {
                 console.error('Failed to fetch extraction data:', result.error);
-                // Still open the viewer to show "no data" message
+                // Still keep viewer open to show "no data" message
                 setExtractionData(null);
-                setIsExtractionViewerOpen(true);
             }
         } catch (error) {
             console.error('Error fetching extraction data:', error);
             setExtractionData(null);
-            setIsExtractionViewerOpen(true);
         } finally {
             setIsLoadingExtraction(false);
         }
