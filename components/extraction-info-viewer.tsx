@@ -35,9 +35,9 @@ interface ExtractionData {
     totalChunksProcessed?: number;
     userId?: string;
   };
-  entityTypesSummary?: Record<string, { count: number; examples: any[] }>;
+  entityTypesSummary?: Record<string, { count: number; examples: Entity[] }>;
   allEntitiesByPage?: Record<string, Entity[]>;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 interface ExtractionInfoViewerProps {
@@ -86,147 +86,129 @@ export const ExtractionInfoViewer: React.FC<ExtractionInfoViewerProps> = ({
     ? { [selectedEntityType]: entityGroups[selectedEntityType] }
     : entityGroups;
 
+  // Side panel version
   return (
-    <div className="fixed inset-0 bg-black/30 z-50 flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-gray-900 rounded-lg shadow-lg max-w-4xl w-full max-h-[85vh] flex flex-col">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-gray-800">
-          <div>
-            <h2 className="text-lg font-medium text-gray-900 dark:text-white">
-              Document Extraction
-            </h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              {fileName}
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setShowDetails(!showDetails)}
-              className="text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
-            >
-              {showDetails ? 'Less' : 'Details'}
-            </button>
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
+    <div className="fixed right-0 top-0 h-full w-80 bg-white border-l border-gray-200 shadow-lg z-50 flex flex-col">
+      {/* Header */}
+      <div className="flex items-center justify-between p-4 border-b border-gray-200">
+        <div>
+          <h2 className="text-sm font-medium text-black">
+            Extraction
+          </h2>
+          <p className="text-xs text-gray-500 mt-1">
+            {fileName}
+          </p>
         </div>
+        <button
+          onClick={onClose}
+          className="text-gray-400 hover:text-black"
+        >
+          <X className="w-4 h-4" />
+        </button>
+      </div>
 
-        {/* Content */}
-        <div className="flex-1 overflow-hidden flex flex-col">
-          {extractionData ? (
-            <>
-              {/* Document Info Section */}
-              {extractionData.metadata && (
-                <div className="px-6 py-4 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-800">
-                  <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
-                    <span>{extractionData.metadata.originalFileName}</span>
-                    <span>{totalEntityCount} entities</span>
-                  </div>
-                </div>
-              )}
+      {/* Content */}
+      <div className="flex-1 overflow-hidden flex flex-col">
+        {extractionData ? (
+          <>
+            {/* Entity count */}
+            <div className="px-4 py-2 border-b border-gray-100">
+              <p className="text-xs text-gray-500">
+                {totalEntityCount} entities
+              </p>
+            </div>
 
-              {/* Entity Type Filter */}
-              {entityTypes.length > 0 && (
-                <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-800">
-                  <div className="flex flex-wrap gap-2">
+            {/* Entity Type Filter */}
+            {entityTypes.length > 0 && (
+              <div className="px-4 py-2 border-b border-gray-100">
+                <div className="flex flex-wrap gap-1">
+                  <button
+                    onClick={() => setSelectedEntityType(null)}
+                    className={`px-2 py-1 text-xs transition-colors ${
+                      selectedEntityType === null
+                        ? 'bg-black text-white'
+                        : 'text-gray-600 hover:bg-gray-100'
+                    }`}
+                  >
+                    All
+                  </button>
+                  {entityTypes.map((type) => (
                     <button
-                      onClick={() => setSelectedEntityType(null)}
-                      className={`px-3 py-1 text-xs rounded-full transition-colors ${
-                        selectedEntityType === null
-                          ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900'
-                          : 'text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800'
+                      key={type}
+                      onClick={() => setSelectedEntityType(type)}
+                      className={`px-2 py-1 text-xs transition-colors ${
+                        selectedEntityType === type
+                          ? 'bg-black text-white'
+                          : 'text-gray-600 hover:bg-gray-100'
                       }`}
                     >
-                      All ({totalEntityCount})
+                      {formatEntityTypeName(type)}
                     </button>
-                    {entityTypes.map((type) => (
-                      <button
-                        key={type}
-                        onClick={() => setSelectedEntityType(type)}
-                        className={`px-3 py-1 text-xs rounded-full transition-colors ${
-                          selectedEntityType === type
-                            ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900'
-                            : 'text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800'
-                        }`}
-                      >
-                        {formatEntityTypeName(type)} ({entityGroups[type]?.length || 0})
-                      </button>
-                    ))}
-                  </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Entities List */}
+            <div className="flex-1 overflow-y-auto px-4 py-2">
+              {Object.keys(filteredGroups).length > 0 ? (
+                <div className="space-y-4">
+                  {Object.entries(filteredGroups).map(([type, entities]) => (
+                    <div key={type}>
+                      <h3 className="text-xs font-medium text-black mb-2">
+                        {formatEntityTypeName(type)} ({entities.length})
+                      </h3>
+                      <div className="space-y-1">
+                        {entities.map((entity: Entity, index: number) => {
+                          const displayText = entity.name || entity.mentionText || entity.text || 'N/A';
+                          return (
+                            <div
+                              key={`${type}-${index}`}
+                              className="py-2 px-2 text-xs text-gray-800 hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
+                            >
+                              <div className="font-medium">
+                                {displayText}
+                              </div>
+                              {showDetails && entity.confidence && (
+                                <div className="text-gray-500 mt-1">
+                                  {(entity.confidence * 100).toFixed(0)}%
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-8 text-center">
+                  <FileText className="w-8 h-8 text-gray-300 mb-2" />
+                  <p className="text-xs text-gray-500">
+                    No entities found
+                  </p>
                 </div>
               )}
-
-              {/* Entities List */}
-              <div className="flex-1 overflow-y-auto px-6 py-4">
-                {Object.keys(filteredGroups).length > 0 ? (
-                  <div className="space-y-8">
-                    {Object.entries(filteredGroups).map(([type, entities]) => (
-                      <div key={type}>
-                        <div className="flex items-center gap-2 mb-4">
-                          <h3 className="text-sm font-medium text-gray-900 dark:text-white">
-                            {formatEntityTypeName(type)}
-                          </h3>
-                          <span className="text-xs text-gray-400">
-                            {entities.length}
-                          </span>
-                        </div>
-                        <div className="space-y-2">
-                          {entities.map((entity: Entity, index: number) => {
-                            const displayText = entity.name || entity.mentionText || entity.text || 'N/A';
-                            return (
-                              <div
-                                key={`${type}-${index}`}
-                                className="py-2 px-3 rounded-md bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                              >
-                                <div className="text-sm text-gray-900 dark:text-white">
-                                  {displayText}
-                                </div>
-                                {showDetails && (
-                                  <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 space-x-3">
-                                    {entity.confidence && (
-                                      <span>{(entity.confidence * 100).toFixed(0)}%</span>
-                                    )}
-                                    {entity.page !== undefined && entity.page >= 0 && (
-                                      <span>Page {entity.page}</span>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center justify-center py-12 text-center">
-                    <div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mb-3">
-                      <FileText className="w-5 h-5 text-gray-400" />
-                    </div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                      No entities found
-                    </p>
-                  </div>
-                )}
-              </div>
-            </>
-          ) : (
-            <div className="flex-1 flex items-center justify-center">
-              <div className="text-center py-12">
-                <div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mb-3 mx-auto">
-                  <FileText className="w-5 h-5 text-gray-400" />
-                </div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  No extraction data available
-                </p>
-              </div>
             </div>
-          )}
-        </div>
+
+            {/* Details toggle at bottom */}
+            <div className="px-4 py-2 border-t border-gray-100">
+              <button
+                onClick={() => setShowDetails(!showDetails)}
+                className="text-xs text-gray-500 hover:text-black"
+              >
+                {showDetails ? 'Hide details' : 'Show details'}
+              </button>
+            </div>
+          </>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-8 text-center">
+            <FileText className="w-8 h-8 text-gray-300 mb-2" />
+            <p className="text-xs text-gray-500">
+              No extraction data
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );
