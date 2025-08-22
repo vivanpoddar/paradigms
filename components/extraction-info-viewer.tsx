@@ -63,9 +63,6 @@ export const ExtractionInfoViewer: React.FC<ExtractionInfoViewerProps> = ({
   const [showDetails, setShowDetails] = useState(false);
   const [selectedEntityType, setSelectedEntityType] = useState<string | null>(null);
 
-  // Don't render if not open
-  if (!isOpen) return null;
-
   // Convert entityTypes structure to the format expected by the rest of the component
   const entityGroups: Record<string, Entity[]> = {};
   let totalEntityCount = 0;
@@ -87,9 +84,13 @@ export const ExtractionInfoViewer: React.FC<ExtractionInfoViewerProps> = ({
     ? { [selectedEntityType]: entityGroups[selectedEntityType] }
     : entityGroups;
 
-  // Side panel version - simple show/hide
+  // Side panel version with simple slide-in animation
   return (
-    <div className="fixed right-0 top-0 h-full w-80 bg-white border-l border-gray-200 shadow-lg z-50 flex flex-col">
+    <div 
+      className={`fixed right-0 top-0 h-full w-80 bg-white border-l border-gray-200 shadow-lg z-50 flex flex-col transition-transform duration-300 ease-in-out ${
+        isOpen ? 'translate-x-0' : 'translate-x-full'
+      }`}
+    >
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-gray-200">
         <div>
@@ -102,7 +103,7 @@ export const ExtractionInfoViewer: React.FC<ExtractionInfoViewerProps> = ({
         </div>
         <button
           onClick={onClose}
-          className="text-gray-400 hover:text-black"
+          className="text-gray-400 hover:text-black transition-colors"
         >
           <X className="w-4 h-4" />
         </button>
@@ -196,7 +197,7 @@ export const ExtractionInfoViewer: React.FC<ExtractionInfoViewerProps> = ({
             <div className="px-4 py-2 border-t border-gray-100">
               <button
                 onClick={() => setShowDetails(!showDetails)}
-                className="text-xs text-gray-500 hover:text-black"
+                className="text-xs text-gray-500 hover:text-black transition-colors"
               >
                 {showDetails ? 'Hide details' : 'Show details'}
               </button>
