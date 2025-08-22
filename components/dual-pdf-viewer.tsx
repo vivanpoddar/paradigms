@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { X, SplitSquareHorizontal, Monitor, FileText, MessageCircle } from "lucide-react";
@@ -34,6 +34,9 @@ export const DualPdfViewer: React.FC<DualPdfViewerProps> = ({
   const [secondaryViewer, setSecondaryViewer] = useState<PdfViewer | null>(null);
   const [viewMode, setViewMode] = useState<'single' | 'split' | 'chat'>('single');
   const [isLargeViewport, setIsLargeViewport] = useState(false);
+  
+  // Track blob URLs for cleanup
+  const activeBlobUrls = useRef<Set<string>>(new Set());
 
   // Check viewport size
   useEffect(() => {
@@ -53,7 +56,7 @@ export const DualPdfViewer: React.FC<DualPdfViewerProps> = ({
     }
   }, [isLargeViewport, viewMode]);
 
-  const addPdf = (title: string, pdfUrl: string, fileName: string) => {
+  const addPdf = useCallback((title: string, pdfUrl: string, fileName: string) => {
     const newViewer: PdfViewer = {
       id: Date.now().toString(),
       title,
@@ -61,6 +64,11 @@ export const DualPdfViewer: React.FC<DualPdfViewerProps> = ({
       userId,
       fileName
     };
+
+    // Track blob URLs for cleanup
+    if (pdfUrl.startsWith('blob:')) {
+      activeBlobUrls.current.add(pdfUrl);
+    }
 
     if (!primaryViewer) {
       setPrimaryViewer(newViewer);
@@ -75,14 +83,16 @@ export const DualPdfViewer: React.FC<DualPdfViewerProps> = ({
       // Clean up the old blob URL if it's a local blob
       if (secondaryViewer.pdfUrl.startsWith('blob:')) {
         URL.revokeObjectURL(secondaryViewer.pdfUrl);
+        activeBlobUrls.current.delete(secondaryViewer.pdfUrl);
       }
       setSecondaryViewer(newViewer);
     }
-  };
+  }, [primaryViewer, secondaryViewer, userId, isLargeViewport]);
 
-  const closePrimary = () => {
+  const closePrimary = useCallback(() => {
     if (primaryViewer?.pdfUrl.startsWith('blob:')) {
       URL.revokeObjectURL(primaryViewer.pdfUrl);
+      activeBlobUrls.current.delete(primaryViewer.pdfUrl);
     }
     
     // Move secondary to primary if it exists
@@ -94,15 +104,16 @@ export const DualPdfViewer: React.FC<DualPdfViewerProps> = ({
       setPrimaryViewer(null);
       setViewMode('single');
     }
-  };
+  }, [primaryViewer, secondaryViewer]);
 
-  const closeSecondary = () => {
+  const closeSecondary = useCallback(() => {
     if (secondaryViewer?.pdfUrl.startsWith('blob:')) {
       URL.revokeObjectURL(secondaryViewer.pdfUrl);
+      activeBlobUrls.current.delete(secondaryViewer.pdfUrl);
     }
     setSecondaryViewer(null);
     setViewMode('single');
-  };
+  }, [secondaryViewer]);
 
   const enableSplitMode = () => {
     if (!isLargeViewport || !primaryViewer || !secondaryViewer) return;
@@ -118,18 +129,16 @@ export const DualPdfViewer: React.FC<DualPdfViewerProps> = ({
     setViewMode('single');
   };
 
-  // Cleanup on unmount
+  // Cleanup on unmount only
   useEffect(() => {
     return () => {
-      if (primaryViewer?.pdfUrl.startsWith('blob:')) {
-        URL.revokeObjectURL(primaryViewer.pdfUrl);
-      }
-      if (secondaryViewer?.pdfUrl.startsWith('blob:')) {
-        URL.revokeObjectURL(secondaryViewer.pdfUrl);
-      }
-      delete (window as unknown as { addPdfTab?: unknown }).addPdfTab;
+      // Clean up all active blob URLs on unmount
+      activeBlobUrls.current.forEach(url => {
+        URL.revokeObjectURL(url);
+      });
+      activeBlobUrls.current.clear();
     };
-  }, [primaryViewer, secondaryViewer]);
+  }, []); // Only run on mount/unmount
 
   // Expose method to add PDFs (for external access)
   useEffect(() => {
