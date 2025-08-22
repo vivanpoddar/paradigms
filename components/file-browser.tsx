@@ -69,6 +69,12 @@ export const FileBrowser = forwardRef<FileBrowserRef, FileBrowserProps>(({ onFil
   const [billsError, setBillsError] = useState<string | null>(null);
   const [loadingBillPdf, setLoadingBillPdf] = useState<string | null>(null);
   const [processingBill, setProcessingBill] = useState<string | null>(null);
+  const [billSearchQuery, setBillSearchQuery] = useState<string>('');
+  const [searchResults, setSearchResults] = useState<CongressBill[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [selectedCongress, setSelectedCongress] = useState<string>('119'); // Default to current congress
+  const [selectedBillType, setSelectedBillType] = useState<string>('all');
+  const [selectedTimeInterval, setSelectedTimeInterval] = useState<string>('30');
 
   // Check if mobile
   useEffect(() => {
@@ -127,10 +133,105 @@ export const FileBrowser = forwardRef<FileBrowserRef, FileBrowserProps>(({ onFil
     }
   };
 
-  // Load congress bills when component mounts
+  // Search bills from the entire congressional database
+  const searchCongressBills = async (query: string, congress?: string, billType?: string) => {
+    // For bill type filtering, we need a congress selection due to API structure
+    if (billType !== 'all' && congress === 'all') {
+      setBillsError('Please select a specific Congress session when filtering by bill type');
+      setSearchResults([]);
+      setIsSearching(false);
+      return;
+    }
+
+    if (!query.trim() && congress === 'all' && billType === 'all') {
+      setSearchResults([]);
+      setIsSearching(false);
+      return;
+    }
+
+    setIsSearching(true);
+    setBillsError(null);
+    
+    try {
+      // Build query parameters
+      const params = new URLSearchParams();
+      
+      if (query.trim()) {
+        // Check if it's a bill number pattern (e.g., "HR 1234", "S 567")
+        const billNumberMatch = query.trim().match(/^(HR|H\.R\.|S|S\.)[\s]*(\d+)$/i);
+        if (billNumberMatch) {
+          const type = billNumberMatch[1].replace('.', '').toLowerCase();
+          const number = billNumberMatch[2];
+          params.append('billNumber', number);
+          params.append('billType', type);
+          // For specific bill lookup, use current congress if not specified
+          params.append('congress', (congress && congress !== 'all') ? congress : '119');
+        } else {
+          params.append('search', query);
+        }
+      }
+      
+      if (congress && congress !== 'all') {
+        params.append('congress', congress);
+      }
+      
+      if (billType && billType !== 'all') {
+        params.append('type', billType);
+      }
+      
+      params.append('limit', '100');
+      
+      const response = await fetch(`/api/congress-bills?${params.toString()}`);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to search bills: ${response.status} ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      
+      if (data.error) {
+        throw new Error(data.error);
+      }
+      
+      const formattedBills: CongressBill[] = data.bills?.map((bill: any) => ({
+        number: bill.number,
+        title: bill.title || 'No title available',
+        congress: bill.congress,
+        type: bill.type,
+        introducedDate: bill.latestAction?.actionDate || bill.updateDate || 'Unknown',
+        url: bill.url,
+        policyArea: bill.policyArea?.name,
+        sponsors: bill.sponsors?.map((sponsor: any) => ({
+          bioguideId: sponsor.bioguideId,
+          firstName: sponsor.firstName,
+          lastName: sponsor.lastName,
+          party: sponsor.party,
+          state: sponsor.state,
+        })) || [],
+        latestAction: bill.latestAction
+      })) || [];
+      
+      setSearchResults(formattedBills);
+    } catch (error) {
+      console.error('Error searching congress bills:', error);
+      setBillsError(error instanceof Error ? error.message : 'Failed to search congress bills');
+      setSearchResults([]);
+    } finally {
+      setIsSearching(false);
+    }
+  };  // Load congress bills when component mounts
   useEffect(() => {
     fetchCongressBills();
   }, []);
+
+  // Debounced search effect
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      searchCongressBills(billSearchQuery, selectedCongress, selectedBillType);
+    }, 500); // 500ms delay
+
+    return () => clearTimeout(timeoutId);
+  }, [billSearchQuery, selectedCongress, selectedBillType]);
 
   // Listen for auth state changes to clear selected file when user logs out
   useEffect(() => {
@@ -422,6 +523,9 @@ export const FileBrowser = forwardRef<FileBrowserRef, FileBrowserProps>(({ onFil
   };
 
   const visibleFiles = files.filter(file => !file.name.toLowerCase().endsWith('.json'));
+  
+  // Determine which bills to display
+  const displayedBills = (billSearchQuery.trim() || selectedCongress !== '119' || selectedBillType !== 'all') ? searchResults : congressBills;
   // const visibleFiles = files
 
   return (
@@ -460,7 +564,7 @@ export const FileBrowser = forwardRef<FileBrowserRef, FileBrowserProps>(({ onFil
                           : 'bg-muted text-muted-foreground hover:bg-muted/80'
                       }`}
                     >
-                      Congress Bills ({congressBills.length})
+                      Congress Bills ({billSearchQuery.trim() ? `${displayedBills.length} results` : congressBills.length})
                     </button>
                   </div>
                 </div>
@@ -486,7 +590,7 @@ export const FileBrowser = forwardRef<FileBrowserRef, FileBrowserProps>(({ onFil
                           : 'bg-muted text-muted-foreground hover:bg-muted/80'
                       }`}
                     >
-                      Congress Bills ({congressBills.length})
+                      Congress Bills ({billSearchQuery.trim() ? `${displayedBills.length} results` : congressBills.length})
                     </button>
                   </div>
                 </div>
@@ -567,6 +671,85 @@ export const FileBrowser = forwardRef<FileBrowserRef, FileBrowserProps>(({ onFil
               {showUpload && activeSection === 'files' && (
                 <div className="p-4 border-b bg-muted/30 flex-shrink-0">
                   <FileUpload onUploadSuccess={refreshFiles} />
+                </div>
+              )}
+              {activeSection === 'bills' && (
+                <div className="p-4 border-b bg-muted/30 flex-shrink-0">
+                  <div className="space-y-3">
+                    {/* Search Input */}
+                    <div className="relative">
+                      <input
+                        type="text"
+                        placeholder={isSearching ? "Searching..." : "Search bills by title, sponsor, or enter exact bill number (e.g. 'HR 1234')..."}
+                        value={billSearchQuery}
+                        onChange={(e) => setBillSearchQuery(e.target.value)}
+                        disabled={isSearching}
+                        className="w-full px-3 py-2 text-sm border border-border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent disabled:opacity-50"
+                      />
+                      {isSearching && (
+                        <div className="absolute right-8 top-1/2 transform -translate-y-1/2">
+                          <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                        </div>
+                      )}
+                      {billSearchQuery && !isSearching && (
+                        <button
+                          onClick={() => setBillSearchQuery('')}
+                          className="absolute right-2 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                          title="Clear search"
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
+                    
+                    {/* Filters Row */}
+                    <div className="flex gap-3">
+                      {/* Congress Session Filter */}
+                      <div className="flex-1">
+                        <label className="block text-xs font-medium text-muted-foreground mb-1">
+                          Congress Session
+                        </label>
+                        <select
+                          value={selectedCongress}
+                          onChange={(e) => setSelectedCongress(e.target.value)}
+                          disabled={isSearching}
+                          className="w-full px-2 py-1 text-sm border border-border rounded bg-background focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50"
+                        >
+                          <option value="all">All Sessions</option>
+                          <option value="119">119th (2025-2027)</option>
+                          <option value="118">118th (2023-2025)</option>
+                          <option value="117">117th (2021-2023)</option>
+                          <option value="116">116th (2019-2021)</option>
+                          <option value="115">115th (2017-2019)</option>
+                        </select>
+                      </div>
+                      
+                      {/* Bill Type Filter */}
+                      <div className="flex-1">
+                        <label className="block text-xs font-medium text-muted-foreground mb-1">
+                          Bill Type {selectedBillType !== 'all' && selectedCongress === 'all' && (
+                            <span className="text-orange-500">*Requires Congress selection</span>
+                          )}
+                        </label>
+                        <select
+                          value={selectedBillType}
+                          onChange={(e) => setSelectedBillType(e.target.value)}
+                          disabled={isSearching}
+                          className="w-full px-2 py-1 text-sm border border-border rounded bg-background focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50"
+                        >
+                          <option value="all">All Types</option>
+                          <option value="hr">House Bills (HR)</option>
+                          <option value="s">Senate Bills (S)</option>
+                          <option value="hjres">House Joint Resolutions</option>
+                          <option value="sjres">Senate Joint Resolutions</option>
+                          <option value="hconres">House Concurrent Resolutions</option>
+                          <option value="sconres">Senate Concurrent Resolutions</option>
+                          <option value="hres">House Simple Resolutions</option>
+                          <option value="sres">Senate Simple Resolutions</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
               <div className="flex-1 overflow-y-auto">
@@ -657,14 +840,17 @@ export const FileBrowser = forwardRef<FileBrowserRef, FileBrowserProps>(({ onFil
                         </Button>
                       </div>
                     </div>
-                  ) : congressBills.length === 0 ? (
+                  ) : displayedBills.length === 0 ? (
                     <div className="flex items-center justify-center h-64">
                       <p className="text-muted-foreground text-center">
-                        No congress bills available
+                        {(billSearchQuery.trim() || selectedCongress !== '119' || selectedBillType !== 'all') 
+                          ? 'No bills match your search criteria' 
+                          : 'No congress bills available'
+                        }
                       </p>
                     </div>
                   ) : (
-                    congressBills.map((bill, index) => {
+                    displayedBills.map((bill, index) => {
                       const billKey = `${bill.type}-${bill.number}-${bill.congress}`;
                       const isLoading = loadingBillPdf === billKey;
                       const isProcessing = processingBill === billKey;

@@ -8,10 +8,11 @@ import { toolbarPlugin, ToolbarSlot } from '@react-pdf-viewer/toolbar';
 import { searchPlugin } from '@react-pdf-viewer/search';
 import { getFilePlugin } from '@react-pdf-viewer/get-file';
 import { fullScreenPlugin } from '@react-pdf-viewer/full-screen';
-import { Search, Download, Maximize2, ChevronLeft, ChevronRight, X, Palette } from 'lucide-react';
+import { Search, Download, Maximize2, ChevronLeft, ChevronRight, X, Palette, FileText } from 'lucide-react';
 import { BoundingBoxLayer, TooltipLayer } from './pdf-bounding-boxes';
 import { AnnotationLayer, AnnotationTooltipLayer } from './pdf-annotations';
 import { AnnotationMenu } from './annotation-menu';
+import { ExtractionInfoViewer } from './extraction-info-viewer';
 // Make sure that './pdf-bounding-boxes.tsx' exists and exports BoundingBoxLayer as a named export.
 
 import '@react-pdf-viewer/core/lib/styles/index.css';
@@ -75,7 +76,39 @@ export const PdfViewerWithOverlay: React.FC<PdfViewerWithOverlayProps> = ({
     const [selectedAnnotationType, setSelectedAnnotationType] = React.useState<'highlight' | 'note' | 'comment'>('highlight');
     const [selectedColor, setSelectedColor] = React.useState('#fbbf24');
     
+    // Extraction viewer states
+    const [isExtractionViewerOpen, setIsExtractionViewerOpen] = React.useState(false);
+    const [extractionData, setExtractionData] = React.useState<any>(null);
+    const [isLoadingExtraction, setIsLoadingExtraction] = React.useState(false);
+    
     const pdfContainerRef = React.useRef<HTMLDivElement>(null);
+
+    // Function to fetch extraction data
+    const fetchExtractionData = React.useCallback(async () => {
+        if (!fileName) return;
+        
+        setIsLoadingExtraction(true);
+        try {
+            const response = await fetch(`/api/extraction-info?filename=${encodeURIComponent(fileName)}`);
+            const result = await response.json();
+            
+            if (response.ok) {
+                setExtractionData(result.extractionData);
+                setIsExtractionViewerOpen(true);
+            } else {
+                console.error('Failed to fetch extraction data:', result.error);
+                // Still open the viewer to show "no data" message
+                setExtractionData(null);
+                setIsExtractionViewerOpen(true);
+            }
+        } catch (error) {
+            console.error('Error fetching extraction data:', error);
+            setExtractionData(null);
+            setIsExtractionViewerOpen(true);
+        } finally {
+            setIsLoadingExtraction(false);
+        }
+    }, [fileName]);
 
     // Block PDF scrolling when any tooltip is open
     React.useEffect(() => {
@@ -461,8 +494,21 @@ export const PdfViewerWithOverlay: React.FC<PdfViewerWithOverlayProps> = ({
                                                 </GoToNextPage>
                                             </div>
 
-                                            {/* Right side - Annotations toggle, Download and Full screen */}
+                                            {/* Right side - Extraction viewer, Annotations toggle, Download and Full screen */}
                                             <div className="flex items-center gap-2">
+                                                <button
+                                                    onClick={fetchExtractionData}
+                                                    disabled={isLoadingExtraction}
+                                                    className="p-2 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-md transition-colors disabled:opacity-50"
+                                                    title="View Document AI Extraction"
+                                                >
+                                                    {isLoadingExtraction ? (
+                                                        <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+                                                    ) : (
+                                                        <FileText className="w-4 h-4 text-gray-600 dark:text-gray-300" />
+                                                    )}
+                                                </button>
+                                                
                                                 <button
                                                     onClick={() => setIsAnnotationMode(!isAnnotationMode)}
                                                     className={`p-2 rounded-md transition-colors ${
@@ -574,6 +620,14 @@ export const PdfViewerWithOverlay: React.FC<PdfViewerWithOverlayProps> = ({
                 documentName={fileName}
                 onAnnotationDeleted={handleAnnotationDeleted}
                 onAnnotationUpdated={handleAnnotationUpdated}
+            />
+            
+            {/* Extraction Info Viewer */}
+            <ExtractionInfoViewer
+                extractionData={extractionData}
+                isOpen={isExtractionViewerOpen}
+                onClose={() => setIsExtractionViewerOpen(false)}
+                fileName={fileName}
             />
         </div>
     );

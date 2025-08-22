@@ -507,7 +507,6 @@ export async function POST(request: NextRequest) {
                         implementation_enforcement: [],
                         provisions: [],
                         committee_references: [],
-                        penalties: []
                     } as any,
                     entityTypesSummary: {} as any,
                     allEntitiesByPage: {} as any
@@ -542,7 +541,6 @@ export async function POST(request: NextRequest) {
                     'provisions',
                     'bill_id',
                     'committee_references',
-                    'penalties',
                 ];
 
                 // Organize entities by type - only include allowed legislative types
