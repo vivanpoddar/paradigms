@@ -941,17 +941,7 @@ export const FileBrowser = forwardRef<FileBrowserRef, FileBrowserProps>(({ onFil
         </Card>
       </div>
 
-      {/* Right Side - Content Display */}
-      <div className={`flex-1 flex flex-col ${
-        forceShowFileList
-          ? 'hidden'
-          : isFileListCollapsed 
-            ? '' 
-            : isMobile && selectedFile 
-              ? 'w-full' 
-              : 'hidden lg:flex'
-      }`}>
-        {/* Dual PDF Viewer - Maximum 2 PDFs */}
+      <div className='flex-1 flex flex-col'>
         <DualPdfViewer
           onExplain={onExplain}
           userId={userId ?? ""}

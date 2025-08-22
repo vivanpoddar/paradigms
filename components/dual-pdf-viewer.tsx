@@ -149,43 +149,29 @@ export const DualPdfViewer: React.FC<DualPdfViewerProps> = ({
     };
   }, [addPdf]);
 
-  if (!primaryViewer) {
-    return (
-      <div className="h-full flex items-center justify-center">
-        <div className="text-center text-muted-foreground">
-          <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-          <p className="text-lg mb-2">No PDFs open</p>
-          <p className="text-sm mb-4">Select a PDF from the file browser to open it</p>
-          <div className="text-xs text-muted-foreground space-y-1">
-            <p>Maximum 2 PDF viewers supported</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="h-full flex flex-col max-h-screen overflow-hidden">
-      {/* Control Bar */}
       <Card className="rounded-none border-0 border-b flex-shrink-0 bg-[#FF5100] dark:bg-[#702300]">
         <CardHeader className="p-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 flex-1">
-              {/* Primary PDF Info */}
-              <div className="flex items-center gap-2 px-3 py-1 bg-muted rounded-md">
-                <span className="text-xs font-medium truncate max-w-32">{primaryViewer.title}</span>
-                <button
-                  className="h-4 w-4 flex items-center justify-center hover:bg-destructive/20 rounded-sm transition-colors"
-                  onClick={closePrimary}
-                  title="Close PDF"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              </div>
+              {primaryViewer ? (
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-muted">
+                  <span className="text-xs font-medium truncate max-w-32">{primaryViewer.title}</span>
+                  <button
+                    className="h-4 w-4 flex items-center justify-center hover:bg-destructive/20 rounded-sm transition-colors"
+                    onClick={closePrimary}
+                    title="Close PDF"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              ) : (
+                ''
+              )}
 
-              {/* Secondary PDF Info */}
               {secondaryViewer && (
-                <div className="flex items-center gap-2 px-3 py-1 bg-muted rounded-md">
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-muted">
                   <span className="text-xs font-medium truncate max-w-32">{secondaryViewer.title}</span>
                   <button
                     className="h-4 w-4 flex items-center justify-center hover:bg-destructive/20 rounded-sm transition-colors"
@@ -207,10 +193,11 @@ export const DualPdfViewer: React.FC<DualPdfViewerProps> = ({
                   onClick={disableSplitMode}
                   title="Single view"
                   className="h-7 w-7 p-0"
+                  disabled={!primaryViewer}
                 >
                   <Square className="h-3 w-3" />
                 </Button>
-                {secondaryViewer && (
+                {secondaryViewer && primaryViewer && (
                   <Button
                     variant='outline'
                     size="sm"
@@ -227,6 +214,7 @@ export const DualPdfViewer: React.FC<DualPdfViewerProps> = ({
                   onClick={enableChatMode}
                   title="Chat mode"
                   className="h-7 w-7 p-0"
+                  disabled={!primaryViewer}
                 >
                   <MessageCircle className="h-3 w-3" />
                 </Button>
@@ -243,13 +231,23 @@ export const DualPdfViewer: React.FC<DualPdfViewerProps> = ({
           <Card className="h-full w-full rounded-none border-0 flex flex-col min-h-0">
             <CardContent className="p-0 h-full flex-1 min-h-0">
               <div className="h-full">
-                <PdfViewerWithOverlay
-                  key={primaryViewer.id}
-                  pdfUrl={primaryViewer.pdfUrl}
-                  user={primaryViewer.userId}
-                  fileName={primaryViewer.fileName}
-                  onExplain={onExplain}
-                />
+                {primaryViewer ? (
+                  <PdfViewerWithOverlay
+                    key={primaryViewer.id}
+                    pdfUrl={primaryViewer.pdfUrl}
+                    user={primaryViewer.userId}
+                    fileName={primaryViewer.fileName}
+                    onExplain={onExplain}
+                  />
+                ) : (
+                  <div className="h-full flex items-center justify-center">
+                    <div className="text-center text-muted-foreground">
+                      <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p className="text-lg mb-2">No PDFs open</p>
+                      <p className="text-sm mb-4">Select a PDF from the file browser to open it</p>
+                    </div>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -260,13 +258,23 @@ export const DualPdfViewer: React.FC<DualPdfViewerProps> = ({
             <Card className="rounded-none border-0 w-2/3 flex flex-col min-h-0 border-r">
               <CardContent className="p-0 h-full flex-1 min-h-0">
                 <div className="h-full">
-                  <PdfViewerWithOverlay
-                    key={primaryViewer.id}
-                    pdfUrl={primaryViewer.pdfUrl}
-                    user={primaryViewer.userId}
-                    fileName={primaryViewer.fileName}
-                    onExplain={onExplain}
-                  />
+                  {primaryViewer ? (
+                    <PdfViewerWithOverlay
+                      key={primaryViewer.id}
+                      pdfUrl={primaryViewer.pdfUrl}
+                      user={primaryViewer.userId}
+                      fileName={primaryViewer.fileName}
+                      onExplain={onExplain}
+                    />
+                  ) : (
+                    <div className="h-full flex items-center justify-center">
+                      <div className="text-center text-muted-foreground">
+                        <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                        <p className="text-lg mb-2">No PDFs open</p>
+                        <p className="text-sm mb-4">Select a PDF from the file browser to open it</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -277,7 +285,7 @@ export const DualPdfViewer: React.FC<DualPdfViewerProps> = ({
                 <CardTitle className="text-sm flex items-center justify-between">
                   <span>Chat</span>
                   <span className="text-xs text-muted-foreground">
-                    {primaryViewer.fileName ? `Context: ${primaryViewer.fileName}` : 'No context'}
+                    {primaryViewer?.fileName ? `Context: ${primaryViewer.fileName}` : 'No context'}
                   </span>
                 </CardTitle>
               </CardHeader>
@@ -287,7 +295,7 @@ export const DualPdfViewer: React.FC<DualPdfViewerProps> = ({
                     roomName={chatRoomName}
                     username={chatUsername}
                     enableDocumentQuery={true}
-                    selectedFileName={primaryViewer.fileName}
+                    selectedFileName={primaryViewer?.fileName}
                     onFileRefresh={onFileRefresh}
                   />
                 </div>
@@ -299,20 +307,25 @@ export const DualPdfViewer: React.FC<DualPdfViewerProps> = ({
           <div className="h-full w-full flex flex-row min-h-0">
             {/* Primary PDF */}
             <Card className="rounded-none border-0 w-1/2 flex flex-col min-h-0 border-r">
-              <CardHeader className="p-2 border-b flex-shrink-0">
-                <CardTitle className="text-sm flex items-center justify-between">
-                  <span className="truncate">{primaryViewer.title}</span>
-                </CardTitle>
-              </CardHeader>
               <CardContent className="p-0 h-full flex-1 min-h-0">
                 <div className="h-full">
-                  <PdfViewerWithOverlay
-                    key={primaryViewer.id}
-                    pdfUrl={primaryViewer.pdfUrl}
-                    user={primaryViewer.userId}
-                    fileName={primaryViewer.fileName}
-                    onExplain={onExplain}
-                  />
+                  {primaryViewer ? (
+                    <PdfViewerWithOverlay
+                      key={primaryViewer.id}
+                      pdfUrl={primaryViewer.pdfUrl}
+                      user={primaryViewer.userId}
+                      fileName={primaryViewer.fileName}
+                      onExplain={onExplain}
+                    />
+                  ) : (
+                    <div className="h-full flex items-center justify-center">
+                      <div className="text-center text-muted-foreground">
+                        <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                        <p className="text-lg mb-2">No PDFs open</p>
+                        <p className="text-sm mb-4">Select a PDF from the file browser to open it</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -320,11 +333,6 @@ export const DualPdfViewer: React.FC<DualPdfViewerProps> = ({
             {/* Secondary PDF */}
             {secondaryViewer && (
               <Card className="rounded-none border-0 w-1/2 flex flex-col min-h-0">
-                <CardHeader className="p-2 border-b flex-shrink-0">
-                  <CardTitle className="text-sm flex items-center justify-between">
-                    <span className="truncate">{secondaryViewer.title}</span>
-                  </CardTitle>
-                </CardHeader>
                 <CardContent className="p-0 h-full flex-1 min-h-0">
                   <div className="h-full">
                     <PdfViewerWithOverlay

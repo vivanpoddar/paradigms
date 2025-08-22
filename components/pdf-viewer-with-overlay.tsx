@@ -385,7 +385,7 @@ export const PdfViewerWithOverlay: React.FC<PdfViewerWithOverlayProps> = ({
                 <div
                     className="bg-white dark:bg-black h-full flex flex-col"
                 >
-                    <div className="sticky top-0 z-50 bg-white dark:bg-black shadow-sm">
+                    <div className="sticky top-0 z-1 bg-white dark:bg-black shadow-sm">
                         <div className="flex items-center justify-between px-4">
                             <Toolbar>
                                 {(props: ToolbarSlot) => {
@@ -555,7 +555,7 @@ export const PdfViewerWithOverlay: React.FC<PdfViewerWithOverlayProps> = ({
             {/* Backdrop overlay when any tooltip is open */}
             {(selectedBoxes.size > 0 || selectedAnnotations.size > 0) && (
                 <div
-                    className={`fixed inset-0 bg-black transition-opacity duration-200 ease-out z-40 pointer-events-none ${
+                    className={`fixed inset-0 bg-black transition-opacity duration-200 ease-out z-1 pointer-events-none ${
                         Array.from(selectedBoxes.values()).some(tooltip => tooltip.isVisible) || 
                         Array.from(selectedAnnotations.values()).some(tooltip => tooltip.isVisible) 
                             ? 'bg-opacity-20' : 'bg-opacity-0'
