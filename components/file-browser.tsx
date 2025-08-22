@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { File as FileIcon, FileText, Image, Download, Plus, ChevronLeft, ChevronRight, Folder, Trash2 } from "lucide-react";
 import { FileUpload } from "@/components/file-upload";
-import { PdfTabViewer } from "@/components/pdf-tab-viewer";
+import { DualPdfViewer } from "@/components/dual-pdf-viewer";
 import { useFileManager, type UseFileManagerReturn } from "@/hooks/use-file-manager";
 
 const supabase = createClient();
@@ -254,7 +254,7 @@ export const FileBrowser = forwardRef<FileBrowserRef, FileBrowserProps>(({ onFil
   const selectFile = async (file: FileItem) => {
     if (!userId) return;
     
-    // Always use tab system for PDFs
+    // Use dual PDF viewer for PDFs
     try {
       const { data, error } = await supabase.storage
         .from('documents')
@@ -271,7 +271,7 @@ export const FileBrowser = forwardRef<FileBrowserRef, FileBrowserProps>(({ onFil
         const blob = new Blob([data], { type: 'application/pdf' });
         const pdfUrl = URL.createObjectURL(blob);
         
-        // Add to tab system
+        // Add to dual PDF viewer
         if ((window as any).addPdfTab) {
           (window as any).addPdfTab(file.name, pdfUrl, file.name);
         }
@@ -288,7 +288,7 @@ export const FileBrowser = forwardRef<FileBrowserRef, FileBrowserProps>(({ onFil
   };
 
   const selectBill = async (bill: CongressBill) => {
-    // Always use tab system for bills
+    // Use dual PDF viewer for bills
     const billKey = `${bill.type}-${bill.number}-${bill.congress}`;
     setLoadingBillPdf(billKey);
     
@@ -313,7 +313,7 @@ export const FileBrowser = forwardRef<FileBrowserRef, FileBrowserProps>(({ onFil
         const billTitle = `${bill.type.toUpperCase()} ${bill.number}`;
         const fileName = `${billTitle}.pdf`;
         
-        // Add to tab system
+        // Add to dual PDF viewer
         if ((window as any).addPdfTab) {
           (window as any).addPdfTab(billTitle, pdfProxyUrl, fileName);
         }
@@ -952,8 +952,8 @@ export const FileBrowser = forwardRef<FileBrowserRef, FileBrowserProps>(({ onFil
               ? 'w-full' 
               : 'hidden lg:flex'
       }`}>
-        {/* Tab View Mode - Always use tab system */}
-        <PdfTabViewer
+        {/* Dual PDF Viewer - Maximum 2 PDFs */}
+        <DualPdfViewer
           onExplain={onExplain}
           userId={userId ?? ""}
           chatRoomName={userId ? `user-${userId}` : "default-room"}
