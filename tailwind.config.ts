@@ -10,6 +10,14 @@ export default {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: [
+          'Newsreader',
+          'serif',
+          'Sarabun',
+          'sans-serif'
+        ],
+      },
       colors: {
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",

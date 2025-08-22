@@ -111,7 +111,7 @@ export default function Home() {
   };
   
   return (
-    <main className="h-screen max-h-[100vh] overflow-hidden flex flex-col main-container mobile-viewport-fix">
+    <main className="sarabun h-screen max-h-[100vh] overflow-hidden flex flex-col main-container mobile-viewport-fix">
       <div className="flex-1 w-full flex flex-col">
         <Navbar />
         
