@@ -774,8 +774,8 @@ export const FileBrowser = forwardRef<FileBrowserRef, FileBrowserProps>(({ onFil
                         onClick={() => deletingFile !== file.id && selectFile(file)}
                       >
                         <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3 flex-1">
-                            {getFileIcon(file.metadata?.mimetype || '')}
+                          <div className="flex items-center gap-3 min-w-1">
+                            <FileText className="h-4 w-4 flex-shrink-0" />
                             <div className="flex flex-col min-w-0">
                               <span className="truncate text-sm font-medium">
                                 {file.name}
