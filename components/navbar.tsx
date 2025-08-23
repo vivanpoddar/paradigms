@@ -8,7 +8,7 @@ export function Navbar() {
         <nav className="w-full flex justify-center border-b border-b-foreground/10 h-10">
           <div className="w-full flex justify-between items-center px-4 text-sm">
             <div className="flex gap-5 items-center font-semibold">
-              <Link href={"/"}>
+              <Link href="https://www.paradigms.cc">
                 <Image
                   src="/logo-dark.svg"
                   alt="logo"
@@ -16,7 +16,7 @@ export function Navbar() {
                   height={24}
                   className="object-contain"
                 />
-              </Link>
+                </Link>
             </div>
             <div className="flex items-center gap-2">
               <span className="font-bold text-muted-foreground hidden sm:block">
