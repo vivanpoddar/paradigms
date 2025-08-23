@@ -78,8 +78,8 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
   const [contextData, setContextData] = useState<{ problemText: string; solution: string } | null>(null)
   const [isRecording, setIsRecording] = useState(false)
   const [isPdfMode, setIsPdfMode] = useState(false)
-  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false)
-  const [pdfMathMode, setPdfMathMode] = useState<boolean | 'auto'>('auto')
+  const [isGeneratingBill, setIsGeneratingBill] = useState(false)
+  const [billContentMode, setBillContentMode] = useState<boolean | 'auto'>('auto')
 
   // Create a ref to access queryDocuments without making it a dependency
   const queryDocumentsRef = useRef<((query: string) => Promise<void>) | null>(null)
@@ -101,26 +101,26 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
     }
   }, [isRecording])
 
-  // PDF worksheet generation function
-  const generatePdfWorksheet = useCallback(async (prompt: string) => {
-    console.log('Generating PDF worksheet with prompt:', prompt)
-    setIsGeneratingPdf(true)
+  // Congressional bill generation function
+  const generateCongressionalBill = useCallback(async (prompt: string) => {
+    console.log('Generating congressional bill with prompt:', prompt)
+    setIsGeneratingBill(true)
     
     try {
-      // Detect if the prompt suggests mathematical content
-      let containsMath: boolean;
-      if (pdfMathMode === 'auto') {
-        const mathKeywords = ['math', 'algebra', 'equation', 'formula', 'calculation', 'solve', 'derivative', 'integral', 'geometry', 'trigonometry', 'calculus', 'statistics', 'probability'];
-        containsMath = mathKeywords.some(keyword => 
+      // Detect if the prompt suggests legal/policy content
+      let containsLegalContent: boolean;
+      if (billContentMode === 'auto') {
+        const legalKeywords = ['law', 'legislation', 'policy', 'regulation', 'amendment', 'act', 'statute', 'congress', 'senate', 'house', 'bill', 'legal', 'government'];
+        containsLegalContent = legalKeywords.some(keyword => 
           prompt.toLowerCase().includes(keyword)
         );
       } else {
-        containsMath = pdfMathMode as boolean;
+        containsLegalContent = billContentMode as boolean;
       }
       
-      console.log('Math content mode:', pdfMathMode, 'detected/set:', containsMath);
+      console.log('Legal content mode:', billContentMode, 'detected/set:', containsLegalContent);
       
-      const response = await fetch('/api/pdf-worksheet', {
+      const response = await fetch('/api/congressional-bill', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -128,7 +128,7 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
         body: JSON.stringify({ 
           prompt, 
           userId,
-          containsMath 
+          containsLegalContent 
         }),
       })
 
@@ -140,7 +140,7 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
       const result = await response.json()
       
       if (!result.success) {
-        throw new Error(result.error || 'Failed to generate worksheet')
+        throw new Error(result.error || 'Failed to generate congressional bill')
       }
       
       // Create download link
@@ -153,28 +153,28 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
       document.body.removeChild(link)
       
       // Add success message to chat with parsing information
-      let statusMessage = `✅ PDF worksheet "${result.worksheetData.title}" generated successfully!`;
+      let statusMessage = `✅ Congressional bill "${result.billData.title}" generated successfully!`;
       
       if (result.parsing.success) {
-        statusMessage += ` The worksheet has been processed and indexed using ${result.parsing.endpoint === '/api/mparse' ? 'math-aware parsing' : 'standard parsing'} and is now available for querying.`;
+        statusMessage += ` The bill has been processed and indexed using ${result.parsing.endpoint === '/api/mparse' ? 'legal-aware parsing' : 'standard parsing'} and is now available for querying.`;
       } else if (result.parsing.error && result.parsing.error.includes('skipped')) {
-        statusMessage += ` The worksheet has been uploaded to your files and is ready for use. To make it searchable, please manually parse it using the document upload feature.`;
+        statusMessage += ` The bill has been uploaded to your files and is ready for use. To make it searchable, please manually parse it using the document upload feature.`;
       } else if (result.parsing.error) {
-        statusMessage += ` Note: The worksheet was created but parsing failed (${result.parsing.error}). You can still download and use the PDF manually.`;
+        statusMessage += ` Note: The bill was created but parsing failed (${result.parsing.error}). You can still download and use the PDF manually.`;
       }
       
       const successMessage: ChatMessage = {
         id: crypto.randomUUID(),
         content: statusMessage,
-        user: { name: 'Document Assistant' },
+        user: { name: 'Legislative Assistant' },
         createdAt: new Date().toISOString(),
       }
       
       setMessages(prev => [...prev, successMessage])
       
-      // Refresh the file list to show the new worksheet
+      // Refresh the file list to show the new bill
       if (onFileRefresh) {
-        console.log('Refreshing file list after worksheet creation...');
+        console.log('Refreshing file list after bill creation...');
         try {
           await onFileRefresh();
         } catch (refreshError) {
@@ -183,23 +183,23 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
       }
       
     } catch (error) {
-      console.error('Error generating PDF worksheet:', error)
+      console.error('Error generating congressional bill:', error)
       
       // Add error message to chat
       const errorMessage: ChatMessage = {
         id: crypto.randomUUID(),
-        content: `❌ Sorry, I encountered an error while generating the PDF worksheet: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again.`,
-        user: { name: 'Document Assistant' },
+        content: `❌ Sorry, I encountered an error while generating the congressional bill: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again.`,
+        user: { name: 'Legislative Assistant' },
         createdAt: new Date().toISOString(),
       }
       
       setMessages(prev => [...prev, errorMessage])
     } finally {
-      setIsGeneratingPdf(false)
+      setIsGeneratingBill(false)
       setIsPdfMode(false) // Reset PDF mode after generation
-      setPdfMathMode('auto') // Reset math mode to auto
+      setBillContentMode('auto') // Reset content mode to auto
     }
-  }, [userId, pdfMathMode, onFileRefresh])
+  }, [userId, billContentMode, onFileRefresh])
 
   // Toggle PDF mode
   const handlePdfModeToggle = useCallback(() => {
@@ -377,38 +377,30 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
     // Get current message history at execution time instead of dependency
     const currentMessages = allMessages
     
-    const enhancedQuery = `You are a patient and knowledgeable homework tutor. You have access to two sources of information: 1. Your own general knowledge. 2. Retrieved excerpts from the provided documents (retrieval-augmented generation).
-    Your primary role:
-    Explain concepts and reasoning so the student can solve the problem themselves, keeping in mind the previous conversation history.
-    Use your own knowledge as the main source.
-    Use retrieved document excerpts only to clarify terms or provide additional context — never to copy or reproduce a solution directly.
-    Rules:
-    - Break down explanations step-by-step and clearly define any terms.
-    - Provide examples or analogies where possible to aid understanding.
-    - Encourage the student to attempt steps themselves after understanding the concept.
-    - If you reference a retrieved chunk, explain how it supports the concept instead of quoting large sections verbatim.
-    - Keep your responses concise and focused on the student's understanding.
-    Goal:
-    By the end of your answer, the student should understand the “why” and “how” behind solving the problem, and be able to complete it independently. 
+    const enhancedQuery = `You are a knowledgeable and precise legal assistant supporting a Congressional staffer in analyzing legislation.  
+You have access to two sources of information:  
+1. Your own general knowledge of lawmaking, statutory interpretation, and legislative process.  
+2. Retrieved excerpts from the bill text, existing statutes, and policy documents (retrieval-augmented generation).  
 
-    IMPORTANT: When including mathematical expressions in your responses:
-    - Use $expression$ for inline math (e.g., $x^2 + y^2 = z^2$)
-    - Use $$expression$$ for block/display math (e.g., $$\\int_0^1 x^2 dx$$)
-    - Always wrap mathematical expressions with dollar signs for proper LaTeX rendering
-    - Use proper LaTeX syntax (e.g., \\frac{a}{b} for fractions, \\sqrt{x} for square roots, etc.)
+Your primary role:  
+- Help the staffer understand and analyze a bill’s provisions in plain, precise terms.  
+- Answer targeted questions about specific sections, terms, or clauses.  
+- Clarify how provisions would operate in practice and how they relate to existing law.  
+- Identify policy implications, implementation challenges, and potential areas of ambiguity.  
+
+Rules:  
+- Break down sections step-by-step when asked.  
+- Define legal or technical terms clearly.  
+- Use analogies and examples where helpful to illustrate the effect of a provision.  
+- If referencing a retrieved excerpt, explain how it supports the staffer’s understanding rather than copying language directly.  
+- Keep answers concise, actionable, and focused on what a staffer needs to brief their Member.  
+
+Goal:  
+By the end of your answers, the staffer should feel confident that they understand the meaning and implications of the specific bill sections they’ve asked about, and be able to explain those points to others.  
+
 
     Current user request:
     ${query}
-
-      ${contextData ? `
-      --- Context Information ---
-      Related Question:
-      ${contextData.problemText}
-
-      Related Solution:
-      ${contextData.solution}
-      --------------------------
-      ` : ''}
       `
     try {
       console.log('📤 Sending request to /api/query');
@@ -597,9 +589,9 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
 
       // Check if we're in PDF mode
       if (isPdfMode) {
-        console.log('=== PDF WORKSHEET MODE ===');
-        console.log('Generating PDF worksheet with prompt:', messageContent);
-        await generatePdfWorksheet(messageContent);
+        console.log('=== CONGRESSIONAL BILL MODE ===');
+        console.log('Generating congressional bill with prompt:', messageContent);
+        await generateCongressionalBill(messageContent);
         return;
       }
 
@@ -621,7 +613,7 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
         console.log('⚠️ Not triggering document query');
       }
     },
-    [newMessage, isConnected, shouldQueryDocuments, selectedFileName, enableDocumentQuery, username, isPdfMode, generatePdfWorksheet]
+    [newMessage, isConnected, shouldQueryDocuments, selectedFileName, enableDocumentQuery, username, isPdfMode, generateCongressionalBill]
   )
 
   const mathJaxConfig = {
@@ -706,15 +698,15 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
             </div>
           )}
 
-          {/* Loading spinner while generating PDF worksheet */}
-          {isGeneratingPdf && (
+          {/* Loading spinner while generating congressional bill */}
+          {isGeneratingBill && (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
               <div className="mobile-message-bubble">
                 <div className="flex items-start gap-3 p-3">
                   <div className="flex-1 space-y-1">
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>I'm generating your PDF worksheet...</span>
+                      <span>I'm generating your congressional bill...</span>
                     </div>
                   </div>
                 </div>
@@ -769,14 +761,14 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
                   Selected
                 </div>
                 <div className="text-xs text-blue-600">
-                  PDF Generation
+                  Congressional Bill Generation
                 </div>
               </div>
             </div>
             <button
               onClick={() => setIsPdfMode(false)}
               className="p-1 rounded-sm hover:bg-blue-100 dark:hover:bg-blue-800 transition-colors"
-              title="Exit PDF mode"
+              title="Exit bill generation mode"
             >
               <X className="w-4 h-4" />
             </button>
@@ -795,14 +787,14 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
           onChange={(e) => setNewMessage(e.target.value)}
           placeholder={
             isPdfMode
-              ? "Describe the worksheet you want to create..."
+              ? "Describe the congressional bill you want to create..."
               : enableDocumentQuery 
                 ? selectedFileName 
                   ? `Ask about ${selectedFileName}...` 
                   : "Select a file to query documents..." 
                 : "Type a message..."
           }
-          disabled={!isConnected || isQuerying || isGeneratingPdf}
+          disabled={!isConnected || isQuerying || isGeneratingBill}
         />
         
         {/* Main Send/Generate Button */}
@@ -813,10 +805,10 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
               isPdfMode && "bg-blue-500 hover:bg-blue-600"
             )}
             type="submit"
-            disabled={!isConnected || isQuerying || isGeneratingPdf}
-            title={isPdfMode ? "Generate PDF worksheet" : "Send message"}
+            disabled={!isConnected || isQuerying || isGeneratingBill}
+            title={isPdfMode ? "Generate congressional bill" : "Send message"}
           >
-            {isGeneratingPdf ? (
+            {isGeneratingBill ? (
               <Loader2 className="size-4 animate-spin" />
             ) : isPdfMode ? (
               <FileText className="size-4" />
@@ -837,7 +829,7 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
                 "aspect-square rounded-full flex-shrink-0 transition-all duration-300",
                 "bg-gray-100 hover:bg-gray-200 dark:bg-gray-900 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400"
               )}
-              disabled={!isConnected || isQuerying || isGeneratingPdf}
+              disabled={!isConnected || isQuerying || isGeneratingBill}
               title="More features"
             >
               <ChevronDown className="size-4" />
@@ -854,7 +846,7 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
             >
               <FileText className="size-4" />
               <span>
-                {isPdfMode ? "Exit PDF Mode" : "Create PDF Worksheet"}
+                {isPdfMode ? "Exit Bill Mode" : "Create Congressional Bill"}
               </span>
               {isPdfMode && <span className="ml-auto text-xs">Active</span>}
             </DropdownMenuItem>
@@ -862,39 +854,39 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
             {isPdfMode && (
               <>
                 <DropdownMenuSeparator />
-                <DropdownMenuLabel>Parsing Mode</DropdownMenuLabel>
+                <DropdownMenuLabel>Content Type</DropdownMenuLabel>
                 <DropdownMenuItem
-                  onClick={() => setPdfMathMode('auto')}
+                  onClick={() => setBillContentMode('auto')}
                   className={cn(
                     "flex items-center gap-2 cursor-pointer",
-                    pdfMathMode === 'auto' && "bg-gray-50 dark:bg-gray-800"
+                    billContentMode === 'auto' && "bg-gray-50 dark:bg-gray-800"
                   )}
                 >
                   <FileIcon className="size-4" />
-                  <span>Auto-detect Math</span>
-                  {pdfMathMode === 'auto' && <span className="ml-auto text-xs">✓</span>}
+                  <span>Auto-detect Content</span>
+                  {billContentMode === 'auto' && <span className="ml-auto text-xs">✓</span>}
                 </DropdownMenuItem>
                 <DropdownMenuItem
-                  onClick={() => setPdfMathMode(true)}
+                  onClick={() => setBillContentMode(true)}
                   className={cn(
                     "flex items-center gap-2 cursor-pointer",
-                    pdfMathMode === true && "bg-gray-50 dark:bg-gray-800"
+                    billContentMode === true && "bg-gray-50 dark:bg-gray-800"
                   )}
                 >
                   <Calculator className="size-4" />
-                  <span>Force Math Parsing</span>
-                  {pdfMathMode === true && <span className="ml-auto text-xs">✓</span>}
+                  <span>Force Legal Parsing</span>
+                  {billContentMode === true && <span className="ml-auto text-xs">✓</span>}
                 </DropdownMenuItem>
                 <DropdownMenuItem
-                  onClick={() => setPdfMathMode(false)}
+                  onClick={() => setBillContentMode(false)}
                   className={cn(
                     "flex items-center gap-2 cursor-pointer",
-                    pdfMathMode === false && "bg-gray-50 dark:bg-gray-800"
+                    billContentMode === false && "bg-gray-50 dark:bg-gray-800"
                   )}
                 >
                   <FileText className="size-4" />
                   <span>Force Standard Parsing</span>
-                  {pdfMathMode === false && <span className="ml-auto text-xs">✓</span>}
+                  {billContentMode === false && <span className="ml-auto text-xs">✓</span>}
                 </DropdownMenuItem>
               </>
             )}
@@ -911,7 +903,7 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
               ? "bg-red-500 hover:bg-red-600 text-white animate-pulse"
               : "bg-gray-100 hover:bg-gray-200 dark:bg-gray-900 dark:hover:bg-white text-gray-600 dark:text-gray-400"
           )}
-          disabled={!isConnected || isQuerying || isGeneratingPdf}
+          disabled={!isConnected || isQuerying || isGeneratingBill}
           title={isRecording ? "Stop recording" : "Start voice recording"}
         >
           {isRecording ? (
