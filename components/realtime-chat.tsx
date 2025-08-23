@@ -153,15 +153,7 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
       document.body.removeChild(link)
       
       // Add success message to chat with parsing information
-      let statusMessage = `✅ Congressional bill "${result.billData.title}" generated successfully!`;
-      
-      if (result.parsing.success) {
-        statusMessage += ` The bill has been processed and indexed using ${result.parsing.endpoint === '/api/mparse' ? 'legal-aware parsing' : 'standard parsing'} and is now available for querying.`;
-      } else if (result.parsing.error && result.parsing.error.includes('skipped')) {
-        statusMessage += ` The bill has been uploaded to your files and is ready for use. To make it searchable, please manually parse it using the document upload feature.`;
-      } else if (result.parsing.error) {
-        statusMessage += ` Note: The bill was created but parsing failed (${result.parsing.error}). You can still download and use the PDF manually.`;
-      }
+      let statusMessage = `Your file "${result.billData.title}" has been generated. Access in the files menu.`;
       
       const successMessage: ChatMessage = {
         id: crypto.randomUUID(),
@@ -706,7 +698,7 @@ By the end of your answers, the staffer should feel confident that they understa
                   <div className="flex-1 space-y-1">
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>I'm generating your congressional bill...</span>
+                      <span>Hold tight! I'm generating your request...</span>
                     </div>
                   </div>
                 </div>
