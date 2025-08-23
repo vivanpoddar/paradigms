@@ -660,7 +660,7 @@ export const FileBrowser = forwardRef<FileBrowserRef, FileBrowserProps>(({ onFil
                   )}
                 </div>
                 <div className="collapsed-panel-text">
-                  Files & Bills
+                  File Manager
                 </div>
               </div>
             </div>
@@ -715,11 +715,14 @@ export const FileBrowser = forwardRef<FileBrowserRef, FileBrowserProps>(({ onFil
                           className="w-full px-2 py-1 text-sm border border-border rounded bg-background focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50"
                         >
                           <option value="all">All Sessions</option>
-                          <option value="119">119th (2025-2027)</option>
-                          <option value="118">118th (2023-2025)</option>
-                          <option value="117">117th (2021-2023)</option>
-                          <option value="116">116th (2019-2021)</option>
-                          <option value="115">115th (2017-2019)</option>
+                          {Array.from({ length: 119 - 93 + 1 }, (_, i) => {
+                            const congressNum = 119 - i;
+                            return (
+                              <option key={congressNum} value={congressNum}>
+                                {congressNum}th
+                              </option>
+                            );
+                          })}
                         </select>
                       </div>
                       
@@ -751,7 +754,7 @@ export const FileBrowser = forwardRef<FileBrowserRef, FileBrowserProps>(({ onFil
                   </div>
                 </div>
               )}
-              <div className="flex-1 overflow-y-auto">
+              <div className="flex-1">
                 {activeSection === 'files' ? (
                   visibleFiles.length === 0 ? (
                     <div className="flex items-center justify-center h-64">
@@ -771,7 +774,7 @@ export const FileBrowser = forwardRef<FileBrowserRef, FileBrowserProps>(({ onFil
                         onClick={() => deletingFile !== file.id && selectFile(file)}
                       >
                         <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <div className="flex items-center gap-3 flex-1">
                             {getFileIcon(file.metadata?.mimetype || '')}
                             <div className="flex flex-col min-w-0">
                               <span className="truncate text-sm font-medium">
