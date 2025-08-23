@@ -255,7 +255,7 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
           historyMessages.push({
             id: `${conv.id}-query`,
             content: conv.query,
-            user: { name: username },
+            user: { name: "User" },
             createdAt: conv.timestamp,
           })
           // Add assistant response
@@ -569,7 +569,7 @@ By the end of your answers, the staffer should feel confident that they understa
       const userMessage: ChatMessage = {
         id: crypto.randomUUID(),
         content: messageContent,
-        user: { name: username },
+        user: { name: "User" },
         createdAt: new Date().toISOString(),
       }
       
@@ -666,7 +666,7 @@ By the end of your answers, the staffer should feel confident that they understa
                 <div className="mobile-message-bubble">
                   <ChatMessageItem
                     message={message}
-                    isOwnMessage={message.user.name === username}
+                    isOwnMessage={message.user.name === "User"}
                     showHeader={showHeader}
                   />
                 </div>

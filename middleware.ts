@@ -21,6 +21,5 @@ export const config = {
      * - api/bill-pdf (bill PDF proxy API)
      * Feel free to modify this pattern to include more paths.
      */
-    "/((?!_next/static|_next/image|favicon.ico|api/bounding-boxes|api/query|api/congress-bills|api/bill-details|api/bill-pdf|.*\\.(?:svg|png|jpg|jpeg|gif|webp|json)$).*)",
   ],
 };
