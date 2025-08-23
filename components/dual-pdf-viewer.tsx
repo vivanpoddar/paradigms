@@ -293,9 +293,6 @@ export const DualPdfViewer: React.FC<DualPdfViewerProps> = ({
               <CardHeader className="p-2 border-b flex-shrink-0">
                 <CardTitle className="text-sm flex items-center justify-between">
                   <span>Chat</span>
-                  <span className="text-xs text-muted-foreground">
-                    {primaryViewer?.fileName ? `Context: ${primaryViewer.fileName}` : 'No context'}
-                  </span>
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-0 h-full flex-1 min-h-0">
