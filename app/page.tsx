@@ -2,7 +2,7 @@
 
 import { FileBrowser, FileBrowserRef } from "@/components/file-browser";
 import { Navbar } from "@/components/navbar";
-import { SimplePdfViewer } from "@/components/simple-pdf-viewer";
+// import { SimplePdfViewer } from "@/components/simple-pdf-viewer";
 import { createClient } from "@/lib/supabase/client";
 import { useEffect, useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
@@ -200,7 +200,7 @@ export default function Home() {
                   </Button>
                 </div>
                 <div className="flex-1 min-h-0 h-full overflow-hidden">
-                  <SimplePdfViewer pdfUrl={selectedFileUrl} />
+                  {/* <SimplePdfViewer pdfUrl={selectedFileUrl} /> */}
                 </div>
               </div>
             </div>
