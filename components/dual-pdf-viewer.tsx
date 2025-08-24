@@ -192,9 +192,7 @@ export const DualPdfViewer: React.FC<DualPdfViewerProps> = ({
                 </div>
               )}
             </div>
-            
-            {/* View Mode Controls */}
-            {isLargeViewport && (
+                     
               <div className="flex items-center gap-1 ml-2">
                 <Button
                   variant='outline'
@@ -228,7 +226,6 @@ export const DualPdfViewer: React.FC<DualPdfViewerProps> = ({
                   <MessageCircle className="h-3 w-3" />
                 </Button>
               </div>
-            )}
           </div>
         </CardHeader>
       </Card>

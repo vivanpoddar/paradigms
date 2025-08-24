@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Sarabun, Lato } from "next/font/google";
 import { ThemeProvider } from "next-themes";
+import { MobileBlocker } from "@/components/mobile-blocker";
 import "./globals.css";
 
 const defaultUrl = process.env.VERCEL_URL
@@ -37,6 +38,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${sarabun.className} ${lato.variable} antialiased`}>
+        <MobileBlocker />
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
