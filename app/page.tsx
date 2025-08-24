@@ -208,7 +208,7 @@ export default function Home() {
           
           {/* Mobile: Show Chat by Default */}
           {/* Desktop Layout - Full width File Browser with integrated chat */}
-          <div className="w-full">
+          <div className="w-full h-full">
             <FileBrowser ref={fileBrowserRef} onFileSelect={handleFileSelect} onExplain={handleExplain} isVisible={!isMobile} />
           </div>
         </div>

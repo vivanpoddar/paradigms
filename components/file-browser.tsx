@@ -754,7 +754,7 @@ export const FileBrowser = forwardRef<FileBrowserRef, FileBrowserProps>(({ onFil
                   </div>
                 </div>
               )}
-              <div className="flex-1">
+              <div className="flex-1 max-h-[90vh] overflow-y-auto">
                 {activeSection === 'files' ? (
                   visibleFiles.length === 0 ? (
                     <div className="flex items-center justify-center h-64">

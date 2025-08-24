@@ -296,7 +296,7 @@ export const DualPdfViewer: React.FC<DualPdfViewerProps> = ({
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-0 h-full flex-1 min-h-0">
-                <div className="h-full">
+                <div className="">
                   <RealtimeChat
                     roomName={chatRoomName}
                     username={chatUsername}
