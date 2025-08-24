@@ -94,23 +94,6 @@ export const useFileManager = (): UseFileManagerReturn => {
     loadUserFiles();
   }, []); // Empty dependency array ensures this runs only once
 
-  // Listen for auth state changes to reload files when user logs in
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN' && session?.user) {
-        setUserId(session.user.id);
-        await loadFiles(session.user.id);
-        setHasLoadedFiles(true);
-      } else if (event === 'SIGNED_OUT') {
-        setFiles([]);
-        setUserId(null);
-        setHasLoadedFiles(false); // Reset the flag when user signs out
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [loadFiles]);
-
   return {
     files,
     loading,
