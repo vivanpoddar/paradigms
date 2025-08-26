@@ -785,7 +785,7 @@ By the end of your answers, the staffer should feel confident that they understa
                   : "Select a file to query documents..." 
                 : "Type a message..."
           }
-          disabled={!isConnected || isQuerying || isGeneratingBill}
+          disabled={false}
         />
         
         {/* Main Send/Generate Button */}
@@ -796,7 +796,7 @@ By the end of your answers, the staffer should feel confident that they understa
               isPdfMode && "bg-blue-500 hover:bg-blue-600"
             )}
             type="submit"
-            disabled={!isConnected || isQuerying || isGeneratingBill}
+            disabled={false}
             title={isPdfMode ? "Generate congressional bill" : "Send message"}
           >
             {isGeneratingBill ? (
