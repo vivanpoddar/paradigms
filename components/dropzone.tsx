@@ -224,7 +224,7 @@ const DropzoneEmptyState = ({ className }: { className?: string }) => {
         </p>
         {maxFileSize !== Number.POSITIVE_INFINITY && (
           <p className="text-xs text-muted-foreground">
-            Maximum file size: {formatBytes(maxFileSize, 2)}
+            Maximum file size: {formatBytes(maxFileSize, 2)}. You can expect to parse a 1000 page document in 20 minutes (due to funds).
           </p>
         )}
       </div>
