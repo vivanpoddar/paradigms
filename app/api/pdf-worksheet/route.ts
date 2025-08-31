@@ -67,7 +67,11 @@ Ensure the content is educationally sound, age-appropriate, and provides good pr
       messages: [{ role: "user", content: enhancedPrompt }],
     });
 
-    const responseText = completion.message.content;
+    const responseText = typeof completion.message.content === 'string'
+      ? completion.message.content
+      : Array.isArray(completion.message.content)
+        ? completion.message.content.map((c: any) => c.text || '').join('\n')
+        : '';
     console.log('Generated content:', responseText);
 
     // Parse the JSON response
