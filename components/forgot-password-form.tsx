@@ -45,61 +45,57 @@ export function ForgotPasswordForm({
   };
 
   return (
-    <div className={cn("flex flex-col gap-6", className)} {...props}>
-      {success ? (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-2xl">Check Your Email</CardTitle>
-            <CardDescription>Password reset instructions sent</CardDescription>
-          </CardHeader>
-          <CardContent>
+    <div className="flex w-full h-screen items-center justify-center" {...props}>
+      <div className="w-full max-w-xl p-6 md:p-10 flex flex-col justify-center">
+        <div>
+          <img
+            src="/logo-dark.svg"
+            alt="Login Illustration"
+            width={400}
+            height={200}
+            className="mx-auto mb-4"
+          />
+        </div>
+        {success ? (
+          <div className="border rounded-xl p-6 md:p-10 text-center">
+            <span className="text-2xl font-semibold block mb-2">Check Your Email</span>
+            <span className="block mb-4 text-muted-foreground">Password reset instructions sent</span>
             <p className="text-sm text-muted-foreground">
-              If you registered using your email and password, you will receive
-              a password reset email.
+              If you registered using your email and password, you will receive a password reset email.
             </p>
-          </CardContent>
-        </Card>
-      ) : (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-2xl">Reset Your Password</CardTitle>
-            <CardDescription>
-              Type in your email and we&apos;ll send you a link to reset your
-              password
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleForgotPassword}>
-              <div className="flex flex-col gap-6">
-                <div className="grid gap-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="m@example.com"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                  />
-                </div>
-                {error && <p className="text-sm text-red-500">{error}</p>}
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? "Sending..." : "Send reset email"}
-                </Button>
+          </div>
+        ) : (
+          <form className="border rounded-xl p-6 md:p-10 justify-center" onSubmit={handleForgotPassword}>
+            <div className="gap-2 w-full flex flex-col">
+              <span className="text-xl mb-2">Reset Your Password</span>
+              <div className="gap-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="m@example.com"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
               </div>
-              <div className="mt-4 text-center text-sm">
-                Already have an account?{" "}
-                <Link
-                  href="/auth/login"
-                  className="underline underline-offset-4"
-                >
-                  Login
-                </Link>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-      )}
+              {error && <p className="text-sm text-red-500">{error}</p>}
+              <Button type="submit" className="mt-4 w-full" disabled={isLoading}>
+                {isLoading ? "Sending..." : "Send reset email"}
+              </Button>
+            </div>
+            <div className="mt-4 text-center text-sm">
+              Already have an account?{" "}
+              <Link
+                href="/auth/login"
+                className="underline underline-offset-4"
+              >
+                Login
+              </Link>
+            </div>
+          </form>
+        )}
+      </div>
     </div>
   );
 }

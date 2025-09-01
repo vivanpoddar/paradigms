@@ -34,7 +34,7 @@ export function UpdatePasswordForm({
       const { error } = await supabase.auth.updateUser({ password });
       if (error) throw error;
       // Update this route to redirect to an authenticated route. The user already has an active session.
-      router.push("/protected");
+      router.push("/");
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : "An error occurred");
     } finally {
@@ -43,36 +43,38 @@ export function UpdatePasswordForm({
   };
 
   return (
-    <div className={cn("flex flex-col gap-6", className)} {...props}>
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-2xl">Reset Your Password</CardTitle>
-          <CardDescription>
-            Please enter your new password below.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleForgotPassword}>
-            <div className="flex flex-col gap-6">
-              <div className="grid gap-2">
-                <Label htmlFor="password">New password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="New password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-              </div>
-              {error && <p className="text-sm text-red-500">{error}</p>}
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? "Saving..." : "Save new password"}
-              </Button>
+    <div className="flex w-full h-screen items-center justify-center" {...props}>
+      <div className="w-full max-w-xl p-6 md:p-10 flex flex-col justify-center">
+        <div>
+          <img
+            src="/logo-dark.svg"
+            alt="Login Illustration"
+            width={400}
+            height={200}
+            className="mx-auto mb-4"
+          />
+        </div>
+        <form className="border rounded-xl p-6 md:p-10 justify-center" onSubmit={handleForgotPassword}>
+          <div className="gap-2 w-full flex flex-col">
+            <span className="text-xl mb-2">Reset Your Password</span>
+            <div className="gap-2">
+              <Label htmlFor="password">New password</Label>
+              <Input
+                id="password"
+                type="password"
+                placeholder="New password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
             </div>
-          </form>
-        </CardContent>
-      </Card>
+            {error && <p className="text-sm text-red-500">{error}</p>}
+            <Button type="submit" className="mt-4 w-full" disabled={isLoading}>
+              {isLoading ? "Saving..." : "Save new password"}
+            </Button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }
