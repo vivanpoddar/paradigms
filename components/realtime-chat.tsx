@@ -270,7 +270,7 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
     // Add user message for vote prediction request
     const userMessage: ChatMessage = {
       id: crypto.randomUUID(),
-      content: "**Bill Summary**",
+      content: "**Vote Prediction**",
       user: { name: "User" },
       createdAt: new Date().toISOString(),
     }
@@ -288,7 +288,7 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
     Base your analysis on the specific provisions in the bill and current political dynamics. Be objective and consider multiple perspectives.`
 
     try {
-      await queryDocumentsWithDisplayMessageRef.current?.(votePredictionPrompt, "**Bill Summary**")
+      await queryDocumentsWithDisplayMessageRef.current?.(votePredictionPrompt, "**Vote Prediction**")
     } catch (error) {
       console.error('Error generating vote prediction:', error)
       const errorMessage: ChatMessage = {
