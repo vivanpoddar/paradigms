@@ -237,11 +237,11 @@ export const FileBrowser = forwardRef<FileBrowserRef, FileBrowserProps>(({ onFil
               ? 'hidden' 
               : 'w-full lg:w-2/5'
       }`}>
-        <Card className="max-h-[95vh] overflow-y-scroll rounded-none border-0 flex flex-col">
-          <CardHeader className="border-b flex-shrink-0 p-2">
+        <Card className="h-[95vh] overflow-y-scroll rounded-none border-0 flex flex-col">
+            <CardHeader className="bg-[#FF5100] dark:bg-[#702300] border-b flex-shrink-0 p-1.5 sticky top-0 z-10">
             <CardTitle className="flex items-center justify-between text-sm">
-              {!isFileListCollapsed && !isMobile && "Your Files"}
-              {!isFileListCollapsed && forceShowFileList && "Your Files"}
+              {!isFileListCollapsed && !isMobile && "Files"}
+              {!isFileListCollapsed && forceShowFileList && "Files"}
               {isFileListCollapsed && !isMobile && (
                 <div className="flex justify-center w-full">
                   <Button
@@ -261,9 +261,9 @@ export const FileBrowser = forwardRef<FileBrowserRef, FileBrowserProps>(({ onFil
                     variant="outline"
                     size="sm"
                     onClick={() => setShowUpload(!showUpload)}
-                    className="h-7 text-xs"
+                    className="h-6 text-xs"
                   >
-                    <Plus className="h-3 w-3 mr-1" />
+                    <Plus className="h-4 w-4 mr-1" />
                     Upload
                   </Button>
                   <Button
@@ -271,7 +271,7 @@ export const FileBrowser = forwardRef<FileBrowserRef, FileBrowserProps>(({ onFil
                     size="sm"
                     onClick={refreshFiles}
                     disabled={loading}
-                    className="h-7 text-xs"
+                    className="h-6 text-xs"
                   >
                     {loading ? 'Loading...' : 'Refresh'}
                   </Button>
@@ -331,7 +331,7 @@ export const FileBrowser = forwardRef<FileBrowserRef, FileBrowserProps>(({ onFil
                       key={file.id}
                       className={`p-4 border-b cursor-pointer transition-colors ${
                         selectedFile?.id === file.id
-                          ? 'bg-primary/10 border-primary'
+                        ? 'bg-primary/20'
                           : 'hover:bg-muted/50'
                       } ${deletingFile === file.id ? 'opacity-50 pointer-events-none' : ''}`}
                       onClick={() => deletingFile !== file.id && selectFile(file)}
@@ -399,7 +399,7 @@ export const FileBrowser = forwardRef<FileBrowserRef, FileBrowserProps>(({ onFil
               : 'hidden lg:flex'
       }`}>
         <Card className="h-full rounded-none border-0 flex flex-col">
-          <CardHeader className="border-b flex-shrink-0 p-2">
+          <CardHeader className="bg-[#FF5100] dark:bg-[#702300] border-b flex-shrink-0 p-2">
             <CardTitle className="text-sm flex items-center justify-between">
               <span>{selectedFile ? selectedFile.name : 'Select a file to view'}</span>
               {isMobile && selectedFile && !forceShowFileList && (

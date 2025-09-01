@@ -20,7 +20,7 @@ export function Navbar() {
             </div>
             <div className="flex items-center gap-2">
               <span className="font-bold text-muted-foreground hidden sm:block">
-                Professional (v.1.0-alpha)
+                Education (v.1.0-alpha)
               </span>
               <AuthButton />
             </div>

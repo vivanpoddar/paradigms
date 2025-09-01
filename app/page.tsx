@@ -281,13 +281,13 @@ export default function Home() {
               
               {/* Desktop Layout - Side panel - Realtime Chat */}
               <div className={`transition-all duration-300 flex flex-col ${isChatCollapsed ? 'w-12' : 'w-full lg:w-2/5'}`}>
-                <div className={`border-b border-border p-2 bg-muted/30 flex items-center ${isChatCollapsed ? 'justify-center' : 'justify-between'}`}>
+                  <div className={`bg-[#FF5100] dark:bg-[#702300] border-b border-border p-2 flex items-center ${isChatCollapsed ? 'justify-center' : 'justify-between'}`}>
                   {!isChatCollapsed && (
-                    <div>
-                      <h2 className="text-xs font-semibold">AI Assistant</h2>
-                      <p className="text-xs text-muted-foreground">
+                    <div className="flex gap-2">
+                      <h2 className="text-sm font-semibold">AI Assistant</h2>
+                      <p className="text-sm text-muted-foreground">
                         {selectedFileName ? (
-                          <>Chat with <span className="font-medium">{selectedFileName}</span></>
+                          <><span className="font-medium">{selectedFileName}</span></>
                         ) : (
                           'Select a document to start chatting'
                         )}
