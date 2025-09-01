@@ -222,18 +222,11 @@ export const FileBrowser = forwardRef<FileBrowserRef, FileBrowserProps>(({ onFil
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  const getFileIcon = (mimetype: string) => {
-    if (mimetype?.startsWith('image/')) return <Image className="h-4 w-4" />;
-    if (mimetype?.startsWith('text/')) return <FileText className="h-4 w-4" />;
-    if (mimetype === 'application/pdf') return <FileText className="h-4 w-4" />;
-    return <File className="h-4 w-4" />;
-  };
-
   const visibleFiles = files.filter(file => !file.name.toLowerCase().endsWith('.json'));
   // const visibleFiles = files
 
   return (
-    <div className="flex overflow-y-scroll h-full main-container">
+    <div className="flex main-container">
       {/* Left Side - File List */}
       <div className={`transition-all duration-300 border-r border-border flex flex-col ${
         isFileListCollapsed
@@ -244,7 +237,7 @@ export const FileBrowser = forwardRef<FileBrowserRef, FileBrowserProps>(({ onFil
               ? 'hidden' 
               : 'w-full lg:w-2/5'
       }`}>
-        <Card className="h-full rounded-none border-0 flex flex-col">
+        <Card className="max-h-[95vh] overflow-y-scroll rounded-none border-0 flex flex-col">
           <CardHeader className="border-b flex-shrink-0 p-2">
             <CardTitle className="flex items-center justify-between text-sm">
               {!isFileListCollapsed && !isMobile && "Your Files"}
@@ -344,8 +337,8 @@ export const FileBrowser = forwardRef<FileBrowserRef, FileBrowserProps>(({ onFil
                       onClick={() => deletingFile !== file.id && selectFile(file)}
                     >
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3 flex-1 min-w-0">
-                          {getFileIcon(file.metadata?.mimetype || '')}
+                        <div className="flex items-center gap-3 min-w-1">
+                          <FileText className="h-4 w-4 flex-shrink-0" />
                           <div className="flex flex-col min-w-0">
                             <span className="truncate text-sm font-medium">
                               {file.name}
