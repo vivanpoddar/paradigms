@@ -9,7 +9,7 @@ import {
 } from '@/hooks/use-realtime-chat'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Send, BookOpen, Loader2, X, Mic, MicOff, FileText, ChevronDown, Calculator, FileIcon } from 'lucide-react'
+import { Send, BookOpen, Loader2, X, Mic, MicOff, FileText, ChevronDown, Calculator, FileIcon, FileCheck, Vote } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -79,9 +79,12 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
   const [isPdfMode, setIsPdfMode] = useState(false)
   const [isGeneratingBill, setIsGeneratingBill] = useState(false)
   const [billContentMode, setBillContentMode] = useState<boolean | 'auto'>('auto')
+  const [isGeneratingSummary, setIsGeneratingSummary] = useState(false)
+  const [isGeneratingVotePrediction, setIsGeneratingVotePrediction] = useState(false)
 
   // Create a ref to access queryDocuments without making it a dependency
   const queryDocumentsRef = useRef<((query: string) => Promise<void>) | null>(null)
+  const queryDocumentsWithDisplayMessageRef = useRef<((query: string, displayMessage: string) => Promise<void>) | null>(null)
 
   // Microphone hook function
   const handleMicrophoneToggle = useCallback(() => {
@@ -196,6 +199,109 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
   const handlePdfModeToggle = useCallback(() => {
     setIsPdfMode(prev => !prev)
   }, [])
+
+  // Generate summary function
+  const generateSummary = useCallback(async () => {
+    if (!selectedFileName) {
+      const errorMessage: ChatMessage = {
+        id: crypto.randomUUID(),
+        content: "❌ Please select a document first to generate a summary.",
+        user: { name: 'Document Assistant' },
+        createdAt: new Date().toISOString(),
+      }
+      setMessages(prev => [...prev, errorMessage])
+      return
+    }
+
+    console.log('Generating summary for document:', selectedFileName)
+    setIsGeneratingSummary(true)
+    
+    // Add user message for summary request
+    const userMessage: ChatMessage = {
+      id: crypto.randomUUID(),
+      content: "**Bill Summary**",
+      user: { name: "User" },
+      createdAt: new Date().toISOString(),
+    }
+    setMessages(prev => [...prev, userMessage])
+    
+    const summaryPrompt = `Please provide a comprehensive summary of this document. Include:
+    
+    1. **Main Purpose**: What is the primary goal or purpose of this legislation?
+    2. **Key Provisions**: What are the most important sections and what do they do?
+    3. **Impact**: Who would be affected and how?
+    4. **Implementation**: How would this be put into practice?
+    5. **Timeline**: Are there any important dates or deadlines?
+    
+    Please keep the summary clear and accessible for Congressional staff to brief their Members.`
+
+    try {
+      await queryDocumentsWithDisplayMessageRef.current?.(summaryPrompt, "**Bill Summary**")
+    } catch (error) {
+      console.error('Error generating summary:', error)
+      const errorMessage: ChatMessage = {
+        id: crypto.randomUUID(),
+        content: "❌ Sorry, I encountered an error while generating the summary. Please try again.",
+        user: { name: 'Document Assistant' },
+        createdAt: new Date().toISOString(),
+      }
+      setMessages(prev => [...prev, errorMessage])
+    } finally {
+      setIsGeneratingSummary(false)
+    }
+  }, [selectedFileName])
+
+  // Generate vote prediction function
+  const generateVotePrediction = useCallback(async () => {
+    if (!selectedFileName) {
+      const errorMessage: ChatMessage = {
+        id: crypto.randomUUID(),
+        content: "❌ Please select a document first to generate a vote prediction.",
+        user: { name: 'Document Assistant' },
+        createdAt: new Date().toISOString(),
+      }
+      setMessages(prev => [...prev, errorMessage])
+      return
+    }
+
+    console.log('Generating vote prediction for document:', selectedFileName)
+    setIsGeneratingVotePrediction(true)
+    
+    // Add user message for vote prediction request
+    const userMessage: ChatMessage = {
+      id: crypto.randomUUID(),
+      content: "**Bill Summary**",
+      user: { name: "User" },
+      createdAt: new Date().toISOString(),
+    }
+    setMessages(prev => [...prev, userMessage])
+    
+    const votePredictionPrompt = `Please analyze this legislation and provide a vote prediction analysis. Include:
+    
+    1. **Likely Support**: Which party/ideological groups would likely support this bill and why?
+    2. **Likely Opposition**: Which groups would likely oppose this bill and their key concerns?
+    3. **Swing Factors**: What are the key issues that could influence undecided votes?
+    4. **Political Considerations**: What political dynamics might affect passage?
+    5. **Stakeholder Positions**: How might different interest groups, industries, or constituencies react?
+    6. **Procedural Outlook**: What procedural hurdles might this face in Congress?
+    
+    Base your analysis on the specific provisions in the bill and current political dynamics. Be objective and consider multiple perspectives.`
+
+    try {
+      await queryDocumentsWithDisplayMessageRef.current?.(votePredictionPrompt, "**Bill Summary**")
+    } catch (error) {
+      console.error('Error generating vote prediction:', error)
+      const errorMessage: ChatMessage = {
+        id: crypto.randomUUID(),
+        content: "❌ Sorry, I encountered an error while generating the vote prediction. Please try again.",
+        user: { name: 'Document Assistant' },
+        createdAt: new Date().toISOString(),
+      }
+      setMessages(prev => [...prev, errorMessage])
+    } finally {
+      setIsGeneratingVotePrediction(false)
+    }
+  }, [selectedFileName])
 
   // Get user ID from Supabase
   useEffect(() => {
@@ -336,6 +442,217 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
       console.error('Failed to save conversation to history:', error)
     }
   }, [userId, saveConversation])
+
+  // Function to query documents with a custom display message for database storage
+  const queryDocumentsWithDisplayMessage = useCallback(async (query: string, displayMessage: string): Promise<void> => {
+    console.log('=== QUERY DOCUMENTS WITH DISPLAY MESSAGE CALLED ===');
+    console.log('Query:', query);
+    console.log('Display Message:', displayMessage);
+    console.log('Selected file:', selectedFileName);
+    
+    if (!selectedFileName) {
+      console.log('❌ No file selected for querying')
+      return
+    }
+    
+    console.log('✅ Starting query with file:', selectedFileName);
+    setIsQuerying(true)
+    
+    // Get current message history at execution time instead of dependency
+    const currentMessages = allMessages
+    
+    const enhancedQuery = `You are a knowledgeable and precise legal assistant supporting a Congressional staffer in analyzing legislation.  
+You have access to two sources of information:  
+1. Your own general knowledge of lawmaking, statutory interpretation, and legislative process.  
+2. Retrieved excerpts from the bill text, existing statutes, and policy documents (retrieval-augmented generation).  
+
+Your primary role:  
+- Help the staffer understand and analyze a bill's provisions in plain, precise terms.  
+- Answer targeted questions about specific sections, terms, or clauses.  
+- Clarify how provisions would operate in practice and how they relate to existing law.  
+- Identify policy implications, implementation challenges, and potential areas of ambiguity.  
+
+Rules:  
+- Break down sections step-by-step when asked.  
+- Define legal or technical terms clearly.  
+- Use analogies and examples where helpful to illustrate the effect of a provision.  
+- If referencing a retrieved excerpt, explain how it supports the staffer's understanding rather than copying language directly.  
+- Keep answers concise, actionable, and focused on what a staffer needs to brief their Member.  
+
+Goal:  
+By the end of your answers, the staffer should feel confident that they understand the meaning and implications of the specific bill sections they've asked about, and be able to explain those points to others.  
+
+    Current user request:
+    ${query}
+      `
+    try {
+      console.log('📤 Sending request to /api/query with display message');
+      const response = await fetch('/api/query', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          query: enhancedQuery, 
+          fileName: selectedFileName,
+          messageHistory: currentMessages,
+          displayMessage: displayMessage
+        }),
+      })
+
+      console.log('📥 Response status:', response.status);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      // Create a temporary message to stream content into
+      const botMessageId = crypto.randomUUID()
+      
+      const initialBotMessage: ChatMessage = {
+        id: botMessageId,
+        content: '',
+        user: {
+          name: 'Document Assistant',
+        },
+        createdAt: new Date().toISOString(),
+      }
+
+      // Set the streaming message in local state
+      setStreamingMessage(initialBotMessage)
+      
+      let fullResponse = ''
+      let receivedDisplayMessage = displayMessage // Default fallback
+      
+      // Handle streaming response
+      const reader = response.body?.getReader()
+      if (reader) {
+        const decoder = new TextDecoder()
+        
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+          
+          const chunk = decoder.decode(value)
+          const lines = chunk.split('\n').filter(line => line.trim())
+          
+          for (const line of lines) {
+            try {
+              const data = JSON.parse(line)
+              
+              if (data.error) {
+                throw new Error(data.error)
+              }
+              
+              if (data.content) {
+                fullResponse += data.content
+                // Update the streaming message with accumulated content
+                setStreamingMessage(prev => prev ? {
+                  ...prev,
+                  content: fullResponse
+                } : null)
+              }
+              
+              if (data.done) {
+                if (data.displayMessage) {
+                  receivedDisplayMessage = data.displayMessage
+                }
+                console.log('Streaming completed, breaking loop')
+                break
+              }
+            } catch (parseError) {
+              console.warn('Failed to parse streaming chunk:', parseError)
+            }
+          }
+          
+          // Check if we received a done signal to break the outer loop
+          if (lines.some(line => {
+            try {
+              const data = JSON.parse(line)
+              return data.done
+            } catch {
+              return false
+            }
+          })) {
+            console.log('Breaking outer streaming loop')
+            break
+          }
+        }
+        
+        console.log('Streaming reader finished')
+      } else {
+        // Fallback for non-streaming response
+        const data = await response.json()
+        fullResponse = data.response
+        if (data.displayMessage) {
+          receivedDisplayMessage = data.displayMessage
+        }
+        setStreamingMessage(prev => prev ? {
+          ...prev,
+          content: fullResponse
+        } : null)
+      }
+      
+      console.log('Streaming completed, fullResponse length:', fullResponse.length)
+      
+      // Set isQuerying to false before clearing streaming message to prevent spinner flash
+      setIsQuerying(false)
+      
+      // Once streaming is complete, add the final message to messages and clear streaming state
+      const finalBotMessage: ChatMessage = {
+        id: botMessageId,
+        content: fullResponse,
+        user: {
+          name: 'Document Assistant',
+        },
+        createdAt: new Date().toISOString(),
+      }
+      
+      // Add to messages array
+      setMessages(prev => [...prev, finalBotMessage])
+      setStreamingMessage(null)
+      
+      // Save the complete conversation to database using the display message instead of full prompt
+      console.log('Saving conversation - userId:', userId, 'displayMessage:', receivedDisplayMessage, 'response:', fullResponse.substring(0, 50))
+      await saveConversationToHistory(receivedDisplayMessage, fullResponse, {
+        fileName: selectedFileName,
+        messageType: 'query-response',
+        originalQuery: query // Store the original query for debugging if needed
+      })
+      
+    } catch (error) {
+      console.error('Error querying documents:', error)
+      
+      const errorResponse = 'Sorry, I encountered an error while searching the documents. Please try again.'
+      
+      // Create error message
+      const errorMessage: ChatMessage = {
+        id: streamingMessage?.id || crypto.randomUUID(),
+        content: errorResponse,
+        user: {
+          name: 'Document Assistant',
+        },
+        createdAt: new Date().toISOString(),
+      }
+      
+      // Add error message to messages array
+      setMessages(prev => [...prev, errorMessage])
+      setIsQuerying(false)
+      setStreamingMessage(null)
+      
+      // Save the error conversation to database using display message
+      console.log('Saving error conversation - userId:', userId, 'displayMessage:', displayMessage, 'errorResponse:', errorResponse)
+      await saveConversationToHistory(displayMessage, errorResponse, {
+        fileName: selectedFileName,
+        messageType: 'query-error',
+        error: error instanceof Error ? error.message : 'Unknown error',
+        originalQuery: query
+      })
+    } finally {
+      console.log('Query finally block reached')
+      // Ensure isQuerying is false (backup in case it wasn't set in try/catch)
+      setIsQuerying(false)
+    }
+  }, [selectedFileName, saveConversationToHistory, userId, allMessages])
 
   // Function to detect if a message should trigger document query
   const shouldQueryDocuments = useCallback((message: string): boolean => {
@@ -557,10 +874,15 @@ By the end of your answers, the staffer should feel confident that they understa
     queryDocumentsRef.current = queryDocuments
   }, [queryDocuments])
 
+  // Update the ref whenever queryDocumentsWithDisplayMessage changes
+  useEffect(() => {
+    queryDocumentsWithDisplayMessageRef.current = queryDocumentsWithDisplayMessage
+  }, [queryDocumentsWithDisplayMessage])
+
   const handleSendMessage = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault()
-      if (!newMessage.trim() || !isConnected) return
+      if (!newMessage.trim() || !isConnected || isQuerying || isGeneratingBill || isGeneratingSummary || isGeneratingVotePrediction) return
 
       const messageContent = newMessage.trim()
       
@@ -704,6 +1026,38 @@ By the end of your answers, the staffer should feel confident that they understa
               </div>
             </div>
           )}
+
+          {/* Loading spinner while generating summary */}
+          {isGeneratingSummary && (
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
+              <div className="mobile-message-bubble">
+                <div className="flex items-start gap-3 p-3">
+                  <div className="flex-1 space-y-1">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Generating document summary...</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Loading spinner while generating vote prediction */}
+          {isGeneratingVotePrediction && (
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
+              <div className="mobile-message-bubble">
+                <div className="flex items-start gap-3 p-3">
+                  <div className="flex-1 space-y-1">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Analyzing vote prediction...</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -785,21 +1139,21 @@ By the end of your answers, the staffer should feel confident that they understa
                   : "Select a file to query documents..." 
                 : "Type a message..."
           }
-          disabled={false}
+          disabled={isQuerying || isGeneratingBill || isGeneratingSummary || isGeneratingVotePrediction}
         />
         
         {/* Main Send/Generate Button */}
-        {isConnected && newMessage.trim() && (
+        {isConnected && (newMessage.trim() || isQuerying || isGeneratingBill || isGeneratingSummary || isGeneratingVotePrediction) && (
           <Button
             className={cn(
               "aspect-square rounded-full animate-in fade-in slide-in-from-right-4 duration-300 flex-shrink-0",
               isPdfMode && "bg-blue-500 hover:bg-blue-600"
             )}
             type="submit"
-            disabled={false}
+            disabled={isQuerying || isGeneratingBill || isGeneratingSummary || isGeneratingVotePrediction}
             title={isPdfMode ? "Generate congressional bill" : "Send message"}
           >
-            {isGeneratingBill ? (
+            {isGeneratingBill || isGeneratingSummary || isGeneratingVotePrediction ? (
               <Loader2 className="size-4 animate-spin" />
             ) : isPdfMode ? (
               <FileText className="size-4" />
@@ -820,14 +1174,34 @@ By the end of your answers, the staffer should feel confident that they understa
                 "aspect-square rounded-full flex-shrink-0 transition-all duration-300",
                 "bg-gray-100 hover:bg-gray-200 dark:bg-gray-900 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400"
               )}
-              disabled={!isConnected || isQuerying || isGeneratingBill}
+              disabled={!isConnected || isQuerying || isGeneratingBill || isGeneratingSummary || isGeneratingVotePrediction}
               title="More features"
             >
               <ChevronDown className="size-4" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel>Options</DropdownMenuLabel>
+            <DropdownMenuLabel>Document Analysis</DropdownMenuLabel>
+            <DropdownMenuItem
+              onClick={generateSummary}
+              className="flex items-center gap-2 cursor-pointer"
+              disabled={!selectedFileName || isQuerying || isGeneratingBill || isGeneratingSummary || isGeneratingVotePrediction}
+            >
+              <FileCheck className="size-4" />
+              <span>Generate Summary</span>
+            </DropdownMenuItem>
+            
+            <DropdownMenuItem
+              onClick={generateVotePrediction}
+              className="flex items-center gap-2 cursor-pointer"
+              disabled={!selectedFileName || isQuerying || isGeneratingBill || isGeneratingSummary || isGeneratingVotePrediction}
+            >
+              <Vote className="size-4" />
+              <span>Vote Prediction</span>
+            </DropdownMenuItem>
+            
+            <DropdownMenuSeparator />
+            <DropdownMenuLabel>Content Creation</DropdownMenuLabel>
             <DropdownMenuItem
               onClick={handlePdfModeToggle}
               className={cn(

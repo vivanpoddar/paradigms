@@ -5,11 +5,12 @@ import { openai } from "@llamaindex/openai";
 export async function POST(request: NextRequest) {
   console.log('=== QUERY API CALLED ===');
   try {
-    const { query, fileName, messageHistory, multiModal = false } = await request.json();
+    const { query, fileName, messageHistory, multiModal = false, displayMessage } = await request.json();
     console.log('Received query:', query);
     console.log('Received fileName:', fileName);
     console.log('Received message history length:', messageHistory?.length || 0);
     console.log('Multi-modal enabled:', multiModal);
+    console.log('Display message:', displayMessage);
 
     if (!query || typeof query !== 'string') {
       return NextResponse.json(
@@ -131,7 +132,11 @@ export async function POST(request: NextRequest) {
           }
           
           // Send final chunk to indicate completion
-          const finalData = JSON.stringify({ content: '', done: true }) + '\n';
+          const finalData = JSON.stringify({ 
+            content: '', 
+            done: true, 
+            displayMessage: displayMessage || null 
+          }) + '\n';
           controller.enqueue(new TextEncoder().encode(finalData));
           controller.close();
         } catch (error) {
