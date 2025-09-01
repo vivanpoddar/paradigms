@@ -333,7 +333,7 @@ export default function Home() {
                   </div>
                 )}
                 {!isChatCollapsed && (
-                  <div className="flex-1 max-h-[89vh] overflow-y-scroll">
+                  <div className="flex-1 max-h-[91vh] overflow-y-scroll">
                     <RealtimeChat
                       ref={chatRef}
                       roomName="general-chat" 
