@@ -312,7 +312,6 @@ export async function POST(request: NextRequest) {
                                 extractedLines: pageLines
                             }
                         };
-
                         documents.push(document);
                     }
 
@@ -371,6 +370,10 @@ export async function POST(request: NextRequest) {
                         });
 
                         const data = (await response.json()) as MathpixResponse;
+                        // Save polling response data to a file for debugging
+                        const pollingDebugPath = join(`mathpix_polling.json`);
+                        await writeFile(pollingDebugPath, JSON.stringify(data, null, 2));
+                        console.log("Polling response data saved to:", pollingDebugPath);
 
                         if (data.status === "completed") {
                             return data; // Return the completed data
@@ -409,17 +412,12 @@ export async function POST(request: NextRequest) {
 
                 const result = await pollForCompletion(pdfId);
 
-                const lines = (result?.pages ?? []).flatMap((page, pageIndex) => {
-                    if (Array.isArray(page.lines)) {
-                        return page.lines.map((line: any) => {
-                            if (line && line.text !== "" && line.text != null && line.type != "table") {
-                                return `Text at page ${pageIndex + 1}: ${line.text}`;
-                            }
-                            return undefined;
-                        }).filter(Boolean);
-                    }
-                    return [];
-                }).join('\n')
+                const lines = Array.isArray(result?.pages) && result.pages.length > 0
+                    ? result.pages[0].lines
+                        .filter((line: any) => line && line.text !== "" && line.text != null && line.type != "table")
+                        .map((line: any) => `Text at page 1: ${line.text}`)
+                        .join('\n')
+                    : '';
 
                 //console.log(result)
                 if (result) {
@@ -462,12 +460,12 @@ export async function POST(request: NextRequest) {
                         let parsedJsonPath: string;
 
                         const systemPrompt = `
-            You are a helpful assistant.Your task is to analyze a list of items extracted from a math homework document of a school student. Follow these steps: \n
-            1. ** Determine Joining **: First, decide if any items should be joined together because they are part of the same logical statement or context (e.g., split across multiple lines). If so, merge them into a group. \n
-            Do not treat answer choices (e.g., A, B, C, D) as separate groups by themselves. Instead, always include answer choices in the same group as their corresponding question.\n
-            2. **Categorize Each Item**: For each group, determine its category:\n
-              - **Q**: The group requires input or action from the reader, most commonly a question.\n
-              - **R**: The group is relevant information needed to solve a question but does not itself require action. \n
+            You are a helpful assistant.Your task is to analyze a list of items extracted from a math homework document of a school student. Follow these steps: 
+            1. ** Determine Joining **: First, decide if any items should be joined together because they are part of the same logical statement or context (e.g., split across multiple lines). If so, merge them into a group.
+            Do not treat answer choices (e.g., A, B, C, D) as separate groups by themselves. Instead, always include answer choices in the same group as their corresponding question. Ignore underscore or hyphen lines (e.g., "____" or "----") that are used for writing answers, as they do not contain meaningful content.
+            2. **Categorize Each Item**: For each group, determine its category:
+              - **Q**: The group requires input or action from the reader, most commonly a question.
+              - **R**: The group is relevant information needed to solve a question but does not itself require action.
               - **I**: The group is irrelevant or does not contribute to solving the problem.           
             `;
 
@@ -533,7 +531,7 @@ export async function POST(request: NextRequest) {
                             // Extract pages and joinedGroups
                             const joinedGroups = llmData;
 
-                            const mergeBoundingBoxes = (regions: any) => {
+                            const mergeBoundingBoxes = (regions: any, page_width: number, page_height: number) => {
                                 if (!regions || regions.length === 0) return null;
 
                                 let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
@@ -551,10 +549,10 @@ export async function POST(request: NextRequest) {
                                 });
 
                                 return {
-                                    top_left_x: minX,
-                                    top_left_y: minY,
-                                    width: maxX - minX,
-                                    height: maxY - minY
+                                    top_left_x: minX / page_width,
+                                    top_left_y: minY / page_height,
+                                    width: (maxX - minX) / page_width,
+                                    height: (maxY - minY) / page_height
                                 };
                             };
 
@@ -577,7 +575,7 @@ export async function POST(request: NextRequest) {
                                         "text": mergedText.trim(),
                                         "type": type,
                                         "textType": textType,
-                                        "region": mergeBoundingBoxes(regionsArray),
+                                        "region": mergeBoundingBoxes(regionsArray, parsedData.pages?.[pageIndex]?.page_width || 0, parsedData.pages?.[pageIndex]?.page_height || 0),
                                         "line": line,
                                     });
                                 })

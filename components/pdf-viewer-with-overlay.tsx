@@ -29,6 +29,8 @@ interface BoundingBox {
     height: number;
     text: string;
     pageNumber: number;
+    pageWidth: number;
+    pageHeight: number;
 }
 
 // Types for annotation data

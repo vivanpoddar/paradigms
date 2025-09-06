@@ -121,7 +121,7 @@ export async function POST(request: NextRequest) {
             try {
             // Authenticate using service account
             const auth = new GoogleAuth({
-                keyFile: '/Users/vpoddar/Documents/learnai/serviceaccount.json',
+              keyFile: '/Users/vpoddar/Documents/paradigms/serviceaccount.json',
                 scopes: 'https://www.googleapis.com/auth/cloud-platform'
             });
             const client = await auth.getClient();
@@ -259,8 +259,22 @@ export async function POST(request: NextRequest) {
         // Process document with Google Document AI first
         const documentAIResult = await processWithDocumentAI();
 
-        let parsedJson: { page: { lines: any[]; pageWidth: any; pageHeight: any }[] } = {
-            page: []
+      type ParsedLine = {
+        text: string;
+        type: string;
+        textType: string;
+        region: any;
+        line: string;
+      };
+
+        type ParsedPage = {
+          lines: ParsedLine[];
+          pageWidth: number | undefined;
+          pageHeight: number | undefined;
+        };
+
+        const parsedJson: { page: ParsedPage[] } = {
+          page: []
         };
 
         const llmData = documentAIResult.document
@@ -271,8 +285,10 @@ export async function POST(request: NextRequest) {
         })
 
         entities.forEach((page:any, pageIndex:any) => {
-            const pageWidth = parsedJson.page[pageIndex].pageWidth;
-            const pageHeight = parsedJson.page[pageIndex].pageHeight;
+            const width = parsedJson.page[pageIndex].pageWidth;
+            const height = parsedJson.page[pageIndex].pageHeight;
+
+            parsedJson.page.push({ lines: [], pageWidth: width, pageHeight: height});
             page.properties.forEach((entity:any, entityIndex:any) => {
                 const vertices = entity.pageAnchor.pageRefs[0].boundingPoly.normalizedVertices;
                 const topLeft = vertices[0];
@@ -284,10 +300,10 @@ export async function POST(request: NextRequest) {
                     "type": "text",
                     "textType": "Q",
                     "region": {
-                        "top_left_x": Math.round(topLeft.x * pageWidth),
-                        "top_left_y": Math.round(topLeft.y * pageHeight),
-                        "width": Math.round((bottomRight.x - topLeft.x) * pageWidth),
-                        "height": Math.round((bottomRight.y - topLeft.y) * pageHeight)
+                        "top_left_x": topLeft.x,
+                        "top_left_y": topLeft.y,
+                        "width": bottomRight.x - topLeft.x,
+                        "height": bottomRight.y - topLeft.y
                     },
                     "line": entityIndex,
                 });

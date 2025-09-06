@@ -11,6 +11,8 @@ interface BoundingBox {
     height: number;
     text: string;
     pageNumber: number;
+    pageWidth: number;
+    pageHeight: number;
 }
 
 interface PdfBoundingBoxesProps {
@@ -26,58 +28,60 @@ const BoundingBoxLayer: React.FC<PdfBoundingBoxesProps> = ({ apiBoundingBoxes, r
     <div>
         {apiBoundingBoxes
             .filter((box) => box.pageNumber - 1 === renderPageProps.pageIndex)
-            .map((box) => (
-                <div
-                    key={box.id}
-                    className="absolute border-2 border-blue-500 bg-blue-500/10 pointer-events-auto cursor-pointer hover:bg-blue-500/20 transition-colors"
-                    style={{
-                        position: 'absolute',
-                        left: `${(box.x / renderPageProps.width) * 26}%`,
-                        top: `${(box.y / renderPageProps.height) * 26}%`,
-                        width: `${(box.width / renderPageProps.width) * 26}%`,
-                        height: `${(box.height / renderPageProps.height) * 26}%`,
-                        zIndex: 1000,
-                    }}
-                    title={box.text}
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        const rect = e.currentTarget.getBoundingClientRect();
-                        const position = {
-                            x: rect.right + 10,
-                            y: rect.top + rect.height / 2
-                        };
-                        setSelectedBoxes(prev => {
-                            const newMap = new Map(prev);
-                            newMap.set(box.id, {
-                                box,
-                                position,
-                                isVisible: false
-                            });
-                            return newMap;
-                        });
-                        setFrontTooltipId(box.id);
-                        setTimeout(() => {
+            .map((box) => {
+                return (
+                    <div
+                        key={box.id}
+                        className="absolute border-2 border-blue-500 bg-blue-500/10 pointer-events-auto cursor-pointer hover:bg-blue-500/20 transition-colors"
+                        style={{
+                            position: 'absolute',
+                            left: `${box.x*100}%`,
+                            top: `${box.y*100}%`,
+                            width: `${box.width*100}%`,
+                            height: `${box.height*100}%`,
+                            zIndex: 1000,
+                        }}
+                        title={box.text}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            const position = {
+                                x: rect.right + 10,
+                                y: rect.top + rect.height / 2
+                            };
                             setSelectedBoxes(prev => {
                                 const newMap = new Map(prev);
-                                const tooltip = newMap.get(box.id);
-                                if (tooltip) {
-                                    newMap.set(box.id, { ...tooltip, isVisible: true });
-                                }
+                                newMap.set(box.id, {
+                                    box,
+                                    position,
+                                    isVisible: false
+                                });
                                 return newMap;
                             });
-                        }, 10);
-                    }}
-                >
-                    {/* Render LaTeX preview on hover or always, as desired */}
-                    <div className="absolute left-0 top-full mt-2 bg-white border border-gray-300 rounded shadow-lg p-2 z-50 min-w-[120px] max-w-xs text-xs pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
-                        {/\$.*\$/.test(box.text) ? (
-                            <InlineMath math={box.text.replace(/\$/g, '')} />
-                        ) : (
-                            <span>{box.text}</span>
-                        )}
+                            setFrontTooltipId(box.id);
+                            setTimeout(() => {
+                                setSelectedBoxes(prev => {
+                                    const newMap = new Map(prev);
+                                    const tooltip = newMap.get(box.id);
+                                    if (tooltip) {
+                                        newMap.set(box.id, { ...tooltip, isVisible: true });
+                                    }
+                                    return newMap;
+                                });
+                            }, 10);
+                        }}
+                    >
+                        {/* Render LaTeX preview on hover or always, as desired */}
+                        <div className="absolute left-0 top-full mt-2 bg-white border border-gray-300 rounded shadow-lg p-2 z-50 min-w-[120px] max-w-xs text-xs pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
+                            {/\$.*\$/.test(box.text) ? (
+                                <InlineMath math={box.text.replace(/\$/g, '')} />
+                            ) : (
+                                <span>{box.text}</span>
+                            )}
+                        </div>
                     </div>
-                </div>
-            ))}
+                );
+            })}
     </div>
 );
 

@@ -1,0 +1,1797 @@
+{
+  "pages": [
+    {
+      "image_id": "2025_09_06_16f5a93badab4fd048d8g-1",
+      "page": 1,
+      "lines": [
+        {
+          "cnt": [
+            [
+              610,
+              271
+            ],
+            [
+              1553,
+              271
+            ],
+            [
+              1553,
+              320
+            ],
+            [
+              610,
+              320
+            ]
+          ],
+          "region": {
+            "top_left_x": 609,
+            "top_left_y": 271,
+            "width": 945,
+            "height": 49
+          },
+          "line": 1,
+          "column": 0,
+          "font_size": 35,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "d82236b6c2814767a852cb0058e6a4aa",
+          "type": "text",
+          "conversion_output": true,
+          "text": "Math 499 - Introduction to Proof - Practice Exam 2",
+          "text_display": "Math 499 - Introduction to Proof - Practice Exam 2",
+          "confidence": 1,
+          "confidence_rate": 1
+        },
+        {
+          "cnt": [
+            [
+              390,
+              398
+            ],
+            [
+              1596,
+              398
+            ],
+            [
+              1596,
+              447
+            ],
+            [
+              390,
+              447
+            ]
+          ],
+          "region": {
+            "top_left_x": 390,
+            "top_left_y": 398,
+            "width": 1207,
+            "height": 50
+          },
+          "line": 2,
+          "column": 0,
+          "font_size": 35,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "bbdd6a66f0e94e28933d68d3501bcec8",
+          "type": "text",
+          "conversion_output": true,
+          "text": "- No notes, books, friends, or calculators are allowed on this exam.",
+          "text_display": "\n- No notes, books, friends, or calculators are allowed on this exam.",
+          "confidence": 1,
+          "confidence_rate": 1
+        },
+        {
+          "cnt": [
+            [
+              390,
+              447
+            ],
+            [
+              1225,
+              447
+            ],
+            [
+              1225,
+              496
+            ],
+            [
+              390,
+              496
+            ]
+          ],
+          "region": {
+            "top_left_x": 390,
+            "top_left_y": 447,
+            "width": 836,
+            "height": 50
+          },
+          "line": 3,
+          "column": 0,
+          "font_size": 35,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "808e1f4624384053b2d823fcd6891d53",
+          "type": "text",
+          "conversion_output": true,
+          "text": "- You have 50 minutes to complete this exam.",
+          "text_display": "\n- You have 50 minutes to complete this exam.",
+          "confidence": 1,
+          "confidence_rate": 1
+        },
+        {
+          "cnt": [
+            [
+              390,
+              493
+            ],
+            [
+              1870,
+              493
+            ],
+            [
+              1870,
+              545
+            ],
+            [
+              390,
+              545
+            ]
+          ],
+          "region": {
+            "top_left_x": 390,
+            "top_left_y": 493,
+            "width": 1481,
+            "height": 52
+          },
+          "line": 4,
+          "column": 0,
+          "font_size": 35,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "31f9a33d1be14554b013b99cd8a87ab4",
+          "type": "text",
+          "conversion_output": true,
+          "text": "- Write clear and complete sentences for your proofs, although you may use the",
+          "text_display": "\n- Write clear and complete sentences for your proofs, although you may use the",
+          "confidence": 1,
+          "confidence_rate": 1
+        },
+        {
+          "cnt": [
+            [
+              423,
+              594
+            ],
+            [
+              423,
+              545
+            ],
+            [
+              1049,
+              545
+            ],
+            [
+              1049,
+              594
+            ]
+          ],
+          "region": {
+            "top_left_x": 422,
+            "top_left_y": 544,
+            "width": 627,
+            "height": 50
+          },
+          "line": 5,
+          "column": 0,
+          "font_size": 35,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "add37eff61e44274a30f3cdeb1431edc",
+          "type": "text",
+          "conversion_output": true,
+          "text": "symbols $\\forall, \\exists, \\exists, \\Rightarrow, \\Leftrightarrow$ if you like.",
+          "text_display": " symbols $\\forall, \\exists, \\exists, \\Rightarrow, \\Leftrightarrow$ if you like.",
+          "confidence": 0.83349609375,
+          "confidence_rate": 0.9952186707171715
+        },
+        {
+          "cnt": [
+            [
+              385,
+              591
+            ],
+            [
+              1870,
+              591
+            ],
+            [
+              1870,
+              642
+            ],
+            [
+              385,
+              642
+            ]
+          ],
+          "region": {
+            "top_left_x": 384,
+            "top_left_y": 590,
+            "width": 1487,
+            "height": 53
+          },
+          "line": 6,
+          "column": 0,
+          "font_size": 35,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "fe6aed11e42e4850be05e68015387100",
+          "type": "text",
+          "conversion_output": true,
+          "text": "- There will be 8 problems each worth 10 points each. One problem for each of the",
+          "text_display": "\n- There will be 8 problems each worth 10 points each. One problem for each of the",
+          "confidence": 0.9990234375,
+          "confidence_rate": 0.99998938006022
+        },
+        {
+          "cnt": [
+            [
+              423,
+              640
+            ],
+            [
+              1870,
+              640
+            ],
+            [
+              1870,
+              691
+            ],
+            [
+              423,
+              691
+            ]
+          ],
+          "region": {
+            "top_left_x": 422,
+            "top_left_y": 639,
+            "width": 1449,
+            "height": 53
+          },
+          "line": 7,
+          "column": 0,
+          "font_size": 35,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "54f5d5e1004d4d4498c683fe00751e48",
+          "type": "text",
+          "conversion_output": true,
+          "text": "8 types of proofs below. I will count the best 6 scores from your work on these",
+          "text_display": " 8 types of proofs below. I will count the best 6 scores from your work on these",
+          "confidence": 0.99853515625,
+          "confidence_rate": 0.999982954590827
+        },
+        {
+          "cnt": [
+            [
+              426,
+              740
+            ],
+            [
+              426,
+              688
+            ],
+            [
+              1022,
+              688
+            ],
+            [
+              1022,
+              740
+            ]
+          ],
+          "region": {
+            "top_left_x": 425,
+            "top_left_y": 688,
+            "width": 597,
+            "height": 52
+          },
+          "line": 8,
+          "column": 0,
+          "font_size": 35,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "2ebf3b58b67142bd80533ec35ddb05b0",
+          "type": "text",
+          "conversion_output": true,
+          "text": "problems for a total of 60 points.",
+          "text_display": " problems for a total of 60 points.",
+          "confidence": 1,
+          "confidence_rate": 1
+        },
+        {
+          "cnt": [
+            [
+              390,
+              737
+            ],
+            [
+              1450,
+              737
+            ],
+            [
+              1450,
+              789
+            ],
+            [
+              390,
+              789
+            ]
+          ],
+          "region": {
+            "top_left_x": 390,
+            "top_left_y": 737,
+            "width": 1061,
+            "height": 52
+          },
+          "line": 9,
+          "column": 0,
+          "font_size": 35,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "fba3784ac9a7484b986c7e0ff5be1032",
+          "type": "text",
+          "conversion_output": true,
+          "text": "- Additional problems count as extra credit, 2 points each.",
+          "text_display": "\n- Additional problems count as extra credit, 2 points each.",
+          "confidence": 1,
+          "confidence_rate": 1
+        },
+        {
+          "cnt": [
+            [
+              390,
+              786
+            ],
+            [
+              1390,
+              786
+            ],
+            [
+              1390,
+              838
+            ],
+            [
+              390,
+              838
+            ]
+          ],
+          "region": {
+            "top_left_x": 390,
+            "top_left_y": 786,
+            "width": 1001,
+            "height": 52
+          },
+          "line": 10,
+          "column": 0,
+          "font_size": 35,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "144fffab30044fdc8a91757ca31201df",
+          "type": "text",
+          "conversion_output": true,
+          "text": "- For each problem, use the suggested method of proof.",
+          "text_display": "\n- For each problem, use the suggested method of proof.",
+          "confidence": 1,
+          "confidence_rate": 1
+        },
+        {
+          "cnt": [
+            [
+              390,
+              835
+            ],
+            [
+              1868,
+              835
+            ],
+            [
+              1868,
+              884
+            ],
+            [
+              390,
+              884
+            ]
+          ],
+          "region": {
+            "top_left_x": 390,
+            "top_left_y": 834,
+            "width": 1478,
+            "height": 50
+          },
+          "line": 11,
+          "column": 0,
+          "font_size": 35,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "e0a1936f6d504a43b50ae97a59610f92",
+          "type": "text",
+          "conversion_output": true,
+          "text": "- Recall $\\mathbb{R}=$ reals, $\\mathbb{Q}=$ rationals, $\\mathbb{Z}=$ integers, $\\mathbb{N}=$ natural numbers, $\\mathbb{E}=$ evens,",
+          "text_display": "\n- Recall $\\mathbb{R}=$ reals, $\\mathbb{Q}=$ rationals, $\\mathbb{Z}=$ integers, $\\mathbb{N}=$ natural numbers, $\\mathbb{E}=$ evens,",
+          "confidence": 1,
+          "confidence_rate": 1
+        },
+        {
+          "cnt": [
+            [
+              426,
+              884
+            ],
+            [
+              618,
+              884
+            ],
+            [
+              618,
+              927
+            ],
+            [
+              426,
+              927
+            ]
+          ],
+          "region": {
+            "top_left_x": 425,
+            "top_left_y": 883,
+            "width": 193,
+            "height": 44
+          },
+          "line": 12,
+          "column": 0,
+          "font_size": 35,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "d9293595c24040c888d652afa1225d28",
+          "type": "text",
+          "conversion_output": true,
+          "text": "$\\mathbb{O}=$ odds.",
+          "text_display": " $\\mathbb{O}=$ odds.",
+          "confidence": 0.7490234375,
+          "confidence_rate": 0.9809187299376281
+        },
+        {
+          "cnt": [
+            [
+              298,
+              1420
+            ],
+            [
+              1868,
+              1420
+            ],
+            [
+              1868,
+              1472
+            ],
+            [
+              298,
+              1472
+            ]
+          ],
+          "region": {
+            "top_left_x": 298,
+            "top_left_y": 1420,
+            "width": 1570,
+            "height": 52
+          },
+          "line": 13,
+          "column": 0,
+          "font_size": 35,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "712563bcd139417089f3de3961ff54a8",
+          "type": "text",
+          "conversion_output": true,
+          "text": "1. Direct Proof: If $x$ is even and $y$ is odd, then $3 x+5 y$ is odd. (Use only the definition",
+          "text_display": "\n1. Direct Proof: If $x$ is even and $y$ is odd, then $3 x+5 y$ is odd. (Use only the definition",
+          "confidence": 0.99951171875,
+          "confidence_rate": 0.9999951643631956
+        },
+        {
+          "cnt": [
+            [
+              342,
+              1469
+            ],
+            [
+              594,
+              1469
+            ],
+            [
+              594,
+              1521
+            ],
+            [
+              342,
+              1521
+            ]
+          ],
+          "region": {
+            "top_left_x": 341,
+            "top_left_y": 1469,
+            "width": 253,
+            "height": 52
+          },
+          "line": 14,
+          "column": 0,
+          "font_size": 35,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "b99892c24f6b42b79be0d26e8e2c376d",
+          "type": "text",
+          "conversion_output": true,
+          "text": "of even, odd.)",
+          "text_display": " of even, odd.)",
+          "confidence": 1,
+          "confidence_rate": 1
+        },
+        {
+          "cnt": [
+            [
+              293,
+              1889
+            ],
+            [
+              1870,
+              1889
+            ],
+            [
+              1870,
+              1946
+            ],
+            [
+              293,
+              1946
+            ]
+          ],
+          "region": {
+            "top_left_x": 292,
+            "top_left_y": 1889,
+            "width": 1579,
+            "height": 58
+          },
+          "line": 15,
+          "column": 0,
+          "font_size": 35,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "ac2e3e5a82454413b4b7f2bbfc360a30",
+          "type": "text",
+          "conversion_output": true,
+          "text": "2. Direct Proof: Suppose that $x, y \\in \\mathbb{R}$. If $(x+y)^{3}=x^{3}+y^{3}$, then $x=0$ or $y=0$ or",
+          "text_display": "\n2. Direct Proof: Suppose that $x, y \\in \\mathbb{R}$. If $(x+y)^{3}=x^{3}+y^{3}$, then $x=0$ or $y=0$ or",
+          "confidence": 0.9799900054931641,
+          "confidence_rate": 0.9998242510469971
+        },
+        {
+          "cnt": [
+            [
+              342,
+              1946
+            ],
+            [
+              493,
+              1946
+            ],
+            [
+              493,
+              1992
+            ],
+            [
+              342,
+              1992
+            ]
+          ],
+          "region": {
+            "top_left_x": 341,
+            "top_left_y": 1946,
+            "width": 153,
+            "height": 47
+          },
+          "line": 16,
+          "column": 0,
+          "font_size": 35,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "6666282ff9c040e3aa5a69e41496cff9",
+          "type": "text",
+          "conversion_output": true,
+          "text": "$x=-y$.",
+          "text_display": " $x=-y$.",
+          "confidence": 1,
+          "confidence_rate": 1
+        },
+        {
+          "cnt": [
+            [
+              293,
+              2418
+            ],
+            [
+              293,
+              2364
+            ],
+            [
+              1632,
+              2364
+            ],
+            [
+              1632,
+              2418
+            ]
+          ],
+          "region": {
+            "top_left_x": 292,
+            "top_left_y": 2363,
+            "width": 1340,
+            "height": 55
+          },
+          "line": 17,
+          "column": 0,
+          "font_size": 35,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "2723c65240514a83a0041a11e02deded",
+          "type": "text",
+          "conversion_output": true,
+          "text": "3. Direct Proof: Suppose that $a, b, d \\in \\mathbb{Z}$. If $d \\mid a$ and $d \\mid b$, then $d \\mid(a-2 b)$.",
+          "text_display": "\n3. Direct Proof: Suppose that $a, b, d \\in \\mathbb{Z}$. If $d \\mid a$ and $d \\mid b$, then $d \\mid(a-2 b)$.",
+          "confidence": 0.9985356330871582,
+          "confidence_rate": 0.9999840714296226
+        },
+        {
+          "cnt": [
+            [
+              1068,
+              2418
+            ],
+            [
+              1095,
+              2418
+            ],
+            [
+              1095,
+              2450
+            ],
+            [
+              1068,
+              2450
+            ]
+          ],
+          "region": {
+            "top_left_x": 1067,
+            "top_left_y": 2417,
+            "width": 29,
+            "height": 34
+          },
+          "line": 18,
+          "column": 0,
+          "font_size": 22,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "73bd7a2a753d40ce93005374b3647481",
+          "type": "page_info",
+          "conversion_output": false,
+          "text": "1",
+          "text_display": "",
+          "confidence": 1,
+          "confidence_rate": 1
+        }
+      ],
+      "page_height": 2750,
+      "page_width": 2125,
+      "languages_detected": []
+    },
+    {
+      "image_id": "2025_09_06_16f5a93badab4fd048d8g-2",
+      "page": 2,
+      "lines": [
+        {
+          "cnt": [
+            [
+              285,
+              195
+            ],
+            [
+              325,
+              195
+            ],
+            [
+              325,
+              233
+            ],
+            [
+              285,
+              233
+            ]
+          ],
+          "region": {
+            "top_left_x": 284,
+            "top_left_y": 195,
+            "width": 42,
+            "height": 39
+          },
+          "line": 1,
+          "column": 0,
+          "font_size": 28,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "2fb2706c13164417af81155143ce643e",
+          "type": "page_info",
+          "conversion_output": false,
+          "text": "2",
+          "text_display": "",
+          "confidence": 1,
+          "confidence_rate": 1
+        },
+        {
+          "cnt": [
+            [
+              293,
+              271
+            ],
+            [
+              1868,
+              271
+            ],
+            [
+              1868,
+              328
+            ],
+            [
+              293,
+              328
+            ]
+          ],
+          "region": {
+            "top_left_x": 292,
+            "top_left_y": 271,
+            "width": 1576,
+            "height": 57
+          },
+          "line": 2,
+          "column": 0,
+          "font_size": 35,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "6301d040a0b9490a9369d59860079482",
+          "type": "text",
+          "conversion_output": true,
+          "text": "4. Contrapositive Proof: Suppose that $x, y \\in \\mathbb{Z}$. If $\\left(x^{2}+1\\right)(y+1)$ is even, then $x$ is",
+          "text_display": "\n4. Contrapositive Proof: Suppose that $x, y \\in \\mathbb{Z}$. If $\\left(x^{2}+1\\right)(y+1)$ is even, then $x$ is",
+          "confidence": 0.91064453125,
+          "confidence_rate": 0.9990916491687548
+        },
+        {
+          "cnt": [
+            [
+              342,
+              320
+            ],
+            [
+              1686,
+              320
+            ],
+            [
+              1686,
+              377
+            ],
+            [
+              342,
+              377
+            ]
+          ],
+          "region": {
+            "top_left_x": 341,
+            "top_left_y": 319,
+            "width": 1345,
+            "height": 58
+          },
+          "line": 3,
+          "column": 0,
+          "font_size": 35,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "8ea1edb0c9534bf1bd8aa305f6865e10",
+          "type": "text",
+          "conversion_output": true,
+          "text": "odd or $y$ is odd. (You may assume standard properties of evens and odds.)",
+          "text_display": " odd or $y$ is odd. (You may assume standard properties of evens and odds.)",
+          "confidence": 1,
+          "confidence_rate": 1
+        },
+        {
+          "cnt": [
+            [
+              293,
+              867
+            ],
+            [
+              1870,
+              867
+            ],
+            [
+              1870,
+              924
+            ],
+            [
+              293,
+              924
+            ]
+          ],
+          "region": {
+            "top_left_x": 292,
+            "top_left_y": 867,
+            "width": 1579,
+            "height": 58
+          },
+          "line": 4,
+          "column": 0,
+          "font_size": 35,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "a2512d96a9514cc89a5b0d6fae838a03",
+          "type": "text",
+          "conversion_output": true,
+          "text": "5. Contrapositive Proof: If $x^{3}-2 x^{2}-1>0$ then $x>0$. (You may assume standard",
+          "text_display": "\n5. Contrapositive Proof: If $x^{3}-2 x^{2}-1>0$ then $x>0$. (You may assume standard",
+          "confidence": 1,
+          "confidence_rate": 1
+        },
+        {
+          "cnt": [
+            [
+              342,
+              919
+            ],
+            [
+              1027,
+              919
+            ],
+            [
+              1027,
+              970
+            ],
+            [
+              342,
+              970
+            ]
+          ],
+          "region": {
+            "top_left_x": 341,
+            "top_left_y": 918,
+            "width": 687,
+            "height": 53
+          },
+          "line": 5,
+          "column": 0,
+          "font_size": 35,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "df29304c19de42229db43867b73afebc",
+          "type": "text",
+          "conversion_output": true,
+          "text": "properties of positives and negatives.)",
+          "text_display": " properties of positives and negatives.)",
+          "confidence": 1,
+          "confidence_rate": 1
+        },
+        {
+          "cnt": [
+            [
+              293,
+              1464
+            ],
+            [
+              1870,
+              1464
+            ],
+            [
+              1870,
+              1523
+            ],
+            [
+              293,
+              1523
+            ]
+          ],
+          "region": {
+            "top_left_x": 292,
+            "top_left_y": 1463,
+            "width": 1579,
+            "height": 61
+          },
+          "line": 6,
+          "column": 0,
+          "font_size": 35,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "c45a470987514f438cf1f301db2f835f",
+          "type": "text",
+          "conversion_output": true,
+          "text": "6. Proof by Contradiction: Prove that $\\sqrt{21}$ is irrational. (You may assume that any",
+          "text_display": "\n6. Proof by Contradiction: Prove that $\\sqrt{21}$ is irrational. (You may assume that any",
+          "confidence": 0.99951171875,
+          "confidence_rate": 0.9999947483955306
+        },
+        {
+          "cnt": [
+            [
+              342,
+              1575
+            ],
+            [
+              342,
+              1518
+            ],
+            [
+              1125,
+              1518
+            ],
+            [
+              1125,
+              1575
+            ]
+          ],
+          "region": {
+            "top_left_x": 341,
+            "top_left_y": 1517,
+            "width": 784,
+            "height": 58
+          },
+          "line": 7,
+          "column": 0,
+          "font_size": 35,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "34b7cc4ea6084705980e02cedb02d644",
+          "type": "text",
+          "conversion_output": true,
+          "text": "rational can be expressed in reduced form.)",
+          "text_display": " rational can be expressed in reduced form.)",
+          "confidence": 1,
+          "confidence_rate": 1
+        },
+        {
+          "cnt": [
+            [
+              293,
+              2065
+            ],
+            [
+              1870,
+              2065
+            ],
+            [
+              1870,
+              2120
+            ],
+            [
+              293,
+              2120
+            ]
+          ],
+          "region": {
+            "top_left_x": 292,
+            "top_left_y": 2065,
+            "width": 1579,
+            "height": 55
+          },
+          "line": 8,
+          "column": 0,
+          "font_size": 35,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "ac38503fa30d43e881bf27d0b8fb4093",
+          "type": "text",
+          "conversion_output": true,
+          "text": "7. Proof by Contradiction: Prove that $2 \\pi+3$ is irrational. (You may assume that $\\pi$",
+          "text_display": "\n7. Proof by Contradiction: Prove that $2 \\pi+3$ is irrational. (You may assume that $\\pi$",
+          "confidence": 0.9951240979141858,
+          "confidence_rate": 0.9999438196462347
+        },
+        {
+          "cnt": [
+            [
+              342,
+              2117
+            ],
+            [
+              588,
+              2117
+            ],
+            [
+              588,
+              2171
+            ],
+            [
+              342,
+              2171
+            ]
+          ],
+          "region": {
+            "top_left_x": 341,
+            "top_left_y": 2116,
+            "width": 248,
+            "height": 56
+          },
+          "line": 9,
+          "column": 0,
+          "font_size": 35,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "f469600190804510a080c77a0cd1a822",
+          "type": "text",
+          "conversion_output": true,
+          "text": "is irrational.)",
+          "text_display": " is irrational.)",
+          "confidence": 1,
+          "confidence_rate": 1
+        }
+      ],
+      "page_height": 2750,
+      "page_width": 2125,
+      "languages_detected": []
+    },
+    {
+      "image_id": "2025_09_06_16f5a93badab4fd048d8g-3",
+      "page": 3,
+      "lines": [
+        {
+          "cnt": [
+            [
+              1838,
+              195
+            ],
+            [
+              1881,
+              195
+            ],
+            [
+              1881,
+              239
+            ],
+            [
+              1838,
+              239
+            ]
+          ],
+          "region": {
+            "top_left_x": 1837,
+            "top_left_y": 195,
+            "width": 45,
+            "height": 44
+          },
+          "line": 1,
+          "column": 0,
+          "font_size": 28,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "92c794413c9540c7adda2876ef884969",
+          "type": "page_info",
+          "conversion_output": false,
+          "text": "3",
+          "text_display": "",
+          "confidence": 1,
+          "confidence_rate": 1
+        },
+        {
+          "cnt": [
+            [
+              293,
+              271
+            ],
+            [
+              1873,
+              271
+            ],
+            [
+              1873,
+              328
+            ],
+            [
+              293,
+              328
+            ]
+          ],
+          "region": {
+            "top_left_x": 292,
+            "top_left_y": 271,
+            "width": 1581,
+            "height": 57
+          },
+          "line": 2,
+          "column": 0,
+          "font_size": 35,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "03b53f2ab962481e907e582350c21773",
+          "type": "text",
+          "conversion_output": true,
+          "text": "8. Biconditional Proof: Suppose that $a, b \\in \\mathbb{Z}$. Prove that $a+b$ is even if and only if",
+          "text_display": "\n8. Biconditional Proof: Suppose that $a, b \\in \\mathbb{Z}$. Prove that $a+b$ is even if and only if",
+          "confidence": 1,
+          "confidence_rate": 1
+        },
+        {
+          "cnt": [
+            [
+              342,
+              320
+            ],
+            [
+              1591,
+              320
+            ],
+            [
+              1591,
+              379
+            ],
+            [
+              342,
+              379
+            ]
+          ],
+          "region": {
+            "top_left_x": 341,
+            "top_left_y": 319,
+            "width": 1251,
+            "height": 61
+          },
+          "line": 3,
+          "column": 0,
+          "font_size": 35,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "b67f6df05dc04fe884d212b04afc4f1e",
+          "type": "text",
+          "conversion_output": true,
+          "text": "$a$ and $b$ have the same parity (that is both are even or both are odd).",
+          "text_display": " $a$ and $b$ have the same parity (that is both are even or both are odd).",
+          "confidence": 1,
+          "confidence_rate": 1
+        },
+        {
+          "cnt": [
+            [
+              290,
+              862
+            ],
+            [
+              1868,
+              862
+            ],
+            [
+              1868,
+              924
+            ],
+            [
+              290,
+              924
+            ]
+          ],
+          "region": {
+            "top_left_x": 290,
+            "top_left_y": 861,
+            "width": 1578,
+            "height": 64
+          },
+          "line": 4,
+          "column": 0,
+          "font_size": 35,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "e006b87508f448bfaa86677d4c949a43",
+          "type": "text",
+          "conversion_output": true,
+          "text": "9. Biconditional Proof: Let $a \\in \\mathbb{Z}$. Then $a^{3}+a^{2}+a$ is even if and only if $a$ is even.",
+          "text_display": "\n9. Biconditional Proof: Let $a \\in \\mathbb{Z}$. Then $a^{3}+a^{2}+a$ is even if and only if $a$ is even.",
+          "confidence": 1,
+          "confidence_rate": 1
+        },
+        {
+          "cnt": [
+            [
+              342,
+              916
+            ],
+            [
+              1385,
+              916
+            ],
+            [
+              1385,
+              973
+            ],
+            [
+              342,
+              973
+            ]
+          ],
+          "region": {
+            "top_left_x": 341,
+            "top_left_y": 916,
+            "width": 1045,
+            "height": 58
+          },
+          "line": 5,
+          "column": 0,
+          "font_size": 35,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "07c10f67f0694327961bcc13c72decfd",
+          "type": "text",
+          "conversion_output": true,
+          "text": "(You may assume standard properties of evens and odds.)",
+          "text_display": " (You may assume standard properties of evens and odds.)",
+          "confidence": 1,
+          "confidence_rate": 1
+        },
+        {
+          "cnt": [
+            [
+              271,
+              1464
+            ],
+            [
+              1775,
+              1464
+            ],
+            [
+              1775,
+              1526
+            ],
+            [
+              271,
+              1526
+            ]
+          ],
+          "region": {
+            "top_left_x": 271,
+            "top_left_y": 1463,
+            "width": 1505,
+            "height": 63
+          },
+          "line": 6,
+          "column": 0,
+          "font_size": 35,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "603ccf91e4af47e8a79f5ccd3a0d5013",
+          "type": "text",
+          "conversion_output": true,
+          "text": "10. Existence Proof: There exist integers $a, b, d$ such that $d \\mid a b$ but $d \\nmid a$ and $d \\nmid b$.",
+          "text_display": "\n10. Existence Proof: There exist integers $a, b, d$ such that $d \\mid a b$ but $d \\nmid a$ and $d \\nmid b$.",
+          "confidence": 1,
+          "confidence_rate": 1
+        },
+        {
+          "cnt": [
+            [
+              271,
+              2068
+            ],
+            [
+              271,
+              2011
+            ],
+            [
+              1868,
+              2011
+            ],
+            [
+              1868,
+              2068
+            ]
+          ],
+          "region": {
+            "top_left_x": 271,
+            "top_left_y": 2011,
+            "width": 1597,
+            "height": 58
+          },
+          "line": 7,
+          "column": 0,
+          "font_size": 35,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "74c576bfbddf4a07941ae87373c8e947",
+          "type": "text",
+          "conversion_output": true,
+          "text": "11. Existence Proof: Prove that there exist irrationals $x$ and $y$ such that $x^{y}$ is rational.",
+          "text_display": "\n11. Existence Proof: Prove that there exist irrationals $x$ and $y$ such that $x^{y}$ is rational.",
+          "confidence": 1,
+          "confidence_rate": 1
+        },
+        {
+          "cnt": [
+            [
+              342,
+              2060
+            ],
+            [
+              1385,
+              2060
+            ],
+            [
+              1385,
+              2139
+            ],
+            [
+              342,
+              2139
+            ]
+          ],
+          "region": {
+            "top_left_x": 341,
+            "top_left_y": 2059,
+            "width": 1045,
+            "height": 80
+          },
+          "line": 8,
+          "column": 0,
+          "font_size": 35,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "fb49afcf6fcb4ff5a44c3af6971c5957",
+          "type": "text",
+          "conversion_output": true,
+          "text": "(Hint: You may assume $\\sqrt{2}$ is irrational. Consider $\\sqrt{2}^{\\sqrt{2}}$.)",
+          "text_display": " (Hint: You may assume $\\sqrt{2}$ is irrational. Consider $\\sqrt{2}^{\\sqrt{2}}$.)",
+          "confidence": 0.99951171875,
+          "confidence_rate": 0.9999943209405666
+        }
+      ],
+      "page_height": 2750,
+      "page_width": 2125,
+      "languages_detected": []
+    },
+    {
+      "image_id": "2025_09_06_16f5a93badab4fd048d8g-4",
+      "page": 4,
+      "lines": [
+        {
+          "cnt": [
+            [
+              285,
+              195
+            ],
+            [
+              325,
+              195
+            ],
+            [
+              325,
+              233
+            ],
+            [
+              285,
+              233
+            ]
+          ],
+          "region": {
+            "top_left_x": 284,
+            "top_left_y": 195,
+            "width": 42,
+            "height": 39
+          },
+          "line": 1,
+          "column": 0,
+          "font_size": 28,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "e7d2b87927bd4a3094021d639997cb06",
+          "type": "page_info",
+          "conversion_output": false,
+          "text": "4",
+          "text_display": "",
+          "confidence": 1,
+          "confidence_rate": 1
+        },
+        {
+          "cnt": [
+            [
+              276,
+              274
+            ],
+            [
+              1545,
+              274
+            ],
+            [
+              1545,
+              328
+            ],
+            [
+              276,
+              328
+            ]
+          ],
+          "region": {
+            "top_left_x": 276,
+            "top_left_y": 273,
+            "width": 1269,
+            "height": 55
+          },
+          "line": 2,
+          "column": 0,
+          "font_size": 35,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "af379ab7aa7e43cf9d9ea3e6fb763f77",
+          "type": "text",
+          "conversion_output": true,
+          "text": "12. Disprove the Statement: For any sets $S, T,|S-T|=|S|-|T|$.",
+          "text_display": "\n12. Disprove the Statement: For any sets $S, T,|S-T|=|S|-|T|$.",
+          "confidence": 1,
+          "confidence_rate": 1
+        },
+        {
+          "cnt": [
+            [
+              276,
+              819
+            ],
+            [
+              1607,
+              819
+            ],
+            [
+              1607,
+              875
+            ],
+            [
+              276,
+              875
+            ]
+          ],
+          "region": {
+            "top_left_x": 276,
+            "top_left_y": 818,
+            "width": 1332,
+            "height": 58
+          },
+          "line": 3,
+          "column": 0,
+          "font_size": 35,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "26244ce21612415a81f3290014db46f8",
+          "type": "text",
+          "conversion_output": true,
+          "text": "13. Disprove the Statement: Let $x, c \\in \\mathbb{R}$. If $x^{2}+c x=0$, then $x=-c$.",
+          "text_display": "\n13. Disprove the Statement: Let $x, c \\in \\mathbb{R}$. If $x^{2}+c x=0$, then $x=-c$.",
+          "confidence": 1,
+          "confidence_rate": 1
+        },
+        {
+          "cnt": [
+            [
+              276,
+              1369
+            ],
+            [
+              1783,
+              1369
+            ],
+            [
+              1783,
+              1423
+            ],
+            [
+              276,
+              1423
+            ]
+          ],
+          "region": {
+            "top_left_x": 276,
+            "top_left_y": 1368,
+            "width": 1508,
+            "height": 55
+          },
+          "line": 4,
+          "column": 0,
+          "font_size": 35,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "2afc33be2cd54ccd934b34142bfe67c1",
+          "type": "text",
+          "conversion_output": true,
+          "text": "14. Proof Involving Sets: Prove that $\\{6 n: n \\in \\mathbb{Z}\\}=\\{2 n: n \\in \\mathbb{Z}\\} \\cap\\{3 n: n \\in \\mathbb{Z}\\}$.",
+          "text_display": "\n14. Proof Involving Sets: Prove that $\\{6 n: n \\in \\mathbb{Z}\\}=\\{2 n: n \\in \\mathbb{Z}\\} \\cap\\{3 n: n \\in \\mathbb{Z}\\}$.",
+          "confidence": 1,
+          "confidence_rate": 1
+        },
+        {
+          "cnt": [
+            [
+              276,
+              1916
+            ],
+            [
+              1613,
+              1916
+            ],
+            [
+              1613,
+              1976
+            ],
+            [
+              276,
+              1976
+            ]
+          ],
+          "region": {
+            "top_left_x": 276,
+            "top_left_y": 1916,
+            "width": 1337,
+            "height": 60
+          },
+          "line": 5,
+          "column": 0,
+          "font_size": 35,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "2d84c63de9b245479ba6040278fbf38b",
+          "type": "text",
+          "conversion_output": true,
+          "text": "15. Proof Involving Sets: Prove that for any sets $A, B, \\overline{A \\cup B}=\\bar{A} \\cap \\bar{B}$.",
+          "text_display": "\n15. Proof Involving Sets: Prove that for any sets $A, B, \\overline{A \\cup B}=\\bar{A} \\cap \\bar{B}$.",
+          "confidence": 1,
+          "confidence_rate": 1
+        }
+      ],
+      "page_height": 2750,
+      "page_width": 2125,
+      "languages_detected": []
+    },
+    {
+      "image_id": "2025_09_06_16f5a93badab4fd048d8g-5",
+      "page": 5,
+      "lines": [
+        {
+          "cnt": [
+            [
+              1838,
+              201
+            ],
+            [
+              1870,
+              201
+            ],
+            [
+              1870,
+              239
+            ],
+            [
+              1838,
+              239
+            ]
+          ],
+          "region": {
+            "top_left_x": 1837,
+            "top_left_y": 200,
+            "width": 34,
+            "height": 39
+          },
+          "line": 1,
+          "column": 0,
+          "font_size": 22,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "595eb634e1f8417fb8182b22ef4d8a53",
+          "type": "page_info",
+          "conversion_output": false,
+          "text": "5",
+          "text_display": "",
+          "confidence": 1,
+          "confidence_rate": 1
+        },
+        {
+          "cnt": [
+            [
+              274,
+              271
+            ],
+            [
+              1870,
+              271
+            ],
+            [
+              1870,
+              323
+            ],
+            [
+              274,
+              323
+            ]
+          ],
+          "region": {
+            "top_left_x": 273,
+            "top_left_y": 271,
+            "width": 1598,
+            "height": 52
+          },
+          "line": 2,
+          "column": 0,
+          "font_size": 35,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "e43e0356ba75465492324bf1b66b24d2",
+          "type": "text",
+          "conversion_output": true,
+          "text": "16. Mathematical Induction: Prove that for every $n \\in \\mathbb{N}$, we have",
+          "text_display": "\n16. Mathematical Induction: Prove that for every $n \\in \\mathbb{N}$, we have",
+          "confidence": 1,
+          "confidence_rate": 1
+        },
+        {
+          "cnt": [
+            [
+              342,
+              415
+            ],
+            [
+              342,
+              314
+            ],
+            [
+              989,
+              314
+            ],
+            [
+              989,
+              415
+            ]
+          ],
+          "region": {
+            "top_left_x": 341,
+            "top_left_y": 314,
+            "width": 649,
+            "height": 101
+          },
+          "line": 3,
+          "column": 0,
+          "font_size": 35,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "9acca445b2cd4d47a4bcbfcc50ce92c9",
+          "type": "text",
+          "conversion_output": true,
+          "text": "$1^{3}+2^{3}+3^{3}+\\cdots+n^{3}=\\left[\\frac{n(n+1)}{2}\\right]^{2}$.",
+          "text_display": " $1^{3}+2^{3}+3^{3}+\\cdots+n^{3}=\\left[\\frac{n(n+1)}{2}\\right]^{2}$.",
+          "confidence": 0.91796875,
+          "confidence_rate": 0.998684067671051
+        },
+        {
+          "cnt": [
+            [
+              271,
+              1144
+            ],
+            [
+              1759,
+              1144
+            ],
+            [
+              1759,
+              1206
+            ],
+            [
+              271,
+              1206
+            ]
+          ],
+          "region": {
+            "top_left_x": 271,
+            "top_left_y": 1143,
+            "width": 1489,
+            "height": 64
+          },
+          "line": 4,
+          "column": 0,
+          "font_size": 35,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "ff883b7d7aa9452eb11ad2a55db9405f",
+          "type": "text",
+          "conversion_output": true,
+          "text": "17. Mathematical Induction: If $n \\in \\mathbb{N}$, then $2^{1}+2^{2}+2^{3}+\\cdots+2^{n}=2^{n+1}-2$.",
+          "text_display": "\n17. Mathematical Induction: If $n \\in \\mathbb{N}$, then $2^{1}+2^{2}+2^{3}+\\cdots+2^{n}=2^{n+1}-2$.",
+          "confidence": 1,
+          "confidence_rate": 1
+        },
+        {
+          "cnt": [
+            [
+              271,
+              1946
+            ],
+            [
+              1873,
+              1946
+            ],
+            [
+              1873,
+              2003
+            ],
+            [
+              271,
+              2003
+            ]
+          ],
+          "region": {
+            "top_left_x": 271,
+            "top_left_y": 1946,
+            "width": 1602,
+            "height": 58
+          },
+          "line": 5,
+          "column": 0,
+          "font_size": 35,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "e97704b7514446afb68969322876a721",
+          "type": "text",
+          "conversion_output": true,
+          "text": "18. Mathematical Induction: Prove that for any natural number $n, n^{3}-n+6$ is a",
+          "text_display": "\n18. Mathematical Induction: Prove that for any natural number $n, n^{3}-n+6$ is a",
+          "confidence": 1,
+          "confidence_rate": 1
+        },
+        {
+          "cnt": [
+            [
+              342,
+              2000
+            ],
+            [
+              594,
+              2000
+            ],
+            [
+              594,
+              2052
+            ],
+            [
+              342,
+              2052
+            ]
+          ],
+          "region": {
+            "top_left_x": 341,
+            "top_left_y": 2000,
+            "width": 253,
+            "height": 52
+          },
+          "line": 6,
+          "column": 0,
+          "font_size": 35,
+          "is_printed": true,
+          "is_handwritten": false,
+          "id": "0233e825a9d446c796240a5c4c9f416e",
+          "type": "text",
+          "conversion_output": true,
+          "text": "multiple of 3 .",
+          "text_display": " multiple of 3 .",
+          "confidence": 0.99462890625,
+          "confidence_rate": 0.999765872197732
+        }
+      ],
+      "page_height": 2750,
+      "page_width": 2125,
+      "languages_detected": []
+    }
+  ]
+}
