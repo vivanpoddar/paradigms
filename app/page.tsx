@@ -152,202 +152,209 @@ export default function Home() {
   };
   
   return (
-    <main className="h-screen max-h-[100vh] overflow-hidden flex flex-col main-container mobile-viewport-fix">
-      <div className="flex-1 w-full flex flex-col">
+    <main className="h-screen flex flex-col overflow-hidden">
+      {/* Navbar - Fixed height */}
+      <div className="flex-shrink-0">
         <Navbar />
-        
-        {/* Mobile Navigation Buttons */}
-        {isMobile && (
-          <div className="flex justify-between items-center p-2 bg-muted/30 border-b lg:hidden flex-shrink-0">
-            <div className="flex gap-2">
-              <Button
-                variant={showMobileFileBrowser ? "default" : "ghost"}
-                size="sm"
-                onClick={handleMobileFileBrowserToggle}
-                className="flex items-center gap-2"
-              >
-                <FileText className="h-4 w-4" />
-                Files
-              </Button>
-              
-              {selectedFileName && selectedFileName.toLowerCase().endsWith('.pdf') && (
-                <button
-                  //variant={showMobilePdfViewer ? "default" : "ghost"}
-                  //size="sm"
-                  onClick={handleMobilePdfViewerToggle}
-                  className="flex items-center gap-2 text-sm"
-                >
-                  <FileIcon className="h-4 w-4" />
-                  View
-                </button>
-              )}
-            </div>
-            
-            <div className="text-xs text-center flex-1 px-4">
-              {selectedFileName ? (
-                <span className="font-medium truncate block">{selectedFileName}</span>
-              ) : (
-                <span className="text-muted-foreground">Select a document</span>
-              )}
-            </div>
-            
+      </div>
+      
+      {/* Mobile Navigation Buttons - Fixed height */}
+      {isMobile && (
+        <div className="flex-shrink-0 flex justify-between items-center p-2 bg-muted/30 border-b lg:hidden">
+          <div className="flex gap-2">
             <Button
-              variant="ghost"
+              variant={showMobileFileBrowser ? "default" : "ghost"}
               size="sm"
-              onClick={handleClearHistory}
-              disabled={isClearingHistory}
+              onClick={handleMobileFileBrowserToggle}
               className="flex items-center gap-2"
-              title="Clear chat history"
             >
-              <Trash2 className="h-4 w-4" />
+              <FileText className="h-4 w-4" />
+              Files
             </Button>
+            
+            {selectedFileName && selectedFileName.toLowerCase().endsWith('.pdf') && (
+              <button
+                //variant={showMobilePdfViewer ? "default" : "ghost"}
+                //size="sm"
+                onClick={handleMobilePdfViewerToggle}
+                className="flex items-center gap-2 text-sm"
+              >
+                <FileIcon className="h-4 w-4" />
+                View
+              </button>
+            )}
           </div>
-        )}
-        
-        <div className="flex-1 w-full min-h-0 flex relative">
-          {/* Mobile File Browser Overlay - Always rendered to avoid remounting */}
-          <div className={`absolute inset-0 z-20 bg-background mobile-overlay mobile-viewport-fix transition-transform duration-300 ${
-            isMobile && showMobileFileBrowser ? 'translate-x-0' : 'translate-x-full'
-          }`}>
-            <div className="h-full flex flex-col mobile-panel mobile-viewport-fix">
-              <div className="flex items-center justify-between p-2 border-b bg-muted/30 flex-shrink-0">
-                <h2 className="text-sm font-semibold">File Browser</h2>
+          
+          <div className="text-xs text-center flex-1 px-4">
+            {selectedFileName ? (
+              <span className="font-medium truncate block">{selectedFileName}</span>
+            ) : (
+              <span className="text-muted-foreground">Select a document to start</span>
+            )}
+          </div>
+          
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleClearHistory}
+            disabled={isClearingHistory}
+            className="flex items-center gap-2"
+            title="Clear chat history"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
+      
+      {/* Main content area - Takes remaining space */}
+      <div className="flex-1 min-h-0 flex relative overflow-hidden">
+        {/* Mobile File Browser Overlay - Always rendered to avoid remounting */}
+        <div className={`absolute inset-0 z-20 bg-background overflow-hidden transition-transform duration-300 ${
+          isMobile && showMobileFileBrowser ? 'translate-x-0' : 'translate-x-full'
+        }`}>
+          <div className="h-full flex flex-col overflow-hidden">
+            <div className="flex-shrink-0 flex items-center justify-between p-2 border-b bg-muted/30">
+              <h2 className="text-sm font-semibold">File Browser</h2>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowMobileFileBrowser(false)}
+                className="h-8 w-8 p-0"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="flex-1 min-h-0 overflow-auto">
+              <FileBrowser 
+                ref={fileBrowserRef}
+                forceShowFileList={true}
+                isVisible={isMobile && showMobileFileBrowser}
+                onFileSelect={(fileName) => {
+                  handleFileSelect(fileName);
+                  setShowMobileFileBrowser(false); // Close after selection
+                }} 
+                onExplain={handleExplain} 
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Mobile PDF Viewer Overlay */}
+        {isMobile && showMobilePdfViewer && selectedFileUrl && (
+          <div className="absolute inset-0 z-20 bg-background overflow-hidden">
+            <div className="h-full flex flex-col overflow-hidden">
+              <div className="flex-shrink-0 flex items-center justify-between p-2 border-b bg-muted/30">
+                <h2 className="text-sm font-semibold">PDF Viewer</h2>
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => setShowMobileFileBrowser(false)}
+                  onClick={() => setShowMobilePdfViewer(false)}
                   className="h-8 w-8 p-0"
                 >
                   <X className="h-4 w-4" />
                 </Button>
               </div>
-              <div className="flex-1 min-h-0 mobile-scroll">
-                <FileBrowser 
-                  ref={fileBrowserRef}
-                  forceShowFileList={true}
-                  isVisible={isMobile && showMobileFileBrowser}
-                  onFileSelect={(fileName) => {
-                    handleFileSelect(fileName);
-                    setShowMobileFileBrowser(false); // Close after selection
-                  }} 
-                  onExplain={handleExplain} 
-                />
+              <div className="flex-1 min-h-0 overflow-hidden">
+                <SimplePdfViewer pdfUrl={selectedFileUrl} />
               </div>
             </div>
           </div>
-
-          {/* Mobile PDF Viewer Overlay */}
-          {isMobile && showMobilePdfViewer && selectedFileUrl && (
-            <div className="absolute inset-0 z-20 bg-background mobile-overlay mobile-viewport-fix">
-              <div className="h-full flex flex-col mobile-panel mobile-viewport-fix">
-                <div className="flex items-center justify-between p-2 border-b bg-muted/30 flex-shrink-0">
-                  <h2 className="text-sm font-semibold">PDF Viewer</h2>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setShowMobilePdfViewer(false)}
-                    className="h-8 w-8 p-0"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-                <div className="flex-1 min-h-0 h-full overflow-hidden">
-                  <SimplePdfViewer pdfUrl={selectedFileUrl} />
-                </div>
-              </div>
+        )}
+        
+        {/* Mobile: Show Chat by Default */}
+        {isMobile ? (
+          <div className="w-full flex flex-col flex-1 min-h-0 overflow-hidden">
+            <div className="flex-1 min-h-0 overflow-hidden">
+              <RealtimeChat 
+                ref={chatRef}
+                roomName="general-chat" 
+                username={user?.email?.split('@')[0] || 'anonymous'}
+                enableDocumentQuery={true}
+                selectedFileName={selectedFileName}
+                onFileRefresh={handleFileRefresh}
+              />
             </div>
-          )}
-          
-          {/* Mobile: Show Chat by Default */}
-          {isMobile ? (
-            <div className="w-full flex flex-col flex-1 min-h-0 mobile-viewport-fix">
-              <div className="flex-1 max-h-[100vh] overflow-y-hidden min-h-0 mobile-chat-container overflow-hidden">
-                <RealtimeChat 
-                  ref={chatRef}
-                  roomName="general-chat" 
-                  username={user?.email?.split('@')[0] || 'anonymous'}
-                  enableDocumentQuery={true}
-                  selectedFileName={selectedFileName}
-                  onFileRefresh={handleFileRefresh}
-                />
-              </div>
-            </div>
-          ) : (
-            <>
-              {/* Desktop Layout - Main content area - File Browser */}
-              <div className={`flex-1 transition-all duration-300 ${isChatCollapsed ? 'w-full' : 'lg:w-3/5'} border-r border-border`}>
+          </div>
+        ) : (
+          <>
+            {/* Desktop Layout - Main content area - File Browser */}
+            <div className={`transition-all duration-300 ${isChatCollapsed ? 'flex-1' : 'flex-1 lg:w-3/5'} border-r border-border flex flex-col overflow-hidden`}>
+              <div className="flex-1 min-h-0 overflow-hidden">
                 <FileBrowser ref={fileBrowserRef} onFileSelect={handleFileSelect} onExplain={handleExplain} isVisible={!isMobile} />
               </div>
-              
-              {/* Desktop Layout - Side panel - Realtime Chat */}
-              <div className={`transition-all duration-300 flex flex-col ${isChatCollapsed ? 'w-12' : 'w-full lg:w-2/5'}`}>
-                  <div className={`bg-[#FF5100] dark:bg-[#702300] border-b border-border p-2 flex items-center ${isChatCollapsed ? 'justify-center' : 'justify-between'}`}>
-                  {!isChatCollapsed && (
-                    <div className="flex gap-2">
-                      <h2 className="text-sm font-semibold">AI Assistant</h2>
-                      <p className="text-sm text-muted-foreground">
-                        {selectedFileName ? (
-                          <><span className="font-medium">{selectedFileName}</span></>
-                        ) : (
-                          'Select a document to start chatting'
-                        )}
-                      </p>
-                    </div>
-                  )}
-                  <div className="flex items-center gap-2">
-                    {!isChatCollapsed && selectedFileName && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleClearHistory}
-                        disabled={isClearingHistory}
-                        className="h-5 w-5 p-0"
-                        title="Clear chat history"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    )}
+            </div>
+            
+            {/* Desktop Layout - Side panel - Realtime Chat */}
+            <div className={`transition-all duration-300 flex flex-col overflow-hidden ${isChatCollapsed ? 'w-12 flex-shrink-0' : 'flex-1 lg:w-2/5'}`}>
+              {/* Chat header - Fixed height */}
+              <div className={`flex-shrink-0 bg-[#FF5100] dark:bg-[#702300] border-b border-border p-2 flex items-center ${isChatCollapsed ? 'justify-center' : 'justify-between'}`}>
+                {!isChatCollapsed && (
+                  <div className="flex gap-2">
+                    <h2 className="text-sm font-semibold">AI Assistant</h2>
+                    <p className="text-sm text-muted-foreground">
+                      {selectedFileName ? (
+                        <><span className="font-medium">{selectedFileName}</span></>
+                      ) : (
+                        'Select a document to start chatting'
+                      )}
+                    </p>
+                  </div>
+                )}
+                <div className="flex items-center gap-2">
+                  {!isChatCollapsed && selectedFileName && (
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => setIsChatCollapsed(!isChatCollapsed)}
+                      onClick={handleClearHistory}
+                      disabled={isClearingHistory}
                       className="h-5 w-5 p-0"
-                      title={isChatCollapsed ? "Expand chat (Ctrl+B)" : "Collapse chat (Ctrl+B)"}
+                      title="Clear chat history"
                     >
-                      {isChatCollapsed ? <ChevronLeft className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                      <Trash2 className="h-3 w-3" />
                     </Button>
-                  </div>
-                </div>
-                {isChatCollapsed && (
-                  <div 
-                    className="flex-1 flex flex-col items-center justify-start pt-4 cursor-pointer hover:bg-muted/50 transition-colors"
-                    onClick={() => setIsChatCollapsed(false)}
-                    title="Click to expand chat (Ctrl+B)"
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setIsChatCollapsed(!isChatCollapsed)}
+                    className="h-5 w-5 p-0"
+                    title={isChatCollapsed ? "Expand chat (Ctrl+B)" : "Collapse chat (Ctrl+B)"}
                   >
-                    <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                      <MessageCircle className="h-5 w-5" />
-                      <div className="collapsed-panel-text">
-                        Chat
-                      </div>
+                    {isChatCollapsed ? <ChevronLeft className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                  </Button>
+                </div>
+              </div>
+              
+              {/* Chat content - Takes remaining space */}
+              {isChatCollapsed && (
+                <div 
+                  className="flex-1 flex flex-col items-center justify-start pt-4 cursor-pointer hover:bg-muted/50 transition-colors"
+                  onClick={() => setIsChatCollapsed(false)}
+                  title="Click to expand chat (Ctrl+B)"
+                >
+                  <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                    <MessageCircle className="h-5 w-5" />
+                    <div className="collapsed-panel-text">
+                      Chat
                     </div>
                   </div>
-                )}
-                {!isChatCollapsed && (
-                  <div className="flex-1 max-h-[91vh] overflow-y-scroll">
-                    <RealtimeChat
-                      ref={chatRef}
-                      roomName="general-chat" 
-                      username={user?.email?.split('@')[0] || 'anonymous'}
-                      enableDocumentQuery={true}
-                      selectedFileName={selectedFileName}
-                      onFileRefresh={handleFileRefresh}
-                    />
-                  </div>
-                )}
-              </div>
-            </>
-          )}
-        </div>
+                </div>
+              )}
+              {!isChatCollapsed && (
+                <div className="flex-1 min-h-0 overflow-hidden">
+                  <RealtimeChat
+                    ref={chatRef}
+                    roomName="general-chat" 
+                    username={user?.email?.split('@')[0] || 'anonymous'}
+                    enableDocumentQuery={true}
+                    selectedFileName={selectedFileName}
+                    onFileRefresh={handleFileRefresh}
+                  />
+                </div>
+              )}
+            </div>
+          </>
+        )}
       </div>
     </main>
   );
