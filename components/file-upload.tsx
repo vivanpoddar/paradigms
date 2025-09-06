@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Dropzone, DropzoneContent, DropzoneEmptyState } from "@/components/dropzone";
 import { useSupabaseUpload } from "@/hooks/use-supabase-upload";
 import { Label } from "@/components/ui/label";
@@ -8,6 +8,12 @@ import { Checkbox } from "@/components/ui/checkbox";
 
 export function FileUpload({ onUploadSuccess }: { onUploadSuccess?: () => void } = {}) {
   const [enableMathParsing, setEnableMathParsing] = useState(false);
+  const onUploadSuccessRef = useRef(onUploadSuccess);
+  
+  // Update ref when prop changes
+  useEffect(() => {
+    onUploadSuccessRef.current = onUploadSuccess;
+  }, [onUploadSuccess]);
   
   const parseMethod = enableMathParsing ? 'mparse' : 'nparse';
     
@@ -15,16 +21,16 @@ export function FileUpload({ onUploadSuccess }: { onUploadSuccess?: () => void }
     bucketName: 'documents', // You'll need to create this bucket in Supabase
     allowedMimeTypes: ['image/*', 'application/pdf', 'text/*'],
     maxFileSize: 5 * 1024 * 1024, // 5MB
-    maxFiles: 3,
+    maxFiles: 1,
     parseMethod,
   });
 
   // Call onUploadSuccess when files are successfully uploaded
   useEffect(() => {
-    if (uploadProps.isSuccess && onUploadSuccess) {
-      onUploadSuccess();
+    if (uploadProps.isSuccess && onUploadSuccessRef.current) {
+      onUploadSuccessRef.current();
     }
-  }, [uploadProps.isSuccess, onUploadSuccess]);
+  }, [uploadProps.isSuccess]); // Remove onUploadSuccess from dependencies
 
   return (
     <div className="space-y-4">
@@ -38,14 +44,8 @@ export function FileUpload({ onUploadSuccess }: { onUploadSuccess?: () => void }
           htmlFor="math-parsing"
           className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
         >
-          Enable math parsing (Mathpix OCR)
+          Select Math Recognition
         </Label>
-      </div>
-      <div className="text-xs text-muted-foreground">
-        {enableMathParsing 
-          ? "Uses Mathpix OCR for better mathematical content recognition" 
-          : "Uses Google Document AI (Gemini OCR) for general document parsing"
-        }
       </div>
       <Dropzone {...uploadProps}>
         <DropzoneEmptyState />

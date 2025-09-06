@@ -32,7 +32,13 @@ export const useFileManager = (): UseFileManagerReturn => {
 
   const loadFiles = useCallback(async (userUuid?: string) => {
     const targetUserId = userUuid || userId;
-    if (!targetUserId || loading) return;
+    if (!targetUserId) return;
+    
+    // Prevent multiple simultaneous loads
+    if (loading) {
+      console.log('Load already in progress, skipping...');
+      return;
+    }
     
     setLoading(true);
     try {
@@ -55,13 +61,13 @@ export const useFileManager = (): UseFileManagerReturn => {
     } finally {
       setLoading(false);
     }
-  }, [userId, loading]);
+  }, [userId]); // Remove loading from dependencies
 
   const refreshFiles = useCallback(async () => {
     if (userId) {
       await loadFiles(userId);
     }
-  }, [userId, loadFiles]);
+  }, [userId]); // Remove loadFiles from dependencies to prevent infinite loops
 
   const addNewFile = useCallback((newFile: FileItem) => {
     setFiles(prevFiles => {
