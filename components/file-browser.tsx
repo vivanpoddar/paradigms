@@ -235,7 +235,7 @@ export const FileBrowser = forwardRef<FileBrowserRef, FileBrowserProps>(({ onFil
             ? 'w-full'
             : isMobile && selectedFile 
               ? 'hidden' 
-              : 'w-full lg:w-2/5'
+              : 'w-full lg:w-1/4'
       }`}>
         <Card className="h-[95vh] overflow-y-scroll rounded-none border-0 flex flex-col">
             <CardHeader className="bg-[#FF5100] dark:bg-[#702300] border-b flex-shrink-0 p-1.5 sticky top-0 z-10">
@@ -388,10 +388,10 @@ export const FileBrowser = forwardRef<FileBrowserRef, FileBrowserProps>(({ onFil
         </Card>
       </div>
 
-      {/* Right Side - File Display - Hidden when forcing file list or on mobile */}
+      {/* Right Side - File Display - PDF Viewer takes remaining space */}
       <div className={`flex-1 flex flex-col ${
         forceShowFileList
-          ? 'hidden'
+          ? 'hidden lg:flex lg:w-3/4'
           : isFileListCollapsed 
             ? '' 
             : isMobile && selectedFile 
@@ -400,7 +400,7 @@ export const FileBrowser = forwardRef<FileBrowserRef, FileBrowserProps>(({ onFil
       }`}>
         <Card className="h-full rounded-none border-0 flex flex-col">
           <CardHeader className="bg-[#FF5100] dark:bg-[#702300] border-b flex-shrink-0 p-2">
-            <CardTitle className="text-sm flex items-center justify-between">
+            <CardTitle className="text-sm flex items-center justify-between overflow-scroll whitespace-nowrap ">
               <span>{selectedFile ? selectedFile.name : 'Select a file to view'}</span>
               {isMobile && selectedFile && !forceShowFileList && (
                 <Button
@@ -422,7 +422,7 @@ export const FileBrowser = forwardRef<FileBrowserRef, FileBrowserProps>(({ onFil
           <CardContent className="p-0 flex-1 flex flex-col">
             {selectedFile ? (
               <div className="flex-1 flex flex-col">
-                <div className="flex-1 mobile-pdf-container bg-white lg:h-[90vh] overflow-auto mobile-scroll">
+                <div className="flex-1 bg-white lg:h-[90vh] overflow-auto mobile-scroll">
                   {fileContent ? (
                     (selectedFile.metadata?.mimetype || '').startsWith('image/') ? (
                       <div className="p-2">
