@@ -902,7 +902,7 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
         </DropdownMenu>
 
         {/* Microphone Button */}
-        <Button
+        {/* <Button
           type="button"
           onClick={handleMicrophoneToggle}
           className={cn(
@@ -919,7 +919,7 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
           ) : (
             <Mic className="size-4" />
           )}
-        </Button>
+        </Button> */}
       </form>
     </div>
     </MathJaxContext>
