@@ -370,10 +370,6 @@ export async function POST(request: NextRequest) {
                         });
 
                         const data = (await response.json()) as MathpixResponse;
-                        // Save polling response data to a file for debugging
-                        const pollingDebugPath = join(`mathpix_polling.json`);
-                        await writeFile(pollingDebugPath, JSON.stringify(data, null, 2));
-                        console.log("Polling response data saved to:", pollingDebugPath);
 
                         if (data.status === "completed") {
                             return data; // Return the completed data

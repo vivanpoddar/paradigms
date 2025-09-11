@@ -32,7 +32,10 @@ export const useFileManager = (): UseFileManagerReturn => {
 
   const loadFiles = useCallback(async (userUuid?: string) => {
     const targetUserId = userUuid || userId;
-    if (!targetUserId) return;
+    if (!targetUserId) {
+      console.log('⚠️ No targetUserId available for loadFiles');
+      return;
+    }
     
     // Prevent multiple simultaneous loads
     if (loading) {
@@ -40,6 +43,7 @@ export const useFileManager = (): UseFileManagerReturn => {
       return;
     }
     
+    console.log('📁 Loading files for user:', targetUserId);
     setLoading(true);
     try {
       const { data, error } = await supabase.storage
@@ -50,24 +54,24 @@ export const useFileManager = (): UseFileManagerReturn => {
         });
 
       if (error) {
-        console.error('Error loading files:', error);
+        console.error('❌ Error loading files:', error);
       } else {
         const fileList = data || [];
         setFiles(fileList);
         console.log(`✅ Loaded ${fileList.length} files for user`);
       }
     } catch (error) {
-      console.error('Error loading files:', error);
+      console.error('❌ Error loading files:', error);
     } finally {
       setLoading(false);
     }
-  }, [userId]); // Remove loading from dependencies
+  }, [userId, loading]); // Include loading as dependency
 
   const refreshFiles = useCallback(async () => {
     if (userId) {
       await loadFiles(userId);
     }
-  }, [userId]); // Remove loadFiles from dependencies to prevent infinite loops
+  }, [userId, loadFiles]); // Include loadFiles as dependency
 
   const addNewFile = useCallback((newFile: FileItem) => {
     setFiles(prevFiles => {
