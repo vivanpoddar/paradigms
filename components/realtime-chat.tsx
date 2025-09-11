@@ -172,6 +172,9 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
       
       setMessages(prev => [...prev, successMessage])
       
+      // Scroll to bottom to show success message
+      setTimeout(() => scrollToBottom(), 100)
+      
       // Refresh the file list to show the new worksheet
       if (onFileRefresh) {
         console.log('Refreshing file list after worksheet creation...');
@@ -194,6 +197,9 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
       }
       
       setMessages(prev => [...prev, errorMessage])
+      
+      // Scroll to bottom to show error message  
+      setTimeout(() => scrollToBottom(), 100)
     } finally {
       setIsGeneratingPdf(false)
       setIsPdfMode(false) // Reset PDF mode after generation
@@ -323,9 +329,12 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
   }, [allMessages, onMessage])
 
   useEffect(() => {
-    // Scroll to bottom whenever messages change
-    scrollToBottom()
-  }, [allMessages, scrollToBottom])
+    // Only scroll to bottom when not streaming or when streaming has finished
+    // This prevents constant scrolling during streaming updates
+    if (!streamingMessage) {
+      scrollToBottom()
+    }
+  }, [allMessages, scrollToBottom, streamingMessage])
 
   // Save new conversations to database (query + response pairs)
   const saveConversationToHistory = useCallback(async (query: string, response: string, metadata: Record<string, any> = {}) => {
@@ -528,6 +537,9 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
       setMessages(prev => [...prev, finalBotMessage])
       setStreamingMessage(null)
       
+      // Scroll to bottom after streaming is complete
+      setTimeout(() => scrollToBottom(), 100)
+      
       // Save the complete conversation to database (query + response)
       console.log('Saving conversation - userId:', userId, 'query:', query.substring(0, 50), 'response:', fullResponse.substring(0, 50))
       await saveConversationToHistory(query, fullResponse, {
@@ -554,6 +566,9 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
       setMessages(prev => [...prev, errorMessage])
       setIsQuerying(false)
       setStreamingMessage(null)
+      
+      // Scroll to bottom to show error message
+      setTimeout(() => scrollToBottom(), 100)
       
       // Save the error conversation to database
       console.log('Saving error conversation - userId:', userId, 'query:', query.substring(0, 50), 'errorResponse:', errorResponse)
