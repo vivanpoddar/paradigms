@@ -100,8 +100,13 @@ const DropzoneContent = ({ className }: { className?: string }) => {
               <div key={fileName} className="mb-2 p-2 bg-muted rounded">
                 <p className="text-xs font-medium">{fileName}</p>
                 <p className="text-xs text-muted-foreground">
-                  {result.documents?.length || 0} document(s) parsed
+                  {result.documents?.length || result.documentsCreated || 0} document(s) parsed
                 </p>
+                {result.ocrMethod && (
+                  <p className="text-xs text-blue-600 font-medium">
+                    Method: {result.ocrMethod === 'gemini-ocr' ? 'Standard OCR' : 'Math OCR'}
+                  </p>
+                )}
               </div>
             ))}
           </div>
@@ -176,7 +181,7 @@ const DropzoneContent = ({ className }: { className?: string }) => {
         </p>
       )}
       {files.length > 0 && !exceedMaxFiles && (
-        <div className="mt-2">
+        <div className="mt-2 space-y-2">
           <Button
             variant="outline"
             onClick={onUpload}

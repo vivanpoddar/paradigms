@@ -69,6 +69,11 @@ const useSupabaseUpload = (options: UseSupabaseUploadOptions) => {
     upsert = true,
   } = options
 
+  // Log when parseMethod changes
+  useEffect(() => {
+    console.log(`🔧 useSupabaseUpload: parseMethod set to "${parseMethod}"`)
+  }, [parseMethod])
+
   const [files, setFiles] = useState<FileWithPreview[]>([])
   const [loading, setLoading] = useState<boolean>(false)
   const [errors, setErrors] = useState<{ name: string; message: string }[]>([])
@@ -135,6 +140,7 @@ const useSupabaseUpload = (options: UseSupabaseUploadOptions) => {
     }
 
     setLoading(true)
+    console.log(`🚀 Starting upload with parseMethod: ${parseMethod}`)
 
     // [Joshen] This is to support handling partial successes
     // If any files didn't upload for any reason, hitting "Upload" again will only upload the files that had errors
@@ -153,6 +159,7 @@ const useSupabaseUpload = (options: UseSupabaseUploadOptions) => {
           // Upload path: bucketName/userUUID/filename
           const uploadPath = `${userId}/${file.name}`
           
+          console.log(`📤 Uploading file ${file.name} to Supabase storage...`)
           const { error } = await supabase.storage
             .from(bucketName)
             .upload(uploadPath, file, {
@@ -161,12 +168,18 @@ const useSupabaseUpload = (options: UseSupabaseUploadOptions) => {
             })
           
           if (error) {
+            console.error(`❌ Supabase upload failed for ${file.name}:`, error.message)
             return { name: file.name, message: error.message, parseResult: null }
           }
 
-          // After successful upload, send to backend for LlamaParse processing
-          console.log('Using parseMethod:', parseMethod, 'for file:', file.name)
-          const parseResponse = await fetch(`/api/${parseMethod}`, {
+          // After successful upload, send to backend for processing
+          console.log(`✅ File ${file.name} uploaded successfully to Supabase`)
+          console.log(`🔄 Processing with ${parseMethod} endpoint for file: ${file.name}`)
+          
+          const parseEndpoint = `/api/${parseMethod}`
+          console.log(`📡 Making request to: ${parseEndpoint}`)
+          
+          const parseResponse = await fetch(parseEndpoint, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -179,18 +192,23 @@ const useSupabaseUpload = (options: UseSupabaseUploadOptions) => {
             }),
           })
 
+          console.log(`📨 Parse response status: ${parseResponse.status} ${parseResponse.statusText}`)
+
           if (!parseResponse.ok) {
             let errorMessage = `Parse error: ${parseResponse.status} ${parseResponse.statusText}`
             try {
               const errorData = await parseResponse.json()
               errorMessage = `Parse error: ${errorData.error}`
+              console.error(`❌ Parse API error response:`, errorData)
             } catch (jsonError) {
               // If response is not JSON, try to get text
               try {
                 const errorText = await parseResponse.text()
                 errorMessage = `Parse error: ${errorText.substring(0, 200)}...`
+                console.error(`❌ Parse API error text:`, errorText.substring(0, 200))
               } catch (textError) {
                 errorMessage = `Parse error: ${parseResponse.status} ${parseResponse.statusText}`
+                console.error(`❌ Parse API error - no readable response`)
               }
             }
             return { name: file.name, message: errorMessage, parseResult: null }
@@ -199,9 +217,10 @@ const useSupabaseUpload = (options: UseSupabaseUploadOptions) => {
           let parseResult
           try {
             parseResult = await parseResponse.json()
+            console.log(`✅ Successfully parsed ${file.name} with ${parseMethod}:`, parseResult.message || 'No message')
           } catch (jsonError) {
             const responseText = await parseResponse.text()
-            console.error('Failed to parse response as JSON:', responseText.substring(0, 200))
+            console.error('❌ Failed to parse response as JSON:', responseText.substring(0, 200))
             return { name: file.name, message: `Parse error: Invalid JSON response`, parseResult: null }
           }
           
@@ -213,6 +232,7 @@ const useSupabaseUpload = (options: UseSupabaseUploadOptions) => {
 
           return { name: file.name, message: undefined, parseResult }
         } catch (error) {
+          console.error(`❌ Upload/parse error for ${file.name}:`, error)
           return { 
             name: file.name, 
             message: error instanceof Error ? error.message : 'Unknown error',
@@ -233,7 +253,8 @@ const useSupabaseUpload = (options: UseSupabaseUploadOptions) => {
     setSuccesses(newSuccesses)
 
     setLoading(false)
-  }, [files, bucketName, errors, successes, userId, cacheControl, upsert])
+    console.log(`🏁 Upload process completed. Successes: ${newSuccesses.length}, Errors: ${responseErrors.length}`)
+  }, [files, bucketName, errors, successes, userId, cacheControl, upsert, parseMethod])
 
   useEffect(() => {
     if (files.length === 0) {

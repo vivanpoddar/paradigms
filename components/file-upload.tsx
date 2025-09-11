@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { Dropzone, DropzoneContent, DropzoneEmptyState } from "@/components/dropzone";
 import { useSupabaseUpload } from "@/hooks/use-supabase-upload";
 import { Label } from "@/components/ui/label";
@@ -15,10 +15,22 @@ export function FileUpload({ onUploadSuccess }: { onUploadSuccess?: () => void }
     onUploadSuccessRef.current = onUploadSuccess;
   }, [onUploadSuccess]);
   
-  const parseMethod = enableMathParsing ? 'mparse' : 'nparse';
+  // Memoize the parse method to ensure proper reactivity
+  const parseMethod = useMemo(() => {
+    const method = enableMathParsing ? 'mparse' : 'nparse';
+    console.log(`Math parsing ${enableMathParsing ? 'ENABLED' : 'DISABLED'} - using ${method} endpoint`);
+    return method;
+  }, [enableMathParsing]);
+
+  // Handle checkbox change with proper logging
+  const handleMathParsingChange = useCallback((checked: boolean | string) => {
+    const isChecked = checked === true;
+    console.log(`Math parsing checkbox changed to: ${isChecked}`);
+    setEnableMathParsing(isChecked);
+  }, []);
     
   const uploadProps = useSupabaseUpload({
-    bucketName: 'documents', // You'll need to create this bucket in Supabase
+    bucketName: 'documents',
     allowedMimeTypes: ['image/*', 'application/pdf', 'text/*'],
     maxFileSize: 5 * 1024 * 1024, // 5MB
     maxFiles: 1,
@@ -30,7 +42,12 @@ export function FileUpload({ onUploadSuccess }: { onUploadSuccess?: () => void }
     if (uploadProps.isSuccess && onUploadSuccessRef.current) {
       onUploadSuccessRef.current();
     }
-  }, [uploadProps.isSuccess]); // Remove onUploadSuccess from dependencies
+  }, [uploadProps.isSuccess]);
+
+  // Debug log when parseMethod changes
+  useEffect(() => {
+    console.log(`FileUpload: parseMethod updated to ${parseMethod}`);
+  }, [parseMethod]);
 
   return (
     <div className="space-y-4">
@@ -38,14 +55,20 @@ export function FileUpload({ onUploadSuccess }: { onUploadSuccess?: () => void }
         <Checkbox 
           id="math-parsing" 
           checked={enableMathParsing}
-          onCheckedChange={(checked) => setEnableMathParsing(checked as boolean)}
+          onCheckedChange={handleMathParsingChange}
         />
         <Label 
           htmlFor="math-parsing"
-          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
         >
-          Select Math Recognition
+          Enable Math Recognition (uses Mathpix OCR)
         </Label>
+      </div>
+      <div className="text-xs text-muted-foreground">
+        {enableMathParsing 
+          ? "✓ Using Mathpix for mathematical content recognition" 
+          : "Using standard OCR processing"
+        }
       </div>
       <Dropzone {...uploadProps}>
         <DropzoneEmptyState />

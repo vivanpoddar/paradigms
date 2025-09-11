@@ -69,11 +69,13 @@ const waitForPipelineIndexingCompletion = async (pipelineId: string, timeoutMs: 
 export async function POST(request: NextRequest) {
   const processingStartTime = Date.now();
   
+  
   try {
     const { fileName, bucketName, uploadPath, userId } = await request.json()
-
+    
     // Validate required fields
     if (!fileName || !bucketName || !uploadPath || !userId) {
+      console.error('❌ NPARSE: Missing required fields')
       return NextResponse.json(
         { error: 'Missing required fields: fileName, bucketName, uploadPath, userId' },
         { status: 400 }

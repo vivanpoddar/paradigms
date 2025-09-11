@@ -112,12 +112,17 @@ const waitForPipelineIndexingCompletion = async (pipelineId: string, timeoutMs: 
 
 export async function POST(request: NextRequest) {
     const processingStartTime = Date.now();
+    
+    console.log('🔥 MPARSE ROUTE CALLED - Math parsing activated!')
 
     try {
         const { fileName, bucketName, uploadPath, userId } = await request.json()
+        
+        console.log(`📋 MPARSE: Processing file ${fileName} for user ${userId}`)
 
         // Validate required fields
         if (!fileName || !bucketName || !uploadPath || !userId) {
+            console.error('❌ MPARSE: Missing required fields')
             return NextResponse.json(
                 { error: 'Missing required fields: fileName, bucketName, uploadPath, userId' },
                 { status: 400 }
@@ -623,12 +628,13 @@ export async function POST(request: NextRequest) {
 
                         return NextResponse.json(
                             {
-                                message: 'File parsed and uploaded successfully',
+                                message: 'File parsed and uploaded successfully with Mathpix math recognition',
                                 documentsCreated: documents.length,
                                 llamaIndexUploaded: llamaIndexResult !== null,
                                 indexingCompleted,
                                 parsedJsonPath: parsedJsonPath,
-                                uploadFinishData
+                                uploadFinishData,
+                                ocrMethod: 'mathpix-ocr'
                             },
                             { status: 200 }
                         );
