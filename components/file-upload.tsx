@@ -61,14 +61,8 @@ export function FileUpload({ onUploadSuccess }: { onUploadSuccess?: () => void }
           htmlFor="math-parsing"
           className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
         >
-          Enable Math Recognition (uses Mathpix OCR)
+          Upload with Math Recognition
         </Label>
-      </div>
-      <div className="text-xs text-muted-foreground">
-        {enableMathParsing 
-          ? "✓ Using Mathpix for mathematical content recognition" 
-          : "Using standard OCR processing"
-        }
       </div>
       <Dropzone {...uploadProps}>
         <DropzoneEmptyState />

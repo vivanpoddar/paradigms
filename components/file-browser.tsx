@@ -314,7 +314,7 @@ export const FileBrowser = forwardRef<FileBrowserRef, FileBrowserProps>(({ onFil
           {!isFileListCollapsed && (
             <CardContent className="p-0 flex-1 flex flex-col">
               {showUpload && (
-                <div className="p-4 border-b bg-muted/30 flex-shrink-0">
+                <div className="p-4 absolute border-b bg-black flex-shrink-0">
                   <FileUpload onUploadSuccess={refreshFiles} />
                 </div>
               )}

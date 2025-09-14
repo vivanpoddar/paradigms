@@ -38,7 +38,6 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${sarabun.className} ${lato.variable} antialiased`}>
-        <MobileBlocker />
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
