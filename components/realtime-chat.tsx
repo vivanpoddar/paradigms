@@ -22,7 +22,7 @@ import { useCallback, useEffect, useMemo, useState, useImperativeHandle, forward
 import { LLAMA_CLOUD_CONFIG } from '@/lib/llama-cloud-config'
 import { useChatHistory } from '@/hooks/use-chat-history'
 import { createClient } from '@/lib/supabase/client'
-import { InlineMath } from 'react-katex'
+import { InlineMath, BlockMath } from 'react-katex'
 import 'katex/dist/katex.min.css'
 import { MathJaxContext } from 'better-react-mathjax'
 
@@ -89,6 +89,9 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
   const [isQuerying, setIsQuerying] = useState(false)
   const [userId, setUserId] = useState<string | null>(null)
   const [messages, setMessages] = useState<ChatMessage[]>([])
+  const [allLoadedMessages, setAllLoadedMessages] = useState<ChatMessage[]>([])
+  const [displayedMessageCount, setDisplayedMessageCount] = useState(5)
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
   const [streamingMessage, setStreamingMessage] = useState<ChatMessage | null>(null)
   const [contextData, setContextData] = useState<{ problemText: string; solution: string } | null>(null)
   const [isRecording, setIsRecording] = useState(false)
@@ -185,7 +188,12 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
         createdAt: new Date().toISOString(),
       }
       
-      setMessages(prev => [...prev, successMessage])
+      setAllLoadedMessages(prev => {
+        const newMessages = [...prev, successMessage]
+        // Ensure we can see the new message
+        setDisplayedMessageCount(curr => Math.max(curr, newMessages.length))
+        return newMessages
+      })
       
       // Scroll to bottom to show success message
       setTimeout(() => scrollToBottom(), 100)
@@ -211,7 +219,12 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
         createdAt: new Date().toISOString(),
       }
       
-      setMessages(prev => [...prev, errorMessage])
+      setAllLoadedMessages(prev => {
+        const newMessages = [...prev, errorMessage]
+        // Ensure we can see the new message
+        setDisplayedMessageCount(curr => Math.max(curr, newMessages.length))
+        return newMessages
+      })
       
       // Scroll to bottom to show error message  
       setTimeout(() => scrollToBottom(), 100)
@@ -248,7 +261,8 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
   // Expose methods to parent component via ref
   useImperativeHandle(ref, () => ({
     clearCurrentMessages: () => {
-      setMessages([])
+      setAllLoadedMessages([])
+      setDisplayedMessageCount(5)
       setStreamingMessage(null)
       setContextData(null)
     },
@@ -264,7 +278,8 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
       if (!userId) return
       
       // Clear existing messages when file changes
-      setMessages([])
+      setAllLoadedMessages([])
+      setDisplayedMessageCount(5) // Reset to show last 5 messages
       
       // Only load history if a file is selected
       if (!selectedFileName) {
@@ -301,15 +316,14 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
             })
           })
           
-          // Update UI progressively for better UX
-          if (i === 0 || (i + batchSize) % 40 === 0) {
-            setMessages([...historyMessages])
+          // Update UI progressively for better UX - but only set final result
+          if ((i + batchSize) % 40 === 0 && i + batchSize < conversations.length) {
             await new Promise(resolve => setTimeout(resolve, 0))
           }
         }
         
-        // Set final messages
-        setMessages(historyMessages)
+        // Set all loaded messages at once
+        setAllLoadedMessages(historyMessages)
         console.log('Chat history loaded successfully, messages count:', historyMessages.length)
       } catch (error) {
         console.error('Failed to load chat history:', error)
@@ -330,11 +344,17 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
       }
       
       addRealtimeMessagesRef.current = setTimeout(() => {
-        setMessages(prev => {
+        setAllLoadedMessages(prev => {
           const newMessages = realtimeMessages.filter(
             realtimeMsg => !prev.some(prevMsg => prevMsg.id === realtimeMsg.id)
           )
-          return newMessages.length > 0 ? [...prev, ...newMessages] : prev
+          if (newMessages.length > 0) {
+            // Ensure we show new messages by increasing display count if needed
+            const totalMessages = prev.length + newMessages.length
+            setDisplayedMessageCount(curr => Math.max(curr, 5)) // Always show at least last 5
+            return [...prev, ...newMessages]
+          }
+          return prev
         })
       }, 50) // Small delay to batch updates
     }
@@ -342,7 +362,7 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
 
   // Merge messages with initial messages and add streaming message if exists
   const allMessages = useMemo(() => {
-    const baseMessages = [...initialMessages, ...messages]
+    const baseMessages = [...initialMessages, ...allLoadedMessages]
     
     // Add streaming message at the end if it exists
     if (streamingMessage) {
@@ -359,12 +379,9 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
       return true
     })
 
-    // Limit messages to improve performance (keep last 100 messages)
-    const MESSAGE_LIMIT = 100
-    return uniqueMessages.length > MESSAGE_LIMIT 
-      ? uniqueMessages.slice(-MESSAGE_LIMIT)
-      : uniqueMessages
-  }, [initialMessages, messages, streamingMessage])
+    // Return only the last displayedMessageCount messages for performance
+    return uniqueMessages.slice(-displayedMessageCount)
+  }, [initialMessages, allLoadedMessages, streamingMessage, displayedMessageCount])
 
   // Memoize the message count to avoid recalculating
   const messageCount = useMemo(() => allMessages.length, [allMessages])
@@ -379,6 +396,42 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
       scrollToBottom()
     }, 100)
   }, [scrollToBottom])
+
+  // Handle scroll to top for loading more messages
+  const handleScroll = useCallback(() => {
+    if (!containerRef.current || isLoadingMore) return
+    
+    const container = containerRef.current
+    const scrollTop = container.scrollTop
+    const totalMessages = [...initialMessages, ...allLoadedMessages].length
+    
+    // If scrolled to top and there are more messages to load
+    if (scrollTop <= 100 && displayedMessageCount < totalMessages) {
+      setIsLoadingMore(true)
+      
+      // Load 5 more messages
+      setTimeout(() => {
+        setDisplayedMessageCount(prev => Math.min(prev + 5, totalMessages))
+        setIsLoadingMore(false)
+        
+        // Maintain scroll position after adding messages
+        setTimeout(() => {
+          if (container) {
+            container.scrollTop = 200 // Keep user slightly away from top
+          }
+        }, 50)
+      }, 300) // Small delay to show loading state
+    }
+  }, [containerRef, isLoadingMore, displayedMessageCount, initialMessages, allLoadedMessages])
+
+  // Add scroll listener
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container) return
+
+    container.addEventListener('scroll', handleScroll)
+    return () => container.removeEventListener('scroll', handleScroll)
+  }, [handleScroll])
 
   useEffect(() => {
     if (onMessage) {
@@ -457,11 +510,7 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
     Goal:
     By the end of your answer, the student should understand the “why” and “how” behind solving the problem, and be able to complete it independently. 
 
-    IMPORTANT: When including mathematical expressions in your responses:
-    - Use $expression$ for inline math (e.g., $x^2 + y^2 = z^2$)
-    - Use $$expression$$ for block/display math (e.g., $$\\int_0^1 x^2 dx$$)
-    - Always wrap mathematical expressions with dollar signs for proper LaTeX rendering
-    - Use proper LaTeX syntax (e.g., \\frac{a}{b} for fractions, \\sqrt{x} for square roots, etc.)
+    IMPORTANT: When including mathematical expressions in your responses always use LaTeX syntax.
 
     Current user request:
     ${query}
@@ -591,7 +640,12 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
       }
       
       // Add to messages array
-      setMessages(prev => [...prev, finalBotMessage])
+      setAllLoadedMessages(prev => {
+        const newMessages = [...prev, finalBotMessage]
+        // Ensure we can see the new message
+        setDisplayedMessageCount(curr => Math.max(curr, newMessages.length))
+        return newMessages
+      })
       setStreamingMessage(null)
       
       // Scroll to bottom after streaming is complete
@@ -620,7 +674,12 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
       }
       
       // Add error message to messages array
-      setMessages(prev => [...prev, errorMessage])
+      setAllLoadedMessages(prev => {
+        const newMessages = [...prev, errorMessage]
+        // Ensure we can see the new message
+        setDisplayedMessageCount(curr => Math.max(curr, newMessages.length))
+        return newMessages
+      })
       setIsQuerying(false)
       setStreamingMessage(null)
       
@@ -665,7 +724,12 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
       }
       
       // Add user message to messages array
-      setMessages(prev => [...prev, userMessage])
+      setAllLoadedMessages(prev => {
+        const newMessages = [...prev, userMessage]
+        // Ensure we can see the new message
+        setDisplayedMessageCount(curr => Math.max(curr, newMessages.length))
+        return newMessages
+      })
 
       // Check if we're in PDF mode
       if (isPdfMode) {
@@ -754,13 +818,26 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
           </div>
         ) : null}
         <div className="space-y-1">
-          {/* Show message count if approaching limit */}
-          {allMessages.length > 80 && (
-            <div className="text-center text-xs text-muted-foreground py-2">
-              Showing last {allMessages.length} messages
-              {allMessages.length >= 100 && " (older messages hidden for performance)"}
-            </div>
-          )}
+          {/* Show load more indicator at the top */}
+          {(() => {
+            const totalMessages = [...initialMessages, ...allLoadedMessages].length
+            const hasMoreMessages = displayedMessageCount < totalMessages
+            
+            return hasMoreMessages && (
+              <div className="text-center py-2">
+                {isLoadingMore ? (
+                  <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Loading more messages...</span>
+                  </div>
+                ) : (
+                  <div className="text-xs text-muted-foreground">
+                    Scroll to top to load more messages ({totalMessages - displayedMessageCount} remaining)
+                  </div>
+                )}
+              </div>
+            )
+          })()}
           
           {allMessages.map((message, index) => {
             const prevMessage = index > 0 ? allMessages[index - 1] : null
@@ -823,11 +900,17 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
                 <div>
                   <div className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Problem</div>
                   <div className="text-xs text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-800 p-2 rounded border">
-                    {contextData.problemText.split(/(\$[^$]+\$)/g).map((part, i) =>
-                      part.startsWith('$') && part.endsWith('$')
-                        ? <InlineMath key={i} math={part.slice(1, -1)} />
-                        : <span key={i}>{part}</span>
-                    )}
+                    {contextData.problemText.split(/(\$[^$]+\$|\\\([^]*?\\\)|\\\[[^]*?\\\])/g).map((part, i) => {
+                      if (part.startsWith('$') && part.endsWith('$')) {
+                        return <InlineMath key={i} math={part.slice(1, -1)} />
+                      } else if (part.startsWith('\\(') && part.endsWith('\\)')) {
+                        return <InlineMath key={i} math={part.slice(2, -2)} />
+                      } else if (part.startsWith('\\[') && part.endsWith('\\]')) {
+                        return <BlockMath key={i} math={part.slice(2, -2)} />
+                      } else {
+                        return <span key={i}>{part}</span>
+                      }
+                    })}
                   </div>
                 </div>
                 <div>

@@ -10,12 +10,48 @@ interface ChatMessageItemProps {
 }
 
 const renderFormattedContent = (content: string): ReactElement[] => {
-  const lines = content.split('\n')
+  let processedContent = content
   const elements: ReactElement[] = []
   let keyCounter = 0
 
+  // First, handle display math blocks that may span multiple lines
+  const displayMathBlocks: ReactElement[] = []
+  
+  // Handle LaTeX display math \[...\]
+  processedContent = processedContent.replace(/\\\[([^]*?)\\\]/g, (match, math) => {
+    const placeholder = `__BLOCK_LATEX_DISPLAY_MATH_${displayMathBlocks.length}__`
+    displayMathBlocks.push(
+      <div key={`block-latex-display-math-${keyCounter++}`} className="my-2 first:mt-0 last:mb-0">
+        <MathJax dynamic>{`\\[${math}\\]`}</MathJax>
+      </div>
+    )
+    return placeholder
+  })
+
+  // Handle $$ display math
+  processedContent = processedContent.replace(/\$\$([^]*?)\$\$/g, (match, math) => {
+    const placeholder = `__BLOCK_DISPLAY_MATH_${displayMathBlocks.length}__`
+    displayMathBlocks.push(
+      <div key={`block-display-math-${keyCounter++}`} className="my-2 first:mt-0 last:mb-0">
+        <MathJax dynamic>{`$$${math}$$`}</MathJax>
+      </div>
+    )
+    return placeholder
+  })
+
+  const lines = processedContent.split('\n')
+
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]
+    
+    // Handle display math placeholders as separate blocks
+    if (line.match(/^__BLOCK_(LATEX_)?DISPLAY_MATH_\d+__$/)) {
+      const blockIndex = parseInt(line.match(/\d+/)?.[0] || '0')
+      if (displayMathBlocks[blockIndex]) {
+        elements.push(displayMathBlocks[blockIndex])
+      }
+      continue
+    }
     
     // Handle code blocks
     if (line.startsWith('```')) {
@@ -140,14 +176,14 @@ const renderInlineContent = (text: string): ReactElement[] => {
   let remaining = text
   let keyCounter = 0
 
-  // Handle display math ($$...$$)
-  const displayMathRegex = /\$\$([^$]+)\$\$/g
-  remaining = remaining.replace(displayMathRegex, (match, math) => {
-    const placeholder = `__DISPLAY_MATH_${keyCounter}__`
+  // Handle inline math \(...\)
+  const latexInlineMathRegex = /\\\(([^]*?)\\\)/g
+  remaining = remaining.replace(latexInlineMathRegex, (match, math) => {
+    const placeholder = `__LATEX_INLINE_MATH_${keyCounter}__`
     parts.push(
-      <div key={`display-math-${keyCounter++}`} className="my-1 first:mt-0 last:mb-0">
-        <MathJax dynamic>{`$$${math}$$`}</MathJax>
-      </div>
+      <MathJax key={`latex-inline-math-${keyCounter++}`} inline dynamic>
+        {`\\(${math}\\)`}
+      </MathJax>
     )
     return placeholder
   })
