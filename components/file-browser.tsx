@@ -241,7 +241,6 @@ export const FileBrowser = forwardRef<FileBrowserRef, FileBrowserProps>(({ onFil
             <CardHeader className="bg-[#FF5100] dark:bg-[#702300] border-b flex-shrink-0 p-1.5 sticky top-0 z-10">
             <CardTitle className="flex items-center justify-between text-sm">
               {!isFileListCollapsed && !isMobile && "Files"}
-              {!isFileListCollapsed && forceShowFileList && "Files"}
               {isFileListCollapsed && !isMobile && (
                 <div className="flex justify-center w-full">
                   <Button
@@ -314,7 +313,7 @@ export const FileBrowser = forwardRef<FileBrowserRef, FileBrowserProps>(({ onFil
           {!isFileListCollapsed && (
             <CardContent className="p-0 flex-1 flex flex-col">
               {showUpload && (
-                <div className="p-4 absolute border-b bg-black flex-shrink-0">
+                <div className="p-4 sticky border-b bg-black flex-shrink-0">
                   <FileUpload onUploadSuccess={refreshFiles} />
                 </div>
               )}
