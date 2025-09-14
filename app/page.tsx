@@ -14,6 +14,7 @@ export default function Home() {
   const [user, setUser] = useState<any>(null);
   const [isChatCollapsed, setIsChatCollapsed] = useState(false);
   const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
+  const [isTransitioning, setIsTransitioning] = useState(false);
   const chatRef = useRef<RealtimeChatRef>(null);
   const fileBrowserRef = useRef<FileBrowserRef>(null);
   
@@ -141,6 +142,12 @@ export default function Home() {
 
   // Handle file selection and get PDF URL if it's a PDF
   const handleFileSelect = async (fileName: string | null) => {
+    // If clearing selection (going back to unselected view), disable transitions
+    if (fileName === null && selectedFileName !== null) {
+      setIsTransitioning(true);
+      setTimeout(() => setIsTransitioning(false), 50); // Reset after a brief moment
+    }
+    
     setSelectedFileName(fileName);
     
     if (fileName && fileName.toLowerCase().endsWith('.pdf')) {
@@ -149,6 +156,11 @@ export default function Home() {
     } else {
       setSelectedFileUrl(null);
     }
+  };
+  
+  // Helper function to get transition classes
+  const getTransitionClasses = () => {
+    return isTransitioning ? '' : 'transition-all duration-300 ease-in-out';
   };
   
   return (
@@ -307,7 +319,7 @@ export default function Home() {
                 </div>
                 
                 {/* Realtime Chat - Takes majority of the screen */}
-                <div className={`flex flex-col overflow-hidden transition-all duration-300 ease-in-out ${isChatCollapsed ? 'w-12 flex-shrink-0' : 'flex-1'}`}>
+                <div className={`flex flex-col overflow-hidden ${getTransitionClasses()} ${isChatCollapsed ? 'w-12 flex-shrink-0' : 'flex-1'}`}>
                   {/* Chat header - Fixed height */}
                   <div className={`flex-shrink-0 bg-[#FF5100] dark:bg-[#702300] border-b border-border p-2 flex items-center ${isChatCollapsed ? 'justify-center' : 'justify-between'}`}>
                     {!isChatCollapsed && (
@@ -363,14 +375,14 @@ export default function Home() {
             ) : (
               <>
                 {/* Desktop Layout - When file is selected, show old layout: file browser (list + viewer) and chat */}
-                <div className={`flex flex-col overflow-hidden border-r border-border transition-all duration-300 ease-in-out ${isChatCollapsed ? 'flex-1' : 'w-4/6 flex-shrink-0'}`}>
+                <div className={`flex flex-col overflow-hidden border-r border-border ${getTransitionClasses()} ${isChatCollapsed ? 'flex-1' : 'w-4/6 flex-shrink-0'}`}>
                   <div className="flex-1 min-h-0 overflow-hidden">
                     <FileBrowser ref={fileBrowserRef} onFileSelect={handleFileSelect} onExplain={handleExplain} isVisible={!isMobile} />
                   </div>
                 </div>
                 
                 {/* Desktop Layout - Side panel - Realtime Chat */}
-                <div className={`flex flex-col overflow-hidden transition-all duration-300 ease-in-out ${isChatCollapsed ? 'w-12 flex-shrink-0' : 'w-2/6 flex-shrink-0'}`}>
+                <div className={`flex flex-col overflow-hidden ${getTransitionClasses()} ${isChatCollapsed ? 'w-12 flex-shrink-0' : 'w-2/6 flex-shrink-0'}`}>
                   {/* Chat header - Fixed height */}
                   <div className={`flex-shrink-0 bg-[#FF5100] dark:bg-[#702300] border-b border-border p-2 flex items-center ${isChatCollapsed ? 'justify-center' : 'justify-between'}`}>
                     {!isChatCollapsed && (
