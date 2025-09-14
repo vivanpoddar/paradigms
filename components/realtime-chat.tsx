@@ -359,7 +359,7 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
   // Initialize chat history hook
   const { saveConversation, loadConversations, clearHistory, isLoading: isLoadingHistory } = useChatHistory({
     userId: userId || '',
-    selectedFileName,
+    selectedFileName: selectedFileName || 'global_chat',
   })
 
   // Expose methods to parent component via ref
@@ -385,14 +385,11 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
       setAllLoadedMessages([])
       setDisplayedMessageCount(5) // Reset to show last 5 messages
       
-      // Only load history if a file is selected
-      if (!selectedFileName) {
-        console.log('No file selected, chat history cleared')
-        return
-      }
+      // Always load history - either for specific file or global chat
+      const fileContext = selectedFileName || 'global_chat'
       
       try {
-        console.log('Loading chat history for file:', selectedFileName)
+        console.log('Loading chat history for context:', fileContext)
         const conversations = await loadConversations()
         console.log('Loaded conversations count:', conversations.length)
         
@@ -576,31 +573,27 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
 
   // Function to detect if a message should trigger document query
   const shouldQueryDocuments = useCallback((message: string): boolean => {
-    if (!enableDocumentQuery || !selectedFileName) {
-      console.log('Document query disabled or no file selected:', { enableDocumentQuery, selectedFileName })
+    if (!enableDocumentQuery) {
+      console.log('Document query disabled')
       return false
     }
     
-    // For now, let's query documents for any message (you can add more specific logic later)
+    // Always allow querying - if no file is selected, use global chat
     const shouldQuery = message.trim().length > 0
-    console.log('Should query documents result:', shouldQuery, 'for message:', message.substring(0, 50))
+    console.log('Should query result:', shouldQuery, 'for message:', message.substring(0, 50))
+    console.log('Selected file:', selectedFileName || 'global_chat')
     return shouldQuery
-  }, [enableDocumentQuery, selectedFileName])
+  }, [enableDocumentQuery])
 
   // Function to query documents using LlamaCloudIndex
   const queryDocuments = useCallback(async (query: string, images: File[] = []): Promise<void> => {
     console.log('=== QUERY DOCUMENTS CALLED ===');
     console.log('Query:', query);
-    console.log('Selected file:', selectedFileName);
+    console.log('Selected file:', selectedFileName || 'global_chat');
     console.log('Images:', images.length);
     console.log('Message history length:', messageCount);
     
-    if (!selectedFileName) {
-      console.log('❌ No file selected for querying')
-      return
-    }
-    
-    console.log('✅ Starting query with file:', selectedFileName);
+    console.log('✅ Starting query with context:', selectedFileName || 'global_chat');
     setIsQuerying(true)
     
     // Convert images to base64
@@ -629,7 +622,7 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
     // Get current message history at execution time instead of dependency
     const currentMessages = allMessages
     
-    const enhancedQuery = `You are a patient and knowledgeable homework tutor. You have access to two sources of information: 1. Your own general knowledge. 2. Retrieved excerpts from the provided documents (retrieval-augmented generation).
+    const enhancedQuery = selectedFileName ? `You are a patient and knowledgeable homework tutor. You have access to two sources of information: 1. Your own general knowledge. 2. Retrieved excerpts from the provided documents (retrieval-augmented generation).
     Your primary role:
     Explain concepts and reasoning so the student can solve the problem themselves, keeping in mind the previous conversation history.
     Use your own knowledge as the main source.
@@ -657,26 +650,34 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
       ${contextData.solution}
       --------------------------
       ` : ''}
-      `
+      ` : query
     try {
-      console.log('📤 Sending request to /api/query');
-      const requestBody = { 
-        query: enhancedQuery, 
-        fileName: selectedFileName,
-        messageHistory: currentMessages,
-        multiModal: images.length > 0,
-        images: imageData
-      }
+      const apiEndpoint = selectedFileName ? '/api/query' : '/api/global-chat'
+      console.log('📤 Sending request to', apiEndpoint);
+      
+      const requestBody = selectedFileName 
+        ? { 
+            query: enhancedQuery, 
+            fileName: selectedFileName,
+            messageHistory: currentMessages,
+            multiModal: images.length > 0,
+            images: imageData
+          }
+        : {
+            query: enhancedQuery,
+            messageHistory: currentMessages,
+            multiModal: images.length > 0,
+            images: imageData
+          }
       
       console.log('📋 Request body details:');
       console.log('- Query length:', enhancedQuery.length);
-      console.log('- File name:', selectedFileName);
+      console.log('- Context:', selectedFileName || 'global_chat');
       console.log('- Message history count:', currentMessages.length);
       console.log('- Multi-modal:', images.length > 0);
       console.log('- Images count:', imageData.length);
-      console.log('- Image data sizes:', imageData.map(img => img.length));
       
-      const response = await fetch('/api/query', {
+      const response = await fetch(apiEndpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -696,7 +697,7 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
         id: botMessageId,
         content: '',
         user: {
-          name: 'Document Assistant',
+          name: selectedFileName ? 'Document Assistant' : 'AI Assistant',
         },
         createdAt: new Date().toISOString(),
       }
@@ -779,7 +780,7 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
         id: botMessageId,
         content: fullResponse,
         user: {
-          name: 'Document Assistant',
+          name: selectedFileName ? 'Document Assistant' : 'AI Assistant',
         },
         createdAt: new Date().toISOString(),
       }
@@ -799,7 +800,7 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
       // Save the complete conversation to database (query + response)
       console.log('Saving conversation - userId:', userId, 'query:', query.substring(0, 50), 'response:', fullResponse.substring(0, 50))
       await saveConversationToHistory(query, fullResponse, {
-        fileName: selectedFileName,
+        fileName: selectedFileName || 'global_chat',
         messageType: 'query-response',
         images: images.length > 0 ? images.map(image => ({
           name: image.name,
@@ -811,14 +812,16 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
     } catch (error) {
       console.error('Error querying documents:', error)
       
-      const errorResponse = 'Sorry, I encountered an error while searching the documents. Please try again.'
+      const errorResponse = selectedFileName 
+        ? 'Sorry, I encountered an error while searching the documents. Please try again.'
+        : 'Sorry, I encountered an error while processing your request. Please try again.'
       
       // Create error message
       const errorMessage: ChatMessage = {
         id: streamingMessage?.id || crypto.randomUUID(),
         content: errorResponse,
         user: {
-          name: 'Document Assistant',
+          name: selectedFileName ? 'Document Assistant' : 'AI Assistant',
         },
         createdAt: new Date().toISOString(),
       }
@@ -839,7 +842,7 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
       // Save the error conversation to database
       console.log('Saving error conversation - userId:', userId, 'query:', query.substring(0, 50), 'errorResponse:', errorResponse)
       await saveConversationToHistory(query, errorResponse, {
-        fileName: selectedFileName,
+        fileName: selectedFileName || 'global_chat',
         messageType: 'query-error',
         error: error instanceof Error ? error.message : 'Unknown error',
         images: images.length > 0 ? images.map(image => ({
@@ -994,8 +997,8 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
               </>
             ) : (
               <>
-                <div>Select a document to view its chat history</div>
-                <div>and start asking questions about it!</div>
+                <div>Welcome to AI Assistant!</div>
+                <div>Ask me anything - I'm here to help with homework, explanations, and learning!</div>
               </>
             )}
           </div>
@@ -1048,7 +1051,7 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
                   <div className="flex-1 space-y-1">
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>I'm searching your document...</span>
+                      <span>{selectedFileName ? "I'm searching your document..." : "I'm thinking..."}</span>
                     </div>
                   </div>
                 </div>
@@ -1220,7 +1223,9 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
                   ? selectedImages.length > 0
                     ? `Ask about ${selectedFileName} with ${selectedImages.length} image${selectedImages.length > 1 ? 's' : ''}...`
                     : `Ask about ${selectedFileName}...`
-                  : "Select a file to query documents..." 
+                  : selectedImages.length > 0
+                    ? `Ask anything with ${selectedImages.length} image${selectedImages.length > 1 ? 's' : ''}...`
+                    : "Ask me anything..." 
                 : selectedImages.length > 0
                   ? `Type a message with ${selectedImages.length} image${selectedImages.length > 1 ? 's' : ''}...`
                   : "Type a message..."

@@ -193,16 +193,29 @@ export default function Home() {
             )}
           </div>
           
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleClearHistory}
-            disabled={isClearingHistory}
-            className="flex items-center gap-2"
-            title="Clear chat history"
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
+          <div className="flex gap-2">
+            {selectedFileName && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleFileSelect(null)}
+                className="flex items-center gap-2"
+                title="Return to file overview"
+              >
+                <Eye className="h-4 w-4" />
+              </Button>
+            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleClearHistory}
+              disabled={isClearingHistory}
+              className="flex items-center gap-2"
+              title="Clear chat history"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       )}
       
@@ -376,16 +389,27 @@ export default function Home() {
                     )}
                     <div className="flex items-center gap-2">
                       {!isChatCollapsed && selectedFileName && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={handleClearHistory}
-                          disabled={isClearingHistory}
-                          className="h-5 w-5 p-0"
-                          title="Clear chat history"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
+                        <>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleFileSelect(null)}
+                            className="h-5 w-5 p-0"
+                            title="Return to file overview"
+                          >
+                            <Eye className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={handleClearHistory}
+                            disabled={isClearingHistory}
+                            className="h-5 w-5 p-0"
+                            title="Clear chat history"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </>
                       )}
                       <Button
                         variant="ghost"
