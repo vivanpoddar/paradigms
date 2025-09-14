@@ -406,10 +406,10 @@ export default function Home() {
                             variant="ghost"
                             size="sm"
                             onClick={() => handleFileSelect(null)}
-                            className="h-5 w-5 p-0"
+                            className="h-5 p-1"
                             title="Return to file overview"
                           >
-                            <Eye className="h-3 w-3" />
+                            Return to Chat
                           </Button>
                           <Button
                             variant="ghost"
