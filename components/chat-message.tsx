@@ -312,26 +312,27 @@ export const ChatMessageItem = memo(({ message, isOwnMessage, showHeader }: Chat
             isOwnMessage ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground'
           )}
         >
-          {/* Display images if present */}
+          {/* Display image names if present */}
           {message.images && message.images.length > 0 && (
-            <div className="mb-2 space-y-2">
+            <div className="mb-2 space-y-1">
               {message.images.map((image, index) => (
-                <div key={index} className="relative">
-                  <img
-                    src={image.url}
-                    alt={image.name}
-                    className="max-w-full max-h-48 rounded-lg border border-opacity-20 border-white object-cover cursor-pointer hover:opacity-90 transition-opacity"
-                    onClick={() => window.open(image.url, '_blank')}
-                  />
-                  <div className={cn(
-                    "flex items-center gap-1 mt-1 text-xs",
-                    isOwnMessage ? "text-primary-foreground/70" : "text-foreground/70"
-                  )}>
-                    <ImageIcon className="w-3 h-3" />
-                    <span className="truncate max-w-32" title={image.name}>
+                <div key={index} className={cn(
+                  "flex items-center gap-2 p-2 rounded-md border",
+                  isOwnMessage 
+                    ? "bg-primary/10 border-primary-foreground/20" 
+                    : "bg-muted/50 border-border"
+                )}>
+                  <ImageIcon className="w-4 h-4 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <div className="truncate font-medium text-sm" title={image.name}>
                       {image.name}
-                    </span>
-                    <span>({(image.size / 1024).toFixed(1)} KB)</span>
+                    </div>
+                    <div className={cn(
+                      "text-xs",
+                      isOwnMessage ? "text-primary-foreground/70" : "text-foreground/70"
+                    )}>
+                      {(image.size / 1024).toFixed(1)} KB
+                    </div>
                   </div>
                 </div>
               ))}

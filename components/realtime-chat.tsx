@@ -410,6 +410,11 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
               content: conv.query,
               user: { name: username },
               createdAt: conv.timestamp,
+              images: conv.metadata?.images ? conv.metadata.images.map((img: any) => ({
+                url: '', // URL not needed for display since we only show names
+                name: img.name,
+                size: img.size
+              })) : undefined
             })
             // Add assistant response
             historyMessages.push({
@@ -795,7 +800,12 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
       console.log('Saving conversation - userId:', userId, 'query:', query.substring(0, 50), 'response:', fullResponse.substring(0, 50))
       await saveConversationToHistory(query, fullResponse, {
         fileName: selectedFileName,
-        messageType: 'query-response'
+        messageType: 'query-response',
+        images: images.length > 0 ? images.map(image => ({
+          name: image.name,
+          size: image.size,
+          type: image.type
+        })) : undefined
       })
       
     } catch (error) {
@@ -831,7 +841,12 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
       await saveConversationToHistory(query, errorResponse, {
         fileName: selectedFileName,
         messageType: 'query-error',
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
+        images: images.length > 0 ? images.map(image => ({
+          name: image.name,
+          size: image.size,
+          type: image.type
+        })) : undefined
       })
     } finally {
       console.log('Query finally block reached')
@@ -862,7 +877,7 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
         user: { name: username },
         createdAt: new Date().toISOString(),
         images: selectedImages.length > 0 ? selectedImages.map((file, index) => ({
-          url: imagePreviewUrls[index],
+          url: '', // URL not needed for display since we only show names
           name: file.name,
           size: file.size
         })) : undefined
