@@ -238,17 +238,6 @@ export default function Home() {
           isMobile && showMobileFileBrowser ? 'translate-x-0' : 'translate-x-full'
         }`}>
           <div className="h-full flex flex-col overflow-hidden">
-            <div className="flex-shrink-0 flex items-center justify-between p-2 border-b bg-muted/30">
-              <h2 className="text-sm font-semibold">File Browser</h2>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowMobileFileBrowser(false)}
-                className="h-8 w-8 p-0"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
             <div className="flex-1 min-h-0 overflow-auto">
               <FileBrowser 
                 ref={fileBrowserRef}
@@ -268,17 +257,6 @@ export default function Home() {
         {isMobile && showMobilePdfViewer && selectedFileUrl && (
           <div className="absolute inset-0 z-20 bg-background overflow-hidden">
             <div className="h-full flex flex-col overflow-hidden">
-              <div className="flex-shrink-0 flex items-center justify-between p-2 border-b bg-muted/30">
-                <h2 className="text-sm font-semibold">PDF Viewer</h2>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowMobilePdfViewer(false)}
-                  className="h-8 w-8 p-0"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
               <div className="flex-1 min-h-0 overflow-hidden">
                 <SimplePdfViewer pdfUrl={selectedFileUrl} />
               </div>
