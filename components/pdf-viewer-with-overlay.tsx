@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { Worker } from '@react-pdf-viewer/core';
-import { Viewer } from '@react-pdf-viewer/core';
+import { Viewer, ScrollMode, SpecialZoomLevel } from '@react-pdf-viewer/core';
 import { RenderGoToPageProps } from '@react-pdf-viewer/page-navigation';
 import { toolbarPlugin, ToolbarSlot } from '@react-pdf-viewer/toolbar';
 import { searchPlugin } from '@react-pdf-viewer/search';
@@ -524,6 +524,8 @@ export const PdfViewerWithOverlay: React.FC<PdfViewerWithOverlayProps> = ({
                     <div className="flex-1 overflow-hidden bg-white dark:bg-white" ref={pdfContainerRef}>
                         <Viewer 
                             fileUrl={pdfUrl} 
+                            defaultScale={SpecialZoomLevel.PageWidth}
+                            scrollMode={ScrollMode.Vertical}
                             plugins={[
                                 toolbarPluginInstance, 
                                 searchPluginInstance, 

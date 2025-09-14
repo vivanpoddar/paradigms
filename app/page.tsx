@@ -277,84 +277,158 @@ export default function Home() {
           </div>
         ) : (
           <>
-            {/* Desktop Layout - Main content area - File Browser (contains file list + PDF viewer) */}
-            <div className={`flex flex-col overflow-hidden border-r border-border transition-all duration-300 ease-in-out ${isChatCollapsed ? 'flex-1' : 'w-4/6 flex-shrink-0'}`}>
-              <div className="flex-1 min-h-0 overflow-hidden">
-                <FileBrowser ref={fileBrowserRef} onFileSelect={handleFileSelect} onExplain={handleExplain} isVisible={!isMobile} />
-              </div>
-            </div>
-            
-            {/* Desktop Layout - Side panel - Realtime Chat */}
-            <div className={`flex flex-col overflow-hidden transition-all duration-300 ease-in-out ${isChatCollapsed ? 'w-12 flex-shrink-0' : 'w-2/6 flex-shrink-0'}`}>
-              {/* Chat header - Fixed height */}
-              <div className={`flex-shrink-0 bg-[#FF5100] dark:bg-[#702300] border-b border-border p-2 flex items-center ${isChatCollapsed ? 'justify-center' : 'justify-between'}`}>
-                {!isChatCollapsed && (
-                  <div className="flex gap-2">
-                    <h2 className="text-sm font-semibold">AI Assistant</h2>
-                    <p className="text-sm text-muted-foreground">
-                      {selectedFileName ? (
-                            <span className="font-medium truncate max-w-60 block text-ellipsis">
-                            {selectedFileName}
-                          </span>
-                      ) : (
-                        'Select a document to start chatting'
-                      )}
-                    </p>
+            {/* Desktop Layout - When no file is selected, show file list and chat */}
+            {!selectedFileName ? (
+              <>
+                {/* File List Only - Narrow sidebar */}
+                <div className="w-1/4 flex-shrink-0 flex flex-col overflow-hidden border-r border-border">
+                  <div className="flex-1 min-h-0 overflow-hidden">
+                    <FileBrowser 
+                      ref={fileBrowserRef} 
+                      onFileSelect={handleFileSelect} 
+                      onExplain={handleExplain} 
+                      isVisible={!isMobile}
+                      forceShowFileList={true}
+                    />
                   </div>
-                )}
-                <div className="flex items-center gap-2">
-                  {!isChatCollapsed && selectedFileName && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleClearHistory}
-                      disabled={isClearingHistory}
-                      className="h-5 w-5 p-0"
-                      title="Clear chat history"
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
-                  )}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setIsChatCollapsed(!isChatCollapsed)}
-                    className="h-5 w-5 p-0"
-                    title={isChatCollapsed ? "Expand chat (Ctrl+B)" : "Collapse chat (Ctrl+B)"}
-                  >
-                    {isChatCollapsed ? <ChevronLeft className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
-                  </Button>
                 </div>
-              </div>
-              
-              {/* Chat content - Takes remaining space */}
-              {isChatCollapsed && (
-                <div 
-                  className="flex-1 flex flex-col items-center justify-start pt-4 cursor-pointer hover:bg-muted/50 transition-colors"
-                  onClick={() => setIsChatCollapsed(false)}
-                  title="Click to expand chat (Ctrl+B)"
-                >
-                  <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                    <MessageCircle className="h-5 w-5" />
-                    <div className="collapsed-panel-text">
-                      Chat
+                
+                {/* Realtime Chat - Takes majority of the screen */}
+                <div className={`flex flex-col overflow-hidden transition-all duration-300 ease-in-out ${isChatCollapsed ? 'w-12 flex-shrink-0' : 'flex-1'}`}>
+                  {/* Chat header - Fixed height */}
+                  <div className={`flex-shrink-0 bg-[#FF5100] dark:bg-[#702300] border-b border-border p-2 flex items-center ${isChatCollapsed ? 'justify-center' : 'justify-between'}`}>
+                    {!isChatCollapsed && (
+                      <div className="flex gap-2">
+                        <h2 className="text-sm font-semibold">AI Assistant</h2>
+                        <p className="text-sm text-muted-foreground">
+                          Select a document to start chatting
+                        </p>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setIsChatCollapsed(!isChatCollapsed)}
+                        className="h-5 w-5 p-0"
+                        title={isChatCollapsed ? "Expand chat (Ctrl+B)" : "Collapse chat (Ctrl+B)"}
+                      >
+                        {isChatCollapsed ? <ChevronLeft className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                      </Button>
                     </div>
                   </div>
+                  
+                  {/* Chat content - Takes remaining space */}
+                  {isChatCollapsed && (
+                    <div 
+                      className="flex-1 flex flex-col items-center justify-start pt-4 cursor-pointer hover:bg-muted/50 transition-colors"
+                      onClick={() => setIsChatCollapsed(false)}
+                      title="Click to expand chat (Ctrl+B)"
+                    >
+                      <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                        <MessageCircle className="h-5 w-5" />
+                        <div className="collapsed-panel-text">
+                          Chat
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  {!isChatCollapsed && (
+                    <div className="flex-1 min-h-0 overflow-hidden">
+                      <RealtimeChat
+                        ref={chatRef}
+                        roomName="general-chat" 
+                        username={user?.email?.split('@')[0] || 'anonymous'}
+                        enableDocumentQuery={true}
+                        selectedFileName={selectedFileName}
+                        onFileRefresh={handleFileRefresh}
+                      />
+                    </div>
+                  )}
                 </div>
-              )}
-              {!isChatCollapsed && (
-                <div className="flex-1 min-h-0 overflow-hidden">
-                  <RealtimeChat
-                    ref={chatRef}
-                    roomName="general-chat" 
-                    username={user?.email?.split('@')[0] || 'anonymous'}
-                    enableDocumentQuery={true}
-                    selectedFileName={selectedFileName}
-                    onFileRefresh={handleFileRefresh}
-                  />
+              </>
+            ) : (
+              <>
+                {/* Desktop Layout - When file is selected, show old layout: file browser (list + viewer) and chat */}
+                <div className={`flex flex-col overflow-hidden border-r border-border transition-all duration-300 ease-in-out ${isChatCollapsed ? 'flex-1' : 'w-4/6 flex-shrink-0'}`}>
+                  <div className="flex-1 min-h-0 overflow-hidden">
+                    <FileBrowser ref={fileBrowserRef} onFileSelect={handleFileSelect} onExplain={handleExplain} isVisible={!isMobile} />
+                  </div>
                 </div>
-              )}
-            </div>
+                
+                {/* Desktop Layout - Side panel - Realtime Chat */}
+                <div className={`flex flex-col overflow-hidden transition-all duration-300 ease-in-out ${isChatCollapsed ? 'w-12 flex-shrink-0' : 'w-2/6 flex-shrink-0'}`}>
+                  {/* Chat header - Fixed height */}
+                  <div className={`flex-shrink-0 bg-[#FF5100] dark:bg-[#702300] border-b border-border p-2 flex items-center ${isChatCollapsed ? 'justify-center' : 'justify-between'}`}>
+                    {!isChatCollapsed && (
+                      <div className="flex gap-2">
+                        <h2 className="text-sm font-semibold">AI Assistant</h2>
+                        <p className="text-sm text-muted-foreground">
+                          {selectedFileName ? (
+                                <span className="font-medium truncate max-w-60 block text-ellipsis">
+                                {selectedFileName}
+                              </span>
+                          ) : (
+                            'Select a document to start chatting'
+                          )}
+                        </p>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-2">
+                      {!isChatCollapsed && selectedFileName && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleClearHistory}
+                          disabled={isClearingHistory}
+                          className="h-5 w-5 p-0"
+                          title="Clear chat history"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setIsChatCollapsed(!isChatCollapsed)}
+                        className="h-5 w-5 p-0"
+                        title={isChatCollapsed ? "Expand chat (Ctrl+B)" : "Collapse chat (Ctrl+B)"}
+                      >
+                        {isChatCollapsed ? <ChevronLeft className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  {/* Chat content - Takes remaining space */}
+                  {isChatCollapsed && (
+                    <div 
+                      className="flex-1 flex flex-col items-center justify-start pt-4 cursor-pointer hover:bg-muted/50 transition-colors"
+                      onClick={() => setIsChatCollapsed(false)}
+                      title="Click to expand chat (Ctrl+B)"
+                    >
+                      <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                        <MessageCircle className="h-5 w-5" />
+                        <div className="collapsed-panel-text">
+                          Chat
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  {!isChatCollapsed && (
+                    <div className="flex-1 min-h-0 overflow-hidden">
+                      <RealtimeChat
+                        ref={chatRef}
+                        roomName="general-chat" 
+                        username={user?.email?.split('@')[0] || 'anonymous'}
+                        enableDocumentQuery={true}
+                        selectedFileName={selectedFileName}
+                        onFileRefresh={handleFileRefresh}
+                      />
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
           </>
         )}
       </div>

@@ -391,7 +391,7 @@ export const FileBrowser = forwardRef<FileBrowserRef, FileBrowserProps>(({ onFil
       {/* Right Side - File Display - PDF Viewer takes remaining space */}
       <div className={`flex-1 flex flex-col ${
         forceShowFileList
-          ? 'hidden lg:flex lg:w-3/4'
+          ? 'hidden'
           : isFileListCollapsed 
             ? '' 
             : isMobile && selectedFile 
