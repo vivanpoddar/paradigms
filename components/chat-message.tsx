@@ -1,7 +1,7 @@
 import { cn } from '@/lib/utils'
 import type { ChatMessage } from '@/hooks/use-realtime-chat'
 import { MathJax } from 'better-react-mathjax'
-import { ReactElement, Fragment, createElement } from 'react'
+import { ReactElement, Fragment, createElement, memo, useMemo } from 'react'
 
 interface ChatMessageItemProps {
   message: ChatMessage
@@ -233,7 +233,23 @@ const renderInlineContent = (text: string): ReactElement[] => {
   return result.length > 0 ? result : [<span key="text">{text}</span>]
 }
 
-export const ChatMessageItem = ({ message, isOwnMessage, showHeader }: ChatMessageItemProps) => {
+export const ChatMessageItem = memo(({ message, isOwnMessage, showHeader }: ChatMessageItemProps) => {
+  // Memoize the formatted content to avoid re-rendering heavy content
+  const formattedContent = useMemo(
+    () => renderFormattedContent(message.content),
+    [message.content]
+  )
+
+  // Memoize the timestamp to avoid recalculating
+  const timestamp = useMemo(
+    () => new Date(message.createdAt).toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+    }),
+    [message.createdAt]
+  )
+
   return (
     <div className={`flex mt-1 ${isOwnMessage ? 'justify-end' : 'justify-start'}`}>
       <div
@@ -249,11 +265,7 @@ export const ChatMessageItem = ({ message, isOwnMessage, showHeader }: ChatMessa
           >
             <span className={'font-medium'}>{message.user.name}</span>
             <span className="text-foreground/50 text-xs">
-              {new Date(message.createdAt).toLocaleTimeString('en-US', {
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: true,
-              })}
+              {timestamp}
             </span>
           </div>
         )}
@@ -264,10 +276,10 @@ export const ChatMessageItem = ({ message, isOwnMessage, showHeader }: ChatMessa
           )}
         >
           <div className="prose prose-sm max-w-none dark:prose-invert">
-            {renderFormattedContent(message.content)}
+            {formattedContent}
           </div>
         </div>
       </div>
     </div>
   )
-}
+})

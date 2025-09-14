@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 
 interface Conversation {
   id: string
@@ -18,8 +18,19 @@ interface UseChatHistoryProps {
 export const useChatHistory = ({ userId, selectedFileName }: UseChatHistoryProps) => {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const cacheRef = useRef<Map<string, Conversation[]>>(new Map())
+  const lastSaveRef = useRef<number>(0)
+
+  const getCacheKey = (fileName: string | null | undefined) => fileName || 'no-file'
 
   const saveConversation = useCallback(async (query: string, response: string, metadata: Record<string, any> = {}) => {
+    // Throttle save operations to prevent excessive API calls
+    const now = Date.now()
+    if (now - lastSaveRef.current < 500) {
+      return
+    }
+    lastSaveRef.current = now
+
     try {
       setError(null)
       console.log('useChatHistory saveConversation called with:', {
@@ -49,6 +60,10 @@ export const useChatHistory = ({ userId, selectedFileName }: UseChatHistoryProps
         throw new Error(errorData.error || 'Failed to save conversation')
       }
 
+      // Invalidate cache for this file
+      const cacheKey = getCacheKey(selectedFileName)
+      cacheRef.current.delete(cacheKey)
+
       return await response_data.json()
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to save conversation'
@@ -59,6 +74,13 @@ export const useChatHistory = ({ userId, selectedFileName }: UseChatHistoryProps
   }, [userId, selectedFileName])
 
   const loadConversations = useCallback(async (): Promise<Conversation[]> => {
+    const cacheKey = getCacheKey(selectedFileName)
+    
+    // Return cached data if available
+    if (cacheRef.current.has(cacheKey)) {
+      return cacheRef.current.get(cacheKey) || []
+    }
+
     try {
       setIsLoading(true)
       setError(null)
@@ -79,7 +101,12 @@ export const useChatHistory = ({ userId, selectedFileName }: UseChatHistoryProps
       }
 
       const data = await response.json()
-      return data.conversations || []
+      const conversations = data.conversations || []
+      
+      // Cache the result
+      cacheRef.current.set(cacheKey, conversations)
+      
+      return conversations
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load conversations'
       setError(errorMessage)
@@ -111,6 +138,10 @@ export const useChatHistory = ({ userId, selectedFileName }: UseChatHistoryProps
         const errorData = await response.json()
         throw new Error(errorData.error || 'Failed to clear history')
       }
+
+      // Clear cache
+      const cacheKey = getCacheKey(selectedFileName)
+      cacheRef.current.delete(cacheKey)
 
       return await response.json()
     } catch (err) {

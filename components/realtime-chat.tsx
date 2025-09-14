@@ -18,13 +18,28 @@ import {
   DropdownMenuSeparator,
   DropdownMenuLabel,
 } from '@/components/ui/dropdown-menu'
-import { useCallback, useEffect, useMemo, useState, useImperativeHandle, forwardRef, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useState, useImperativeHandle, forwardRef, useRef, memo } from 'react'
 import { LLAMA_CLOUD_CONFIG } from '@/lib/llama-cloud-config'
 import { useChatHistory } from '@/hooks/use-chat-history'
 import { createClient } from '@/lib/supabase/client'
 import { InlineMath } from 'react-katex'
 import 'katex/dist/katex.min.css'
 import { MathJaxContext } from 'better-react-mathjax'
+
+// Memoized message component to prevent unnecessary re-renders
+const MemoizedChatMessage = memo(({ message, isOwnMessage, showHeader }: {
+  message: ChatMessage
+  isOwnMessage: boolean
+  showHeader: boolean
+}) => (
+  <div className="mobile-message-bubble">
+    <ChatMessageItem
+      message={message}
+      isOwnMessage={isOwnMessage}
+      showHeader={showHeader}
+    />
+  </div>
+))
 
 export interface RealtimeChatRef {
   clearCurrentMessages: () => void;
@@ -262,24 +277,38 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
         const conversations = await loadConversations()
         console.log('Loaded conversations count:', conversations.length)
         
-        // Convert conversations to chat messages format
+        // Process conversations in batches to avoid blocking UI
+        const batchSize = 20  // Reduced batch size for better responsiveness
         const historyMessages: ChatMessage[] = []
-        conversations.forEach((conv) => {
-          // Add user query
-          historyMessages.push({
-            id: `${conv.id}-query`,
-            content: conv.query,
-            user: { name: username },
-            createdAt: conv.timestamp,
+        
+        for (let i = 0; i < conversations.length; i += batchSize) {
+          const batch = conversations.slice(i, i + batchSize)
+          
+          batch.forEach((conv) => {
+            // Add user query
+            historyMessages.push({
+              id: `${conv.id}-query`,
+              content: conv.query,
+              user: { name: username },
+              createdAt: conv.timestamp,
+            })
+            // Add assistant response
+            historyMessages.push({
+              id: `${conv.id}-response`,
+              content: conv.response,
+              user: { name: 'Document Assistant' },
+              createdAt: conv.timestamp,
+            })
           })
-          // Add assistant response
-          historyMessages.push({
-            id: `${conv.id}-response`,
-            content: conv.response,
-            user: { name: 'Document Assistant' },
-            createdAt: conv.timestamp,
-          })
-        })
+          
+          // Update UI progressively for better UX
+          if (i === 0 || (i + batchSize) % 40 === 0) {
+            setMessages([...historyMessages])
+            await new Promise(resolve => setTimeout(resolve, 0))
+          }
+        }
+        
+        // Set final messages
         setMessages(historyMessages)
         console.log('Chat history loaded successfully, messages count:', historyMessages.length)
       } catch (error) {
@@ -290,37 +319,66 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
     loadChatHistory()
   }, [userId, loadConversations, selectedFileName, username])
 
-  // Add new messages from realtime chat
+  // Add new messages from realtime chat with throttling
+  const addRealtimeMessagesRef = useRef<NodeJS.Timeout | null>(null)
+  
   useEffect(() => {
     if (realtimeMessages.length > 0) {
-      setMessages(prev => {
-        const newMessages = realtimeMessages.filter(
-          realtimeMsg => !prev.some(prevMsg => prevMsg.id === realtimeMsg.id)
-        )
-        return [...prev, ...newMessages]
-      })
+      // Throttle message updates to prevent excessive re-renders
+      if (addRealtimeMessagesRef.current) {
+        clearTimeout(addRealtimeMessagesRef.current)
+      }
+      
+      addRealtimeMessagesRef.current = setTimeout(() => {
+        setMessages(prev => {
+          const newMessages = realtimeMessages.filter(
+            realtimeMsg => !prev.some(prevMsg => prevMsg.id === realtimeMsg.id)
+          )
+          return newMessages.length > 0 ? [...prev, ...newMessages] : prev
+        })
+      }, 50) // Small delay to batch updates
     }
   }, [realtimeMessages])
 
   // Merge messages with initial messages and add streaming message if exists
   const allMessages = useMemo(() => {
-    let finalMessages = [...initialMessages, ...messages]
+    const baseMessages = [...initialMessages, ...messages]
     
     // Add streaming message at the end if it exists
     if (streamingMessage) {
-      finalMessages.push(streamingMessage)
+      baseMessages.push(streamingMessage)
     }
     
     // Remove duplicates based on message id while preserving order
-    const uniqueMessages = finalMessages.filter(
-      (message, index, self) => index === self.findIndex((m) => m.id === message.id)
-    )
+    const seenIds = new Set<string>()
+    const uniqueMessages = baseMessages.filter(message => {
+      if (seenIds.has(message.id)) {
+        return false
+      }
+      seenIds.add(message.id)
+      return true
+    })
 
-    return uniqueMessages
+    // Limit messages to improve performance (keep last 100 messages)
+    const MESSAGE_LIMIT = 100
+    return uniqueMessages.length > MESSAGE_LIMIT 
+      ? uniqueMessages.slice(-MESSAGE_LIMIT)
+      : uniqueMessages
   }, [initialMessages, messages, streamingMessage])
 
   // Memoize the message count to avoid recalculating
   const messageCount = useMemo(() => allMessages.length, [allMessages])
+
+  // Debounced scroll to bottom to prevent excessive scrolling
+  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const debouncedScrollToBottom = useCallback(() => {
+    if (scrollTimeoutRef.current) {
+      clearTimeout(scrollTimeoutRef.current)
+    }
+    scrollTimeoutRef.current = setTimeout(() => {
+      scrollToBottom()
+    }, 100)
+  }, [scrollToBottom])
 
   useEffect(() => {
     if (onMessage) {
@@ -329,12 +387,11 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
   }, [allMessages, onMessage])
 
   useEffect(() => {
-    // Only scroll to bottom when not streaming or when streaming has finished
-    // This prevents constant scrolling during streaming updates
-    if (!streamingMessage) {
-      scrollToBottom()
+    // Only scroll when messages change and not during streaming
+    if (!streamingMessage && allMessages.length > 0) {
+      debouncedScrollToBottom()
     }
-  }, [allMessages, scrollToBottom, streamingMessage])
+  }, [allMessages.length, streamingMessage, debouncedScrollToBottom])
 
   // Save new conversations to database (query + response pairs)
   const saveConversationToHistory = useCallback(async (query: string, response: string, metadata: Record<string, any> = {}) => {
@@ -596,6 +653,9 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
 
       const messageContent = newMessage.trim()
       
+      // Clear input immediately for better UX
+      setNewMessage('')
+      
       // Create user message and add it to messages immediately
       const userMessage: ChatMessage = {
         id: crypto.randomUUID(),
@@ -606,9 +666,6 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
       
       // Add user message to messages array
       setMessages(prev => [...prev, userMessage])
-      
-      // Clear input
-      setNewMessage('')
 
       // Check if we're in PDF mode
       if (isPdfMode) {
@@ -631,13 +688,25 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
         // Use a small delay to ensure user message appears first and input is responsive
         setTimeout(() => {
           queryDocumentsRef.current?.(messageContent);
-        }, 50); // Reduced delay for better responsiveness
+        }, 10); // Minimal delay for better responsiveness
       } else {
         console.log('⚠️ Not triggering document query');
       }
     },
     [newMessage, isConnected, shouldQueryDocuments, selectedFileName, enableDocumentQuery, username, isPdfMode, generatePdfWorksheet]
   )
+
+  // Cleanup timeouts on unmount
+  useEffect(() => {
+    return () => {
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current)
+      }
+      if (addRealtimeMessagesRef.current) {
+        clearTimeout(addRealtimeMessagesRef.current)
+      }
+    }
+  }, [])
 
   const mathJaxConfig = {
     loader: { load: ["[tex]/html"] },
@@ -685,6 +754,14 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
           </div>
         ) : null}
         <div className="space-y-1">
+          {/* Show message count if approaching limit */}
+          {allMessages.length > 80 && (
+            <div className="text-center text-xs text-muted-foreground py-2">
+              Showing last {allMessages.length} messages
+              {allMessages.length >= 100 && " (older messages hidden for performance)"}
+            </div>
+          )}
+          
           {allMessages.map((message, index) => {
             const prevMessage = index > 0 ? allMessages[index - 1] : null
             const showHeader = !prevMessage || prevMessage.user.name !== message.user.name
@@ -694,13 +771,11 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
                 key={message.id}
                 className="animate-in fade-in slide-in-from-bottom-4 duration-300"
               >
-                <div className="mobile-message-bubble">
-                  <ChatMessageItem
-                    message={message}
-                    isOwnMessage={message.user.name === username}
-                    showHeader={showHeader}
-                  />
-                </div>
+                <MemoizedChatMessage
+                  message={message}
+                  isOwnMessage={message.user.name === username}
+                  showHeader={showHeader}
+                />
               </div>
             )
           })}
@@ -818,6 +893,8 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
                 : "Type a message..."
           }
           disabled={!isConnected || isQuerying || isGeneratingPdf}
+          autoComplete="off"
+          spellCheck="false"
         />
         
         {/* Main Send/Generate Button */}
