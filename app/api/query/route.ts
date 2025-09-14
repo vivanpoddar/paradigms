@@ -1,15 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { LlamaCloudIndex, Settings } from "llamaindex";
 import { openai } from "@llamaindex/openai";
+import OpenAI from 'openai';
 
 export async function POST(request: NextRequest) {
   console.log('=== QUERY API CALLED ===');
   try {
-    const { query, fileName, messageHistory, multiModal = false } = await request.json();
-    console.log('Received query:', query);
+    const { query, fileName, messageHistory, multiModal = false, images = [] } = await request.json();
+    console.log('Received query:', query.substring(0, 100) + '...');
     console.log('Received fileName:', fileName);
     console.log('Received message history length:', messageHistory?.length || 0);
     console.log('Multi-modal enabled:', multiModal);
+    console.log('Images received:', images.length);
+    console.log('Images data types:', images.map((img: any) => typeof img));
+    console.log('First image preview (if any):', images[0] ? images[0].substring(0, 50) + '...' : 'No images');
 
     if (!query || typeof query !== 'string') {
       return NextResponse.json(
@@ -26,7 +30,7 @@ export async function POST(request: NextRequest) {
     }
 
     Settings.llm = openai({
-      model: "gpt-4.1-nano",
+      model: images.length > 0 ? "gpt-4o" : "gpt-4.1-nano", // Use vision model if images provided
       temperature: 1,
       apiKey: process.env.OPENAI_API_KEY,
     });
@@ -38,7 +42,7 @@ export async function POST(request: NextRequest) {
       apiKey: process.env.LLAMA_CLOUD_API_KEY,
     });
 
-    const answerQuery = async (query: string, fileName: string, useChatHistory: boolean, messageHistory?: any[], multiModal?: boolean) => {
+    const answerQuery = async (query: string, fileName: string, useChatHistory: boolean, messageHistory?: any[], multiModal?: boolean, images?: string[]) => {
       // Build conversation context from message history
       let conversationContext = '';
       if (messageHistory && messageHistory.length > 0) {
@@ -51,19 +55,93 @@ export async function POST(request: NextRequest) {
         conversationContext += '\n';
       }
 
+      // If images are provided, handle vision query differently
+      if (images && images.length > 0) {
+        console.log('Processing vision query with', images.length, 'images');
+        
+        // For vision queries, we'll first get document context, then combine with vision
+        const documentQuery = `${query}
+        ${useChatHistory ? `If needed, respond based on the available conversation history: ${conversationContext}` : ''}`;
+
+        console.log('Getting document context for vision query...');
+        
+        // Get document context first
+        const fileNameTxt = fileName.replace(/\.[^.]+$/, '') + '.txt';
+        const documentQueryEngine = index.asQueryEngine({
+          similarityTopK: 10,
+          filters: {
+            filters: [
+              {
+                key: "file_name",
+                value: fileNameTxt,
+                operator: "text_match"
+              }
+            ]
+          }
+        });
+        
+        const documentResponse = await documentQueryEngine.query({
+          query: documentQuery,
+          stream: false
+        });
+        const documentContext = documentResponse.toString();
+        
+        // Now create a vision query directly to OpenAI
+        console.log('Creating vision query with document context...');
+        
+        const visionMessages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
+          {
+            role: "system",
+            content: `You are a patient and knowledgeable homework tutor. You have access to document context and can view images. Use both sources to help the student understand and solve problems.
+
+Document Context: ${documentContext}
+
+${useChatHistory ? `Conversation History: ${conversationContext}` : ''}
+
+IMPORTANT: When including mathematical expressions in your responses always use LaTeX syntax.`
+          },
+          {
+            role: "user",
+            content: [
+              {
+                type: "text",
+                text: query
+              },
+              ...images.map(imageBase64 => ({
+                type: "image_url" as const,
+                image_url: {
+                  url: `data:image/jpeg;base64,${imageBase64}`
+                }
+              }))
+            ]
+          }
+        ];
+
+        // Use OpenAI directly for vision
+        const openaiClient = new OpenAI({
+          apiKey: process.env.OPENAI_API_KEY,
+        });
+
+        console.log('Sending vision query to OpenAI...');
+        const visionResponse = await openaiClient.chat.completions.create({
+          model: "gpt-4o",
+          messages: visionMessages,
+          stream: true
+        });
+
+        return visionResponse;
+      }
+
+      // Regular document-only query
       const enhancedQuery = `${query}
-      ${useChatHistory ? `If needed, respond based on the available conversation history: ${conversationContext}` : ''}
-      
-      `
+      ${useChatHistory ? `If needed, respond based on the available conversation history: ${conversationContext}` : ''}`;
 
       console.log('Creating query engine...');
       const fileNameTxt = fileName.replace(/\.[^.]+$/, '') + '.txt';
       console.log('File name for query:', fileNameTxt);
-      console.log('Multi-modal retrieval:', multiModal);
       
-      // Configure query engine based on multi-modal setting
-      const queryEngineConfig: any = {
-        similarityTopK: 30, // Number of candidates to consider during retrieval
+      const queryEngine = index.asQueryEngine({
+        similarityTopK: 30,
         filters: {
           filters: [
             {
@@ -73,23 +151,14 @@ export async function POST(request: NextRequest) {
             }
           ]
         }
-      };
-
-      // Add multi-modal retrieval configuration if enabled
-      if (multiModal) {
-        queryEngineConfig.multiModal = true;
-        queryEngineConfig.imageRetrievalTopK = 5; // Number of images to retrieve
-        queryEngineConfig.enableImageSearch = true;
-        console.log('Multi-modal retrieval enabled with image search');
-      }
-
-      const queryEngine = index.asQueryEngine(queryEngineConfig);
+      });
       
       console.log('Executing streaming query...');
-      const streamingResponse = await queryEngine.query({ 
+      const streamingResponse = await queryEngine.query({
         query: enhancedQuery,
         stream: true 
       });
+      
       console.log('Query completed successfully');
       return streamingResponse;
     };
@@ -98,13 +167,30 @@ export async function POST(request: NextRequest) {
     const stream = new ReadableStream({
       async start(controller) {
         try {
-          const streamingResponse = await answerQuery(query, fileName, messageHistory, multiModal);
+          const streamingResponse = await answerQuery(query, fileName, true, messageHistory, multiModal, images);
           
           // Handle streaming response - streamingResponse is AsyncIterable
           try {
             for await (const chunk of streamingResponse) {
-              // Extract text content from the chunk
-              const text = chunk.message?.content || chunk.toString();
+              let text = '';
+              
+              // Handle different response types
+              if ('choices' in chunk && chunk.choices && chunk.choices.length > 0) {
+                // OpenAI ChatCompletion chunk
+                text = chunk.choices[0]?.delta?.content || '';
+              } else if ('message' in chunk) {
+                // LlamaIndex EngineResponse
+                const messageContent = chunk.message?.content;
+                if (typeof messageContent === 'string') {
+                  text = messageContent;
+                } else {
+                  text = chunk.toString();
+                }
+              } else {
+                // Fallback
+                text = chunk.toString();
+              }
+              
               if (text) {
                 const data = JSON.stringify({ content: text, done: false }) + '\n';
                 controller.enqueue(new TextEncoder().encode(data));

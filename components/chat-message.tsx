@@ -2,6 +2,7 @@ import { cn } from '@/lib/utils'
 import type { ChatMessage } from '@/hooks/use-realtime-chat'
 import { MathJax } from 'better-react-mathjax'
 import { ReactElement, Fragment, createElement, memo, useMemo } from 'react'
+import { ImageIcon } from 'lucide-react'
 
 interface ChatMessageItemProps {
   message: ChatMessage
@@ -311,8 +312,43 @@ export const ChatMessageItem = memo(({ message, isOwnMessage, showHeader }: Chat
             isOwnMessage ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground'
           )}
         >
+          {/* Display images if present */}
+          {message.images && message.images.length > 0 && (
+            <div className="mb-2 space-y-2">
+              {message.images.map((image, index) => (
+                <div key={index} className="relative">
+                  <img
+                    src={image.url}
+                    alt={image.name}
+                    className="max-w-full max-h-48 rounded-lg border border-opacity-20 border-white object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                    onClick={() => window.open(image.url, '_blank')}
+                  />
+                  <div className={cn(
+                    "flex items-center gap-1 mt-1 text-xs",
+                    isOwnMessage ? "text-primary-foreground/70" : "text-foreground/70"
+                  )}>
+                    <ImageIcon className="w-3 h-3" />
+                    <span className="truncate max-w-32" title={image.name}>
+                      {image.name}
+                    </span>
+                    <span>({(image.size / 1024).toFixed(1)} KB)</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          
           <div className="prose prose-sm max-w-none dark:prose-invert">
-            {formattedContent}
+            {message.content ? formattedContent : (
+              message.images && message.images.length > 0 ? (
+                <span className={cn(
+                  "italic text-sm",
+                  isOwnMessage ? "text-primary-foreground/70" : "text-foreground/70"
+                )}>
+                  Shared {message.images.length} image{message.images.length > 1 ? 's' : ''}
+                </span>
+              ) : null
+            )}
           </div>
         </div>
       </div>

@@ -9,7 +9,7 @@ import {
 } from '@/hooks/use-realtime-chat'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Send, BookOpen, Loader2, X, Mic, MicOff, FileText, ChevronDown, Calculator, FileIcon } from 'lucide-react'
+import { Send, BookOpen, Loader2, X, Mic, MicOff, FileText, ChevronDown, Calculator, FileIcon, ImagePlus, Trash2 } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -98,9 +98,13 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
   const [isPdfMode, setIsPdfMode] = useState(false)
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false)
   const [pdfMathMode, setPdfMathMode] = useState<boolean | 'auto'>('auto')
+  const [selectedImages, setSelectedImages] = useState<File[]>([])
+  const [imagePreviewUrls, setImagePreviewUrls] = useState<string[]>([])
+  const [isDragOver, setIsDragOver] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Create a ref to access queryDocuments without making it a dependency
-  const queryDocumentsRef = useRef<((query: string) => Promise<void>) | null>(null)
+  const queryDocumentsRef = useRef<((query: string, images?: File[]) => Promise<void>) | null>(null)
 
   // Microphone hook function
   const handleMicrophoneToggle = useCallback(() => {
@@ -239,6 +243,106 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
   const handlePdfModeToggle = useCallback(() => {
     setIsPdfMode(prev => !prev)
   }, [])
+
+  // Handle image selection
+  const handleImageSelect = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || [])
+    const imageFiles = files.filter(file => file.type.startsWith('image/'))
+    
+    if (imageFiles.length > 0) {
+      addImages(imageFiles)
+    }
+    
+    // Reset input
+    event.target.value = ''
+  }, [])
+
+  // Helper function to add images
+  const addImages = useCallback((imageFiles: File[]) => {
+    setSelectedImages(prev => [...prev, ...imageFiles])
+    
+    // Create preview URLs
+    const newPreviewUrls = imageFiles.map(file => URL.createObjectURL(file))
+    setImagePreviewUrls(prev => [...prev, ...newPreviewUrls])
+  }, [])
+
+  // Handle drag and drop
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragOver(true)
+  }, [])
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragOver(false)
+  }, [])
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragOver(false)
+    
+    const files = Array.from(e.dataTransfer.files)
+    const imageFiles = files.filter(file => file.type.startsWith('image/'))
+    
+    if (imageFiles.length > 0) {
+      addImages(imageFiles)
+    }
+  }, [addImages])
+
+  // Handle paste events
+  const handlePaste = useCallback((e: ClipboardEvent) => {
+    const items = Array.from(e.clipboardData?.items || [])
+    const imageItems = items.filter(item => item.type.startsWith('image/'))
+    
+    if (imageItems.length > 0) {
+      const imageFiles: File[] = []
+      imageItems.forEach(item => {
+        const file = item.getAsFile()
+        if (file) {
+          imageFiles.push(file)
+        }
+      })
+      
+      if (imageFiles.length > 0) {
+        addImages(imageFiles)
+      }
+    }
+  }, [addImages])
+
+  // Add paste event listener
+  useEffect(() => {
+    document.addEventListener('paste', handlePaste)
+    return () => document.removeEventListener('paste', handlePaste)
+  }, [handlePaste])
+
+  // Open file picker
+  const openFilePicker = useCallback(() => {
+    fileInputRef.current?.click()
+  }, [])
+
+  // Remove selected image
+  const removeImage = useCallback((index: number) => {
+    setSelectedImages(prev => prev.filter((_, i) => i !== index))
+    setImagePreviewUrls(prev => {
+      const newUrls = prev.filter((_, i) => i !== index)
+      // Revoke the removed URL to free memory
+      if (prev[index]) {
+        URL.revokeObjectURL(prev[index])
+      }
+      return newUrls
+    })
+  }, [])
+
+  // Clear all images
+  const clearImages = useCallback(() => {
+    // Revoke all preview URLs to free memory
+    imagePreviewUrls.forEach(url => URL.revokeObjectURL(url))
+    setSelectedImages([])
+    setImagePreviewUrls([])
+  }, [imagePreviewUrls])
 
   // Get user ID from Supabase
   useEffect(() => {
@@ -479,10 +583,11 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
   }, [enableDocumentQuery, selectedFileName])
 
   // Function to query documents using LlamaCloudIndex
-  const queryDocuments = useCallback(async (query: string): Promise<void> => {
+  const queryDocuments = useCallback(async (query: string, images: File[] = []): Promise<void> => {
     console.log('=== QUERY DOCUMENTS CALLED ===');
     console.log('Query:', query);
     console.log('Selected file:', selectedFileName);
+    console.log('Images:', images.length);
     console.log('Message history length:', messageCount);
     
     if (!selectedFileName) {
@@ -492,6 +597,29 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
     
     console.log('✅ Starting query with file:', selectedFileName);
     setIsQuerying(true)
+    
+    // Convert images to base64
+    const imageData: string[] = []
+    if (images.length > 0) {
+      for (const image of images) {
+        try {
+          const base64 = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader()
+            reader.onload = () => {
+              const result = reader.result as string
+              // Remove data URL prefix to get just the base64 data
+              const base64Data = result.split(',')[1]
+              resolve(base64Data)
+            }
+            reader.onerror = reject
+            reader.readAsDataURL(image)
+          })
+          imageData.push(base64)
+        } catch (error) {
+          console.error('Error converting image to base64:', error)
+        }
+      }
+    }
     
     // Get current message history at execution time instead of dependency
     const currentMessages = allMessages
@@ -527,16 +655,28 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
       `
     try {
       console.log('📤 Sending request to /api/query');
+      const requestBody = { 
+        query: enhancedQuery, 
+        fileName: selectedFileName,
+        messageHistory: currentMessages,
+        multiModal: images.length > 0,
+        images: imageData
+      }
+      
+      console.log('📋 Request body details:');
+      console.log('- Query length:', enhancedQuery.length);
+      console.log('- File name:', selectedFileName);
+      console.log('- Message history count:', currentMessages.length);
+      console.log('- Multi-modal:', images.length > 0);
+      console.log('- Images count:', imageData.length);
+      console.log('- Image data sizes:', imageData.map(img => img.length));
+      
       const response = await fetch('/api/query', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ 
-          query: enhancedQuery, 
-          fileName: selectedFileName,
-          messageHistory: currentMessages
-        }),
+        body: JSON.stringify(requestBody),
       })
 
       console.log('📥 Response status:', response.status);
@@ -708,7 +848,7 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
   const handleSendMessage = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault()
-      if (!newMessage.trim() || !isConnected) return
+      if ((!newMessage.trim() && selectedImages.length === 0) || !isConnected) return
 
       const messageContent = newMessage.trim()
       
@@ -721,6 +861,11 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
         content: messageContent,
         user: { name: username },
         createdAt: new Date().toISOString(),
+        images: selectedImages.length > 0 ? selectedImages.map((file, index) => ({
+          url: imagePreviewUrls[index],
+          name: file.name,
+          size: file.size
+        })) : undefined
       }
       
       // Add user message to messages array
@@ -740,9 +885,10 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
       }
 
       // Check if we should query documents for this message
-      const shouldQuery = shouldQueryDocuments(messageContent);
+      const shouldQuery = shouldQueryDocuments(messageContent) || selectedImages.length > 0;
       console.log('=== MESSAGE SENT ===');
       console.log('Message:', messageContent);
+      console.log('Images selected:', selectedImages.length);
       console.log('Should query documents:', shouldQuery);
       console.log('Selected file:', selectedFileName);
       console.log('Enable document query:', enableDocumentQuery);
@@ -751,13 +897,18 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
         console.log('🔍 Triggering document query...');
         // Use a small delay to ensure user message appears first and input is responsive
         setTimeout(() => {
-          queryDocumentsRef.current?.(messageContent);
+          queryDocumentsRef.current?.(messageContent || "What do you see in this image?", selectedImages);
         }, 10); // Minimal delay for better responsiveness
       } else {
         console.log('⚠️ Not triggering document query');
       }
+
+      // Clear images after sending message
+      if (selectedImages.length > 0) {
+        clearImages();
+      }
     },
-    [newMessage, isConnected, shouldQueryDocuments, selectedFileName, enableDocumentQuery, username, isPdfMode, generatePdfWorksheet]
+    [newMessage, isConnected, shouldQueryDocuments, selectedFileName, enableDocumentQuery, username, isPdfMode, generatePdfWorksheet, selectedImages, imagePreviewUrls]
   )
 
   // Cleanup timeouts on unmount
@@ -769,8 +920,10 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
       if (addRealtimeMessagesRef.current) {
         clearTimeout(addRealtimeMessagesRef.current)
       }
+      // Cleanup preview URLs
+      imagePreviewUrls.forEach(url => URL.revokeObjectURL(url))
     }
-  }, [])
+  }, [imagePreviewUrls])
 
   const mathJaxConfig = {
     loader: { load: ["[tex]/html"] },
@@ -794,7 +947,22 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
 
   return (
     <MathJaxContext config={mathJaxConfig}>
-      <div className="flex flex-col h-full w-full bg-background text-foreground antialiased mobile-chat-container">
+      <div className="flex flex-col h-full w-full bg-background text-foreground antialiased mobile-chat-container relative">
+        {/* Drag and Drop Overlay */}
+        {isDragOver && (
+          <div className="absolute inset-0 bg-blue-500/10 border-2 border-dashed border-blue-500 z-50 flex items-center justify-center">
+            <div className="text-center">
+              <ImagePlus className="w-12 h-12 text-blue-500 mx-auto mb-2" />
+              <div className="text-lg font-medium text-blue-700 dark:text-blue-300">
+                Drop images here
+              </div>
+              <div className="text-sm text-blue-600 dark:text-blue-400">
+                Release to upload
+              </div>
+            </div>
+          </div>
+        )}
+
       {/* Messages */}
       <div ref={containerRef} className="flex-1 overflow-y-auto p-4 space-y-4 mobile-chat-messages mobile-scroll">
         {isLoadingHistory ? (
@@ -957,7 +1125,70 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
         </div>
       )}
 
-      <form onSubmit={handleSendMessage} className="flex w-full border-t gap-2 border-border p-4 mobile-chat-input bg-background">
+      {/* Image Preview Section */}
+      {selectedImages.length > 0 && (
+        <div className="border-t border-border bg-gray-50 dark:bg-gray-900/20 p-3">
+          <div className="flex items-center justify-between mb-2">
+            <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              Selected Images ({selectedImages.length})
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={clearImages}
+              className="text-red-600 hover:text-red-700 h-6 px-2"
+            >
+              <Trash2 className="w-4 h-4 mr-1" />
+              Clear All
+            </Button>
+          </div>
+          <div className="flex gap-2 overflow-x-auto">
+            {imagePreviewUrls.map((url, index) => (
+              <div key={index} className="relative flex-shrink-0">
+                <img
+                  src={url}
+                  alt={`Preview ${index + 1}`}
+                  className="w-16 h-16 object-cover rounded border border-gray-200 dark:border-gray-700"
+                />
+                <button
+                  type="button"
+                  onClick={() => removeImage(index)}
+                  className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600 transition-colors"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <form onSubmit={handleSendMessage} className="flex w-full border-t gap-2 border-border p-4 mobile-chat-input bg-background"
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+      >
+        {/* Hidden file input */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          multiple
+          onChange={handleImageSelect}
+          className="hidden"
+        />
+
+        {/* Image Upload Button */}
+        <Button
+          type="button"
+          onClick={openFilePicker}
+          className="aspect-square rounded-full flex-shrink-0 bg-gray-100 hover:bg-gray-200 dark:bg-gray-900 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400"
+          disabled={!isConnected || isQuerying || isGeneratingPdf}
+          title="Upload images (or drag & drop, paste)"
+        >
+          <ImagePlus className="size-4" />
+        </Button>
         <Input
           className={cn(
             'rounded-full bg-background transition-all duration-300 text-base lg:text-sm',
@@ -971,9 +1202,13 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
               ? "Describe the worksheet you want to create..."
               : enableDocumentQuery 
                 ? selectedFileName 
-                  ? `Ask about ${selectedFileName}...` 
+                  ? selectedImages.length > 0
+                    ? `Ask about ${selectedFileName} with ${selectedImages.length} image${selectedImages.length > 1 ? 's' : ''}...`
+                    : `Ask about ${selectedFileName}...`
                   : "Select a file to query documents..." 
-                : "Type a message..."
+                : selectedImages.length > 0
+                  ? `Type a message with ${selectedImages.length} image${selectedImages.length > 1 ? 's' : ''}...`
+                  : "Type a message..."
           }
           disabled={!isConnected || isQuerying || isGeneratingPdf}
           autoComplete="off"
@@ -981,14 +1216,14 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
         />
         
         {/* Main Send/Generate Button */}
-        {isConnected && newMessage.trim() && (
+        {isConnected && (newMessage.trim() || selectedImages.length > 0) && (
           <Button
             className={cn(
               "aspect-square rounded-full animate-in fade-in slide-in-from-right-4 duration-300 flex-shrink-0",
               isPdfMode && "bg-blue-500 hover:bg-blue-600"
             )}
             type="submit"
-            disabled={!isConnected || isQuerying || isGeneratingPdf}
+            disabled={!isConnected || isQuerying || isGeneratingPdf || (!newMessage.trim() && selectedImages.length === 0)}
             title={isPdfMode ? "Generate PDF worksheet" : "Send message"}
           >
             {isGeneratingPdf ? (
