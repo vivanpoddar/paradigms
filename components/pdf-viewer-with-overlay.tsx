@@ -378,7 +378,7 @@ export const PdfViewerWithOverlay: React.FC<PdfViewerWithOverlayProps> = ({
     const { EnterFullScreen } = fullScreenPluginInstance;
 
     return (
-        <div className="overflow-y-scroll max-h-[91vh]">
+        <div className="h-[91vh]">
             <Worker workerUrl='https://unpkg.com/pdfjs-dist@3.4.120/build/pdf.worker.min.js'>
                 <div
                     className="bg-white dark:bg-black h-full flex flex-col"
