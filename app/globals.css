@@ -159,17 +159,21 @@
       hyphens: auto;
     }
     
-    /* Mobile viewport fix for iOS Safari */
+    /* Mobile viewport fix for iOS Safari - ignores bottom toolbar */
     .mobile-viewport-fix {
       height: 100vh;
       height: -webkit-fill-available;
       height: 100dvh;
+      min-height: 100vh;
+      min-height: -webkit-fill-available;
+      min-height: 100dvh;
     }
     
     /* iOS Safari specific fixes */
     @supports (-webkit-touch-callout: none) {
       .mobile-viewport-fix {
         height: -webkit-fill-available;
+        min-height: -webkit-fill-available;
       }
       
       .mobile-chat-container {
@@ -185,19 +189,45 @@
     /* Prevent viewport changes on iOS */
     html {
       height: -webkit-fill-available;
+      /* Prevent user zoom */
+      -webkit-text-size-adjust: 100%;
+      -ms-text-size-adjust: 100%;
     }
     
     body {
       min-height: 100vh;
       min-height: -webkit-fill-available;
+      /* Prevent bounce effect on iOS */
+      overscroll-behavior: contain;
+      -webkit-overflow-scrolling: touch;
     }
     
     /* Prevent zoom on input focus (iOS Safari) */
     input[type="text"],
     input[type="email"],
     input[type="password"],
-    textarea {
+    textarea,
+    select {
       font-size: 16px;
+      -webkit-appearance: none;
+      appearance: none;
+      border-radius: 0;
+    }
+    
+    /* Auth page specific mobile optimizations */
+    .auth-container {
+      padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+      min-height: 100vh;
+      min-height: -webkit-fill-available;
+      min-height: 100dvh;
+    }
+    
+    /* Ensure auth forms are properly sized */
+    .auth-form {
+      max-height: 90vh;
+      max-height: calc(-webkit-fill-available - 10vh);
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
     }
     
     /* Ensure chat input area stays at bottom */
@@ -256,6 +286,33 @@
     mjx-container::-webkit-scrollbar-thumb {
       background: hsl(var(--muted-foreground));
       border-radius: 2px;
+    }
+  }
+
+  /* Additional iOS specific fixes */
+  @supports (-webkit-touch-callout: none) {
+    /* iOS Safari specific styles */
+    html {
+      height: 100vh;
+      height: -webkit-fill-available;
+    }
+    
+    body {
+      min-height: 100vh;
+      min-height: -webkit-fill-available;
+    }
+    
+    .mobile-viewport-fix {
+      height: 100vh;
+      height: -webkit-fill-available;
+      min-height: 100vh;
+      min-height: -webkit-fill-available;
+    }
+    
+    /* Prevent iOS Safari from showing/hiding address bar issues */
+    .auth-container {
+      height: 100vh;
+      height: -webkit-fill-available;
     }
   }
 }

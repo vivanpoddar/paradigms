@@ -57,21 +57,21 @@ export function SignUpForm({
   };
 
   return (
-    <div className="flex w-full h-screen items-center justify-center" {...props}>
-      <div className="w-full max-w-xl p-6 md:p-10 flex flex-col justify-center">
-        <div>
+    <div className="flex w-full items-center justify-center" {...props}>
+      <div className="w-full max-w-xl p-2 sm:p-4 flex flex-col justify-center">
+        <div className="mb-4 sm:mb-6">
           <img
             src="/logo-dark.svg"
             alt="Sign Up Illustration"
             width={400}
             height={200}
-            className="mx-auto mb-4"
+            className="mx-auto w-full max-w-xs sm:max-w-sm"
           />
         </div>
-        <form className="border rounded-xl p-6 md:p-10 justify-center" onSubmit={handleSignUp}>
-          <div className="gap-2 w-full flex flex-col">
-            <span className="text-xl">Sign Up</span>
-            <div className="gap-2">
+        <form className="border rounded-xl p-4 sm:p-6 md:p-8 justify-center" onSubmit={handleSignUp}>
+          <div className="gap-3 sm:gap-4 w-full flex flex-col">
+            <span className="text-lg sm:text-xl font-semibold">Sign Up</span>
+            <div className="gap-2 space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
@@ -80,9 +80,10 @@ export function SignUpForm({
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                className="text-base" // Prevent zoom on iOS
               />
             </div>
-            <div className="gap-2">
+            <div className="gap-2 space-y-2">
               <Label htmlFor="password">Password</Label>
               <Input
                 id="password"
@@ -90,9 +91,10 @@ export function SignUpForm({
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                className="text-base" // Prevent zoom on iOS
               />
             </div>
-            <div className="gap-2">
+            <div className="gap-2 space-y-2">
               <Label htmlFor="repeat-password">Repeat Password</Label>
               <Input
                 id="repeat-password"
@@ -100,16 +102,17 @@ export function SignUpForm({
                 required
                 value={repeatPassword}
                 onChange={(e) => setRepeatPassword(e.target.value)}
+                className="text-base" // Prevent zoom on iOS
               />
             </div>
-            {error && <p className="text-sm text-red-500">{error}</p>}
-            <Button type="submit" className="mt-4 w-full" disabled={isLoading}>
+            {error && <p className="text-sm text-red-500 mt-2">{error}</p>}
+            <Button type="submit" className="mt-4 w-full py-3" disabled={isLoading}>
               {isLoading ? "Creating an account..." : "Sign up"}
             </Button>
           </div>
           <div className="mt-4 text-center text-sm">
             Already have an account?{" "}
-            <Link href="/auth/login" className="underline underline-offset-4">
+            <Link href="/auth/login" className="underline underline-offset-4 text-blue-600">
               Login
             </Link>
           </div>

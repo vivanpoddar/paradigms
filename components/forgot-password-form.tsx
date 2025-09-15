@@ -45,30 +45,30 @@ export function ForgotPasswordForm({
   };
 
   return (
-    <div className="flex w-full h-screen items-center justify-center" {...props}>
-      <div className="w-full max-w-xl p-6 md:p-10 flex flex-col justify-center">
-        <div>
+    <div className="flex w-full items-center justify-center" {...props}>
+      <div className="w-full max-w-xl p-2 sm:p-4 flex flex-col justify-center">
+        <div className="mb-4 sm:mb-6">
           <img
             src="/logo-dark.svg"
             alt="Login Illustration"
             width={400}
             height={200}
-            className="mx-auto mb-4"
+            className="mx-auto w-full max-w-xs sm:max-w-sm"
           />
         </div>
         {success ? (
-          <div className="border rounded-xl p-6 md:p-10 text-center">
-            <span className="text-2xl font-semibold block mb-2">Check Your Email</span>
+          <div className="border rounded-xl p-4 sm:p-6 md:p-8 text-center">
+            <span className="text-xl sm:text-2xl font-semibold block mb-2">Check Your Email</span>
             <span className="block mb-4 text-muted-foreground">Password reset instructions sent</span>
             <p className="text-sm text-muted-foreground">
               If you registered using your email and password, you will receive a password reset email.
             </p>
           </div>
         ) : (
-          <form className="border rounded-xl p-6 md:p-10 justify-center" onSubmit={handleForgotPassword}>
-            <div className="gap-2 w-full flex flex-col">
-              <span className="text-xl mb-2">Reset Your Password</span>
-              <div className="gap-2">
+          <form className="border rounded-xl p-4 sm:p-6 md:p-8 justify-center" onSubmit={handleForgotPassword}>
+            <div className="gap-3 sm:gap-4 w-full flex flex-col">
+              <span className="text-lg sm:text-xl font-semibold mb-2">Reset Your Password</span>
+              <div className="gap-2 space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <Input
                   id="email"
@@ -77,10 +77,11 @@ export function ForgotPasswordForm({
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  className="text-base" // Prevent zoom on iOS
                 />
               </div>
-              {error && <p className="text-sm text-red-500">{error}</p>}
-              <Button type="submit" className="mt-4 w-full" disabled={isLoading}>
+              {error && <p className="text-sm text-red-500 mt-2">{error}</p>}
+              <Button type="submit" className="mt-4 w-full py-3" disabled={isLoading}>
                 {isLoading ? "Sending..." : "Send reset email"}
               </Button>
             </div>
@@ -88,7 +89,7 @@ export function ForgotPasswordForm({
               Already have an account?{" "}
               <Link
                 href="/auth/login"
-                className="underline underline-offset-4"
+                className="underline underline-offset-4 text-blue-600"
               >
                 Login
               </Link>

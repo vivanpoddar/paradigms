@@ -43,21 +43,21 @@ export function UpdatePasswordForm({
   };
 
   return (
-    <div className="flex w-full h-screen items-center justify-center" {...props}>
-      <div className="w-full max-w-xl p-6 md:p-10 flex flex-col justify-center">
-        <div>
+    <div className="flex w-full items-center justify-center" {...props}>
+      <div className="w-full max-w-xl p-2 sm:p-4 flex flex-col justify-center">
+        <div className="mb-4 sm:mb-6">
           <img
             src="/logo-dark.svg"
             alt="Login Illustration"
             width={400}
             height={200}
-            className="mx-auto mb-4"
+            className="mx-auto w-full max-w-xs sm:max-w-sm"
           />
         </div>
-        <form className="border rounded-xl p-6 md:p-10 justify-center" onSubmit={handleForgotPassword}>
-          <div className="gap-2 w-full flex flex-col">
-            <span className="text-xl mb-2">Reset Your Password</span>
-            <div className="gap-2">
+        <form className="border rounded-xl p-4 sm:p-6 md:p-8 justify-center" onSubmit={handleForgotPassword}>
+          <div className="gap-3 sm:gap-4 w-full flex flex-col">
+            <span className="text-lg sm:text-xl font-semibold mb-2">Reset Your Password</span>
+            <div className="gap-2 space-y-2">
               <Label htmlFor="password">New password</Label>
               <Input
                 id="password"
@@ -66,10 +66,11 @@ export function UpdatePasswordForm({
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                className="text-base" // Prevent zoom on iOS
               />
             </div>
-            {error && <p className="text-sm text-red-500">{error}</p>}
-            <Button type="submit" className="mt-4 w-full" disabled={isLoading}>
+            {error && <p className="text-sm text-red-500 mt-2">{error}</p>}
+            <Button type="submit" className="mt-4 w-full py-3" disabled={isLoading}>
               {isLoading ? "Saving..." : "Save new password"}
             </Button>
           </div>

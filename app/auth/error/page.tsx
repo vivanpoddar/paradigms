@@ -8,12 +8,12 @@ export default async function Page({
   const params = await searchParams;
 
   return (
-    <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">
+    <div className="flex min-h-screen mobile-viewport-fix w-full items-center justify-center p-4 sm:p-6 md:p-8">
       <div className="w-full max-w-sm">
         <div className="flex flex-col gap-6">
           <Card>
             <CardHeader>
-              <CardTitle className="text-2xl">
+              <CardTitle className="text-xl sm:text-2xl">
                 Sorry, something went wrong.
               </CardTitle>
             </CardHeader>
