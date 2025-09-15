@@ -1249,8 +1249,8 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
               : enableDocumentQuery 
                 ? selectedFileName 
                   ? selectedImages.length > 0
-                    ? `Ask about ${selectedFileName} with ${selectedImages.length} image${selectedImages.length > 1 ? 's' : ''}...`
-                    : `Ask about ${selectedFileName}...`
+                    ? `Upload images or ask a question.`
+                    : `Upload screenshots for visual context (charts/graphs etc.)`
                   : selectedImages.length > 0
                     ? `Ask anything with ${selectedImages.length} image${selectedImages.length > 1 ? 's' : ''}...`
                     : "Ask me anything..." 
