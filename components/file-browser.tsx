@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useEffect, useState, forwardRef, useImperativeHandle } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { File, FileText, Image, Download, Plus, ChevronLeft, ChevronRight, Folder, Trash2 } from "lucide-react";
+import { File, FileText, Image, Download, Plus, ChevronLeft, ChevronRight, Folder, Trash2, FileIcon, FolderIcon } from "lucide-react";
 import { FileUpload } from "@/components/file-upload";
 import { PdfViewerWithOverlay } from "@/components/pdf-viewer-with-overlay";
 import { useFileManager, type UseFileManagerReturn } from "@/hooks/use-file-manager";
@@ -240,7 +240,7 @@ export const FileBrowser = forwardRef<FileBrowserRef, FileBrowserProps>(({ onFil
         <Card className="h-[95vh] overflow-y-scroll rounded-none border-0 flex flex-col">
             <CardHeader className="bg-[#FF5100] dark:bg-[#702300] border-b flex-shrink-0 p-1.5 sticky top-0 z-10">
             <CardTitle className="flex items-center justify-between text-sm">
-              {!isFileListCollapsed && !isMobile && "Files"}
+              {!isFileListCollapsed && !isMobile && <FolderIcon className="h-4 w-4" />}
               {isFileListCollapsed && !isMobile && (
                 <div className="flex justify-center w-full">
                   <Button

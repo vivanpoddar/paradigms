@@ -42,7 +42,7 @@ export default function Home() {
   // Check if mobile and handle resize
   useEffect(() => {
     const checkIsMobile = () => {
-      const mobile = window.innerWidth < 1024; // lg breakpoint
+      const mobile = window.innerWidth < 1280; // lg breakpoint
       setIsMobile(mobile);
       
       // Reset mobile panels when switching to desktop
@@ -214,7 +214,7 @@ export default function Home() {
                 className="flex items-center gap-2"
                 title="Return to file overview"
               >
-                <Eye className="h-4 w-4" />
+                Home Chat
               </Button>
             )}
             <Button
@@ -302,7 +302,7 @@ export default function Home() {
                   <div className={`flex-shrink-0 bg-[#FF5100] dark:bg-[#702300] border-b border-border p-2 flex items-center ${isChatCollapsed ? 'justify-center' : 'justify-between'}`}>
                     {!isChatCollapsed && (
                       <div className="flex gap-2">
-                        <h2 className="text-sm font-semibold">AI Assistant</h2>
+                        <h2 className="text-sm font-semibold">Chat</h2>
                         <p className="text-sm text-muted-foreground">
                           Select a document to start chatting
                         </p>
@@ -365,7 +365,7 @@ export default function Home() {
                   <div className={`flex-shrink-0 bg-[#FF5100] dark:bg-[#702300] border-b border-border p-2 flex items-center ${isChatCollapsed ? 'justify-center' : 'justify-between'}`}>
                     {!isChatCollapsed && (
                       <div className="flex gap-2">
-                        <h2 className="text-sm font-semibold">AI Assistant</h2>
+                        <h2 className="text-sm font-semibold">Chat</h2>
                         <p className="text-sm text-muted-foreground">
                           {selectedFileName ? (
                                 <span className="font-medium truncate max-w-60 block text-ellipsis">
@@ -387,7 +387,7 @@ export default function Home() {
                             className="h-5 p-1"
                             title="Return to file overview"
                           >
-                            Return to Chat
+                            Home Chat
                           </Button>
                           <Button
                             variant="ghost"
