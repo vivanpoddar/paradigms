@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { X, Loader2, Palette, Type, Highlighter, MessageSquare, Trash2 } from 'lucide-react';
+import { render } from 'katex';
 
 interface Annotation {
     id: string;
@@ -92,14 +93,17 @@ export const AnnotationLayer: React.FC<AnnotationLayerProps> = ({
     const handleMouseUp = (e: React.MouseEvent) => {
         if (!isSelecting || !selectionStart || !selectionEnd) return;
         
-        const minX = Math.min(selectionStart.x, selectionEnd.x);
-        const minY = Math.min(selectionStart.y, selectionEnd.y);
+        let minX = Math.min(selectionStart.x, selectionEnd.x);
+        let minY = Math.min(selectionStart.y, selectionEnd.y);
         const maxX = Math.max(selectionStart.x, selectionEnd.x);
         const maxY = Math.max(selectionStart.y, selectionEnd.y);
         
-        const width = maxX - minX;
-        const height = maxY - minY;
+        const width =( maxX - minX)/renderPageProps.width;
+        const height = (maxY - minY)/renderPageProps.height;
         
+        minX = minX / renderPageProps.width;
+        minY = minY / renderPageProps.height;
+
         console.log('Selection coordinates:', { 
             start: selectionStart, 
             end: selectionEnd, 
@@ -108,8 +112,6 @@ export const AnnotationLayer: React.FC<AnnotationLayerProps> = ({
             renderPageProps: {
                 width: renderPageProps.width,
                 height: renderPageProps.height,
-                pageWidth,
-                pageHeight
             }
         });
         
@@ -117,15 +119,7 @@ export const AnnotationLayer: React.FC<AnnotationLayerProps> = ({
         setIsSelecting(false);
         setSelectionStart(null);
         setSelectionEnd(null);
-        
-        // Only create annotation if selection is large enough
-        if (width > 10 && height > 10) {
-            console.log('Creating annotation with coordinates...');
-            // Use the same coordinate system as bounding boxes
             onCreateAnnotation?.(minX, minY, width, height, renderPageProps.pageIndex + 1);
-        } else {
-            console.log('Selection too small:', { width, height });
-        }
     };
 
     const handleMouseLeave = () => {
@@ -174,10 +168,10 @@ export const AnnotationLayer: React.FC<AnnotationLayerProps> = ({
                             : 'border-2 border-dotted bg-blue-50/90'
                     }`}
                     style={{
-                        left: `${(annotation.x / renderPageProps.width) * 100}%`,
-                        top: `${(annotation.y / renderPageProps.height) * 100}%`,
-                        width: `${(annotation.width / renderPageProps.width) * 100}%`,
-                        height: `${(annotation.height / renderPageProps.height) * 100}%`,
+                        left: `${(annotation.x) * 100}%`,
+                        top: `${(annotation.y) * 100}%`,
+                        width: `${(annotation.width) * 100}%`,
+                        height: `${(annotation.height) * 100}%`,
                         backgroundColor: annotation.type === 'highlight' 
                             ? annotation.color + '20'
                             : annotation.type === 'note'
