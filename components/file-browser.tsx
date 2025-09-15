@@ -237,7 +237,7 @@ export const FileBrowser = forwardRef<FileBrowserRef, FileBrowserProps>(({ onFil
               ? 'hidden' 
               : 'w-full lg:w-1/4'
       }`}>
-        <Card className="h-[95vh] overflow-y-scroll rounded-none border-0 flex flex-col">
+        <Card className="h-[96vh] overflow-y-scroll rounded-none border-0 flex flex-col">
             <CardHeader className="bg-[#FF5100] dark:bg-[#702300] border-b flex-shrink-0 p-1.5 sticky top-0 z-10">
             <CardTitle className="flex items-center justify-between text-sm">
               {!isFileListCollapsed && !isMobile && <FolderIcon className="h-4 w-4" />}

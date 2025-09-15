@@ -276,7 +276,33 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
   const handleDragLeave = useCallback((e: React.DragEvent) => {
     e.preventDefault()
     e.stopPropagation()
-    setIsDragOver(false)
+    
+    // Only hide the overlay if we're leaving the entire chat container
+    // Check if the related target is outside the current target
+    const rect = e.currentTarget.getBoundingClientRect()
+    const x = e.clientX
+    const y = e.clientY
+    
+    if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
+      setIsDragOver(false)
+    }
+  }, [])
+
+  const handleDragEnter = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    
+    // Check if the dragged items contain files
+    if (e.dataTransfer.types.includes('Files')) {
+      // Additional check: only show overlay if there are image files
+      const items = Array.from(e.dataTransfer.items)
+      const hasImageFiles = items.some(item => 
+        item.kind === 'file' && item.type.startsWith('image/')
+      )
+      if (hasImageFiles) {
+        setIsDragOver(true)
+      }
+    }
   }, [])
 
   const handleDrop = useCallback((e: React.DragEvent) => {
@@ -965,7 +991,13 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
 
   return (
     <MathJaxContext config={mathJaxConfig}>
-      <div className="flex flex-col h-full w-full bg-background text-foreground antialiased mobile-chat-container relative">
+      <div 
+        className="flex flex-col h-full w-full bg-background text-foreground antialiased mobile-chat-container relative"
+        onDragEnter={handleDragEnter}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+      >
         {/* Drag and Drop Overlay */}
         {isDragOver && (
           <div className="absolute inset-0 bg-blue-500/10 border-2 border-dashed border-blue-500 z-50 flex items-center justify-center">
@@ -1182,11 +1214,7 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
         </div>
       )}
 
-      <form onSubmit={handleSendMessage} className="flex w-full border-t gap-2 border-border p-4 mobile-chat-input bg-background"
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
-      >
+      <form onSubmit={handleSendMessage} className="flex w-full border-t gap-2 border-border p-4 mobile-chat-input bg-background">
         {/* Hidden file input */}
         <input
           ref={fileInputRef}
