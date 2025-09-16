@@ -177,7 +177,7 @@ const renderInlineContent = (text: string): ReactElement[] => {
   let remaining = text
   let keyCounter = 0
 
-  // Handle inline math \(...\)
+  // Handle inline math \(...\) first to protect it
   const latexInlineMathRegex = /\\\(([^]*?)\\\)/g
   remaining = remaining.replace(latexInlineMathRegex, (match, math) => {
     const placeholder = `__LATEX_INLINE_MATH_${keyCounter}__`
@@ -213,13 +213,35 @@ const renderInlineContent = (text: string): ReactElement[] => {
     return placeholder
   })
 
-  // Handle bold text
+  // Handle bold text - with improved nested content handling
   const boldRegex = /\*\*([^*]+)\*\*/g
   remaining = remaining.replace(boldRegex, (match, text) => {
     const placeholder = `__BOLD_${keyCounter}__`
+    
+    // Split the bold content and process each part
+    const segments = text.split(/(__[A-Z_]+_\d+__)/g)
+    const boldChildren: (string | ReactElement)[] = []
+    
+    segments.forEach((segment: string, index: number) => {
+      if (segment.startsWith('__') && segment.endsWith('__')) {
+        // Find the corresponding part
+        const partIndex = parts.findIndex((part, idx) => 
+          (part.key as string)?.includes(segment.match(/_(\d+)__$/)?.[1] || ''))
+        if (partIndex >= 0) {
+          boldChildren.push(parts[partIndex])
+        }
+      } else if (segment) {
+        boldChildren.push(segment)
+      }
+    })
+    
     parts.push(
       <strong key={`bold-${keyCounter++}`} className="font-semibold">
-        {text}
+        {boldChildren.map((child, idx) => 
+          typeof child === 'string' ? 
+            <span key={`bold-text-${idx}`}>{child}</span> : 
+            child
+        )}
       </strong>
     )
     return placeholder
@@ -229,9 +251,31 @@ const renderInlineContent = (text: string): ReactElement[] => {
   const italicRegex = /\*([^*]+)\*/g
   remaining = remaining.replace(italicRegex, (match, text) => {
     const placeholder = `__ITALIC_${keyCounter}__`
+    
+    // Split the italic content and process each part
+    const segments = text.split(/(__[A-Z_]+_\d+__)/g)
+    const italicChildren: (string | ReactElement)[] = []
+    
+    segments.forEach((segment: string, index: number) => {
+      if (segment.startsWith('__') && segment.endsWith('__')) {
+        // Find the corresponding part
+        const partIndex = parts.findIndex((part, idx) => 
+          (part.key as string)?.includes(segment.match(/_(\d+)__$/)?.[1] || ''))
+        if (partIndex >= 0) {
+          italicChildren.push(parts[partIndex])
+        }
+      } else if (segment) {
+        italicChildren.push(segment)
+      }
+    })
+    
     parts.push(
       <em key={`italic-${keyCounter++}`} className="italic">
-        {text}
+        {italicChildren.map((child, idx) => 
+          typeof child === 'string' ? 
+            <span key={`italic-text-${idx}`}>{child}</span> : 
+            child
+        )}
       </em>
     )
     return placeholder
@@ -241,26 +285,48 @@ const renderInlineContent = (text: string): ReactElement[] => {
   const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g
   remaining = remaining.replace(linkRegex, (match, text, url) => {
     const placeholder = `__LINK_${keyCounter}__`
+    
+    // Split the link text and process each part
+    const segments = text.split(/(__[A-Z_]+_\d+__)/g)
+    const linkChildren: (string | ReactElement)[] = []
+    
+    segments.forEach((segment: string, index: number) => {
+      if (segment.startsWith('__') && segment.endsWith('__')) {
+        // Find the corresponding part
+        const partIndex = parts.findIndex((part, idx) => 
+          (part.key as string)?.includes(segment.match(/_(\d+)__$/)?.[1] || ''))
+        if (partIndex >= 0) {
+          linkChildren.push(parts[partIndex])
+        }
+      } else if (segment) {
+        linkChildren.push(segment)
+      }
+    })
+    
     parts.push(
       <a key={`link-${keyCounter++}`} href={url} target="_blank" rel="noopener noreferrer" 
          className="text-blue-500 hover:text-blue-700 underline">
-        {text}
+        {linkChildren.map((child, idx) => 
+          typeof child === 'string' ? 
+            <span key={`link-text-${idx}`}>{child}</span> : 
+            child
+        )}
       </a>
     )
     return placeholder
   })
 
-  // Split by placeholders and reconstruct
+  // Final reconstruction
   const segments = remaining.split(/(__[A-Z_]+_\d+__)/g)
   const result: ReactElement[] = []
-  let partIndex = 0
 
   segments.forEach((segment, index) => {
     if (segment.startsWith('__') && segment.endsWith('__')) {
       // Find the corresponding part
-      if (partIndex < parts.length) {
+      const partIndex = parts.findIndex((part, idx) => 
+        (part.key as string)?.includes(segment.match(/_(\d+)__$/)?.[1] || ''))
+      if (partIndex >= 0) {
         result.push(parts[partIndex])
-        partIndex++
       }
     } else if (segment) {
       result.push(<span key={`text-${index}`}>{segment}</span>)
