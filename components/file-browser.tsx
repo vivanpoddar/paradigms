@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useEffect, useState, forwardRef, useImperativeHandle } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { File, FileText, Image, Download, Plus, ChevronLeft, ChevronRight, Folder, Trash2, FileIcon, FolderIcon } from "lucide-react";
+import { File, FileText, Image, Download, Plus, ChevronLeft, ChevronRight, Folder, Trash2, FileIcon, FolderIcon, RefreshCcw, RefreshCcwDot, RefreshCcwDotIcon, LucideRefreshCw, RefreshCcwIcon } from "lucide-react";
 import { FileUpload } from "@/components/file-upload";
 import { PdfViewerWithOverlay } from "@/components/pdf-viewer-with-overlay";
 import { useFileManager, type UseFileManagerReturn } from "@/hooks/use-file-manager";
@@ -262,8 +262,7 @@ export const FileBrowser = forwardRef<FileBrowserRef, FileBrowserProps>(({ onFil
                     onClick={() => setShowUpload(!showUpload)}
                     className="h-6 text-xs"
                   >
-                    <Plus className="h-4 w-4 mr-1" />
-                    Upload
+                    <Plus className="h-4 w-4" />
                   </Button>
                   <Button
                     variant="outline"
@@ -272,7 +271,7 @@ export const FileBrowser = forwardRef<FileBrowserRef, FileBrowserProps>(({ onFil
                     disabled={loading}
                     className="h-6 text-xs"
                   >
-                    {loading ? 'Loading...' : 'Refresh'}
+                    {loading ? 'Loading...' : <RefreshCcw className="h-4 w-4" />}
                   </Button>
                   {!forceShowFileList && (
                     <Button

@@ -457,6 +457,18 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
         // Set all loaded messages at once
         setAllLoadedMessages(historyMessages)
         console.log('Chat history loaded successfully, messages count:', historyMessages.length)
+        
+        // Force scroll to bottom after loading history with a longer delay
+        // to ensure the DOM has been updated with the messages
+        setTimeout(() => {
+          if (containerRef.current) {
+            containerRef.current.scrollTo({
+              top: containerRef.current.scrollHeight,
+              behavior: 'auto', // Use 'auto' instead of 'smooth' for immediate scroll
+            })
+          }
+        }, 300)
+        
       } catch (error) {
         console.error('Failed to load chat history:', error)
       }
@@ -577,6 +589,20 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
       debouncedScrollToBottom()
     }
   }, [allMessages.length, streamingMessage, debouncedScrollToBottom])
+
+  // Force scroll to bottom on initial component mount to ensure starting at the latest messages
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (containerRef.current) {
+        containerRef.current.scrollTo({
+          top: containerRef.current.scrollHeight,
+          behavior: 'auto',
+        })
+      }
+    }, 100) // Small delay to ensure DOM is ready
+
+    return () => clearTimeout(timer)
+  }, []) // Empty dependency array - only run on mount
 
   // Save new conversations to database (query + response pairs)
   const saveConversationToHistory = useCallback(async (query: string, response: string, metadata: Record<string, any> = {}) => {
