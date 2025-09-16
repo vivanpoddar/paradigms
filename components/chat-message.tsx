@@ -356,7 +356,7 @@ export const ChatMessageItem = memo(({ message, isOwnMessage, showHeader }: Chat
   return (
     <div className={`flex mt-1 ${isOwnMessage ? 'justify-end' : 'justify-start'}`}>
       <div
-        className={cn('max-w-[75%] w-fit flex flex-col gap-0.5', {
+        className={cn('max-w-[75%] overflow-x-scroll w-fit flex flex-col gap-0.5', {
           'items-end': isOwnMessage,
         })}
       >
