@@ -31,8 +31,17 @@ export function FileUpload({ onUploadSuccess }: { onUploadSuccess?: () => void }
     
   const uploadProps = useSupabaseUpload({
     bucketName: 'documents',
-    allowedMimeTypes: ['image/*', 'application/pdf', 'text/*'],
-    maxFileSize: 5 * 1024 * 1024, // 5MB
+    allowedMimeTypes: [
+      'application/pdf',
+      'image/png',
+      'image/jpeg',
+      'image/jpg',
+      'image/gif',
+      'image/webp',
+      'image/bmp',
+      'image/tiff'
+    ],
+    maxFileSize: 20 * 1024 * 1024, // 10MB (increased for images)
     maxFiles: 1,
     parseMethod,
   });

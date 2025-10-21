@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/client'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { type FileError, type FileRejection, useDropzone } from 'react-dropzone'
+import { convertImageToPDF, isImageFile } from '@/lib/image-to-pdf'
 
 const supabase = createClient()
 
@@ -156,28 +157,49 @@ const useSupabaseUpload = (options: UseSupabaseUploadOptions) => {
     const responses = await Promise.all(
       filesToUpload.map(async (file) => {
         try {
-          // Upload path: bucketName/userUUID/filename
-          const uploadPath = `${userId}/${file.name}`
+          // Convert image to PDF if it's an image file
+          let fileToUpload: File = file;
+          let uploadFileName = file.name;
           
-          console.log(`📤 Uploading file ${file.name} to Supabase storage...`)
+          if (isImageFile(file)) {
+            console.log(`🖼️ Converting image ${file.name} to PDF...`);
+            try {
+              const convertedFile = await convertImageToPDF(file);
+              fileToUpload = convertedFile;
+              uploadFileName = convertedFile.name;
+              console.log(`✅ Image converted to PDF: ${uploadFileName}`);
+            } catch (conversionError) {
+              console.error(`❌ Failed to convert image to PDF:`, conversionError);
+              return {
+                name: file.name,
+                message: `Failed to convert image to PDF: ${conversionError instanceof Error ? conversionError.message : 'Unknown error'}`,
+                parseResult: null
+              };
+            }
+          }
+          
+          // Upload path: bucketName/userUUID/filename
+          const uploadPath = `${userId}/${uploadFileName}`;
+          
+          console.log(`📤 Uploading file ${uploadFileName} to Supabase storage...`);
           const { error } = await supabase.storage
             .from(bucketName)
-            .upload(uploadPath, file, {
+            .upload(uploadPath, fileToUpload, {
               cacheControl: cacheControl.toString(),
               upsert: true,
-            })
+            });
           
           if (error) {
-            console.error(`❌ Supabase upload failed for ${file.name}:`, error.message)
-            return { name: file.name, message: error.message, parseResult: null }
+            console.error(`❌ Supabase upload failed for ${uploadFileName}:`, error.message);
+            return { name: file.name, message: error.message, parseResult: null };
           }
 
           // After successful upload, send to backend for processing
-          console.log(`✅ File ${file.name} uploaded successfully to Supabase`)
-          console.log(`🔄 Processing with ${parseMethod} endpoint for file: ${file.name}`)
+          console.log(`✅ File ${uploadFileName} uploaded successfully to Supabase`);
+          console.log(`🔄 Processing with ${parseMethod} endpoint for file: ${uploadFileName}`);
           
-          const parseEndpoint = `/api/${parseMethod}`
-          console.log(`📡 Making request to: ${parseEndpoint}`)
+          const parseEndpoint = `/api/${parseMethod}`;
+          console.log(`📡 Making request to: ${parseEndpoint}`);
           
           const parseResponse = await fetch(parseEndpoint, {
             method: 'POST',
@@ -185,62 +207,62 @@ const useSupabaseUpload = (options: UseSupabaseUploadOptions) => {
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-              fileName: file.name,
+              fileName: uploadFileName,
               bucketName,
               uploadPath,
               userId,
             }),
-          })
+          });
 
-          console.log(`📨 Parse response status: ${parseResponse.status} ${parseResponse.statusText}`)
+          console.log(`📨 Parse response status: ${parseResponse.status} ${parseResponse.statusText}`);
 
           if (!parseResponse.ok) {
-            let errorMessage = `Parse error: ${parseResponse.status} ${parseResponse.statusText}`
+            let errorMessage = `Parse error: ${parseResponse.status} ${parseResponse.statusText}`;
             try {
-              const errorData = await parseResponse.json()
-              errorMessage = `Parse error: ${errorData.error}`
-              console.error(`❌ Parse API error response:`, errorData)
+              const errorData = await parseResponse.json();
+              errorMessage = `Parse error: ${errorData.error}`;
+              console.error(`❌ Parse API error response:`, errorData);
             } catch (jsonError) {
               // If response is not JSON, try to get text
               try {
-                const errorText = await parseResponse.text()
-                errorMessage = `Parse error: ${errorText.substring(0, 200)}...`
-                console.error(`❌ Parse API error text:`, errorText.substring(0, 200))
+                const errorText = await parseResponse.text();
+                errorMessage = `Parse error: ${errorText.substring(0, 200)}...`;
+                console.error(`❌ Parse API error text:`, errorText.substring(0, 200));
               } catch (textError) {
-                errorMessage = `Parse error: ${parseResponse.status} ${parseResponse.statusText}`
-                console.error(`❌ Parse API error - no readable response`)
+                errorMessage = `Parse error: ${parseResponse.status} ${parseResponse.statusText}`;
+                console.error(`❌ Parse API error - no readable response`);
               }
             }
-            return { name: file.name, message: errorMessage, parseResult: null }
+            return { name: file.name, message: errorMessage, parseResult: null };
           }
 
-          let parseResult
+          let parseResult;
           try {
-            parseResult = await parseResponse.json()
-            console.log(`✅ Successfully parsed ${file.name} with ${parseMethod}:`, parseResult.message || 'No message')
+            parseResult = await parseResponse.json();
+            console.log(`✅ Successfully parsed ${uploadFileName} with ${parseMethod}:`, parseResult.message || 'No message');
           } catch (jsonError) {
-            const responseText = await parseResponse.text()
-            console.error('❌ Failed to parse response as JSON:', responseText.substring(0, 200))
-            return { name: file.name, message: `Parse error: Invalid JSON response`, parseResult: null }
+            const responseText = await parseResponse.text();
+            console.error('❌ Failed to parse response as JSON:', responseText.substring(0, 200));
+            return { name: file.name, message: `Parse error: Invalid JSON response`, parseResult: null };
           }
           
           // Store parse result
           setParseResults(prev => ({
             ...prev,
             [file.name]: parseResult
-          }))
+          }));
 
-          return { name: file.name, message: undefined, parseResult }
+          return { name: file.name, message: undefined, parseResult };
         } catch (error) {
-          console.error(`❌ Upload/parse error for ${file.name}:`, error)
+          console.error(`❌ Upload/parse error for ${file.name}:`, error);
           return { 
             name: file.name, 
             message: error instanceof Error ? error.message : 'Unknown error',
             parseResult: null 
-          }
+          };
         }
       })
-    )
+    );
 
     const responseErrors = responses.filter((x) => x.message !== undefined)
     // if there were errors previously, this function tried to upload the files again so we should clear/overwrite the existing errors.
