@@ -1,4 +1,5 @@
 import { jsPDF } from 'jspdf';
+import { parse } from 'exifr';
 
 /**
  * Converts an image file to a PDF file
@@ -6,7 +7,12 @@ import { jsPDF } from 'jspdf';
  * @returns A new File object containing the PDF
  */
 export async function convertImageToPDF(imageFile: File): Promise<File> {
-  return new Promise((resolve, reject) => {
+  return new Promise(async (resolve, reject) => {
+    const exif = await parse(imageFile, { pick: ['Orientation'] });
+    const orientation = exif?.Orientation || 1
+
+    console.log(`Image Orientation: ${orientation}`);
+
     const reader = new FileReader();
     
     reader.onload = (e) => {
@@ -37,8 +43,7 @@ export async function convertImageToPDF(imageFile: File): Promise<File> {
           }
           
           // Create PDF with appropriate orientation
-          const orientation = imgWidth > imgHeight ? 'landscape' : 'portrait';
-          const pdf = new jsPDF({
+        const pdf = new jsPDF({
             orientation,
             unit: 'mm',
             format: [pdfWidth, pdfHeight]
