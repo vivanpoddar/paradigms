@@ -20,11 +20,86 @@ export async function convertImageToPDF(imageFile: File): Promise<File> {
       
       img.onload = () => {
         try {
-          // Calculate dimensions
-          const imgWidth = img.width;
-          const imgHeight = img.height;
+          // Create a canvas to handle rotation based on EXIF orientation
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
           
-          // Determine orientation and page size
+          if (!ctx) {
+            throw new Error('Could not get canvas context');
+          }
+          
+          let imgWidth = img.width;
+          let imgHeight = img.height;
+          
+          // Set canvas dimensions and apply transformations based on EXIF orientation
+          // EXIF orientation values: 1-8
+          // 1 = Normal (0°)
+          // 2 = Flip horizontal
+          // 3 = Rotate 180°
+          // 4 = Flip vertical
+          // 5 = Rotate 90° CW + Flip horizontal
+          // 6 = Rotate 90° CW
+          // 7 = Rotate 90° CCW + Flip horizontal
+          // 8 = Rotate 90° CCW
+          
+          switch (orientation) {
+            case 2:
+              // Flip horizontal
+              canvas.width = imgWidth;
+              canvas.height = imgHeight;
+              ctx.transform(-1, 0, 0, 1, imgWidth, 0);
+              break;
+            case 3:
+              // Rotate 180°
+              canvas.width = imgWidth;
+              canvas.height = imgHeight;
+              ctx.transform(-1, 0, 0, -1, imgWidth, imgHeight);
+              break;
+            case 4:
+              // Flip vertical
+              canvas.width = imgWidth;
+              canvas.height = imgHeight;
+              ctx.transform(1, 0, 0, -1, 0, imgHeight);
+              break;
+            case 5:
+              // Rotate 90° CW + Flip horizontal
+              canvas.width = imgHeight;
+              canvas.height = imgWidth;
+              ctx.transform(0, 1, 1, 0, 0, 0);
+              break;
+            case 6:
+              // Rotate 90° CW
+              canvas.width = imgHeight;
+              canvas.height = imgWidth;
+              ctx.transform(0, 1, -1, 0, imgHeight, 0);
+              [imgWidth, imgHeight] = [imgHeight, imgWidth];
+              break;
+            case 7:
+              // Rotate 90° CCW + Flip horizontal
+              canvas.width = imgHeight;
+              canvas.height = imgWidth;
+              ctx.transform(0, -1, -1, 0, imgHeight, imgWidth);
+              break;
+            case 8:
+              // Rotate 90° CCW
+              canvas.width = imgHeight;
+              canvas.height = imgWidth;
+              ctx.transform(0, -1, 1, 0, 0, imgWidth);
+              [imgWidth, imgHeight] = [imgHeight, imgWidth];
+              break;
+            default:
+              // Normal orientation (1)
+              canvas.width = imgWidth;
+              canvas.height = imgHeight;
+          }
+          
+          // Draw the image with the applied transformations
+          ctx.drawImage(img, 0, 0);
+          
+          // Get the corrected image data
+          const imgData = canvas.toDataURL('image/jpeg', 0.95);
+          
+          // Calculate dimensions using corrected width/height
           // Use A4 proportions but scale to fit the image
           const a4Ratio = 210 / 297; // A4 width/height ratio in mm
           const imgRatio = imgWidth / imgHeight;
@@ -42,15 +117,15 @@ export async function convertImageToPDF(imageFile: File): Promise<File> {
             pdfWidth = 297 * imgRatio;
           }
           
-          // Create PDF with appropriate orientation
-        const pdf = new jsPDF({
-            orientation,
+          // Create PDF with appropriate orientation based on corrected dimensions
+          const pdfOrientation = imgWidth > imgHeight ? 'landscape' : 'portrait';
+          const pdf = new jsPDF({
+            orientation: pdfOrientation,
             unit: 'mm',
             format: [pdfWidth, pdfHeight]
           });
           
-          // Add image to PDF (fill entire page)
-          const imgData = e.target?.result as string;
+          // Add rotated image to PDF (fill entire page)
           pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
           
           // Convert PDF to blob

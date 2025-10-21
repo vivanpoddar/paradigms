@@ -501,6 +501,8 @@ export async function POST(request: NextRequest) {
                                 }
                             });
 
+                            console.log(response)
+
                             let llmData;
                             try {
                                 llmData = JSON.parse(
