@@ -36,23 +36,28 @@ export async function POST(request: NextRequest) {
     });
 
     const index = new LlamaCloudIndex({
-      name: "paradigms",
+      name: "cultural-cardinal-2025-10-01",
       projectName: "Default",
       organizationId: "99f533dc-e4b9-4270-b176-6fe3cd20578b",
       apiKey: process.env.LLAMA_CLOUD_API_KEY,
     });
 
     const answerQuery = async (query: string, fileName: string, useChatHistory: boolean, messageHistory?: any[], multiModal?: boolean, images?: string[]) => {
-      // Build conversation context from message history
+      // Build conversation context from message history in compact {{user:"..."},{assistant:"..."}} form
       let conversationContext = '';
       if (messageHistory && messageHistory.length > 0) {
-        conversationContext = '\n\nConversation History:\n';
-        messageHistory.slice(-10).forEach((msg, index) => { // Use last 10 messages for context
-          const role = msg.user?.name === 'Document Assistant' ? 'Assistant' : 'User';
-          const content = msg.content.replace(/🤖 \*\*Document Assistant\*\*: /, ''); // Clean assistant prefix
-          conversationContext += `${role}: ${content}\n`;
+        // Use last 10 messages for context, compacted into a single-line representation
+        const pairs = messageHistory.slice(-5).map((msg) => {
+          const roleKey = msg.user?.name === 'Document Assistant' ? 'assistant' : 'user';
+          // Remove assistant prefix, collapse newlines and escape double quotes
+          const raw = String(msg.content || '').replace(/🤖 \*\*Document Assistant\*\*: /, '');
+          const collapsed = raw.replace(/\s+/g, ' ').trim();
+          const escaped = collapsed.replace(/"/g, '\\"');
+          return roleKey === 'user' ? `{user:"${escaped}"}` : `{assistant:"${escaped}"}`;
         });
-        conversationContext += '\n';
+
+        // Wrap with double braces as requested and join without line breaks
+        conversationContext = `{{${pairs.join(',')}}}`;
       }
 
       // If images are provided, handle vision query differently
@@ -92,7 +97,7 @@ export async function POST(request: NextRequest) {
         const visionMessages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
           {
             role: "system",
-            content: `You are a patient and knowledgeable homework tutor. You have access to document context and can view images. Use both sources to help the student understand and solve problems.
+            content: `You are a patient and knowledgeable homework tutor. Answer the user's questions based on the provided text and images.
 
 Document Context: ${documentContext}
 
@@ -134,7 +139,7 @@ IMPORTANT: When including mathematical expressions in your responses always use 
 
       // Regular document-only query
       const enhancedQuery = `${query}
-      ${useChatHistory ? `If needed, respond based on the available conversation history: ${conversationContext}` : ''}`;
+      ${useChatHistory ? ` ${conversationContext}` : ''}`;
 
       console.log('Creating query engine...');
       const fileNameTxt = fileName.replace(/\.[^.]+$/, '') + '.txt';
@@ -153,11 +158,13 @@ IMPORTANT: When including mathematical expressions in your responses always use 
         }
       });
       
-      console.log('Executing streaming query...');
+      console.log('enhancedQuery:', enhancedQuery);
       const streamingResponse = await queryEngine.query({
         query: enhancedQuery,
         stream: true 
       });
+
+      console.log(enhancedQuery)
       
       console.log('Query completed successfully');
       return streamingResponse;

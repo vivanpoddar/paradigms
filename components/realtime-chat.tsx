@@ -19,7 +19,6 @@ import {
   DropdownMenuLabel,
 } from '@/components/ui/dropdown-menu'
 import { useCallback, useEffect, useMemo, useState, useImperativeHandle, forwardRef, useRef, memo } from 'react'
-import { LLAMA_CLOUD_CONFIG } from '@/lib/llama-cloud-config'
 import { useChatHistory } from '@/hooks/use-chat-history'
 import { createClient } from '@/lib/supabase/client'
 import { InlineMath, BlockMath } from 'react-katex'
@@ -674,35 +673,13 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
     // Get current message history at execution time instead of dependency
     const currentMessages = allMessages
     
-    const enhancedQuery = selectedFileName ? `You are a patient and knowledgeable homework tutor. You have access to two sources of information: 1. Your own general knowledge. 2. Retrieved excerpts from the provided documents (retrieval-augmented generation).
-    Your primary role:
-    Explain concepts and reasoning so the student can solve the problem themselves, keeping in mind the previous conversation history.
-    Use your own knowledge as the main source.
-    Use retrieved document excerpts only to clarify terms or provide additional context — never to copy or reproduce a solution directly.
-    Rules:
-    - Break down explanations step-by-step and clearly define any terms.
-    - Provide examples or analogies where possible to aid understanding.
-    - Encourage the student to attempt steps themselves after understanding the concept.
-    - If you reference a retrieved chunk, explain how it supports the concept instead of quoting large sections verbatim.
-    - Keep your responses concise and focused on the student's understanding.
-    Goal:
-    By the end of your answer, the student should understand the “why” and “how” behind solving the problem, and be able to complete it independently. 
-
+    const enhancedQuery = selectedFileName ? `You are a patient and knowledgeable homework tutor. You have access to two sources of information: 1. Your own general knowledge. 2. Retrieved excerpts from the provided document.
+    Your primary role is to explain concepts and reasoning so the student can solve the problem themselves, keeping in mind the previous conversation history.
     IMPORTANT: When including mathematical expressions in your responses always use LaTeX syntax.
 
     Current user request:
     ${query}
-
-      ${contextData ? `
-      --- Context Information ---
-      Related Question:
-      ${contextData.problemText}
-
-      Related Solution:
-      ${contextData.solution}
-      --------------------------
-      ` : ''}
-      ` : query
+    ` : query
     try {
       const apiEndpoint = selectedFileName ? '/api/query' : '/api/global-chat'
       console.log('📤 Sending request to', apiEndpoint);

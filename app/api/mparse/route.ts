@@ -188,7 +188,7 @@ export async function POST(request: NextRequest) {
                     fileFormData.append("upload_file", textFileStream);
                     fileFormData.append("external_file_id", `${fileName}_ocr_${Date.now()}`);
                     fileFormData.append("project_id", "2a2234b3-7c0c-4436-b09c-db61e7e5b546");
-                    fileFormData.append("pipeline_id", "f159f09f-bb0c-4414-aaeb-084c8167cdf1");
+                    fileFormData.append("pipeline_id", "f60d5a9e-a5c9-4a23-98c4-379986f02020");
 
                     const fileUploadResponse = await fetch("https://api.cloud.llamaindex.ai/api/v1/files", {
                         method: "POST",
@@ -217,7 +217,7 @@ export async function POST(request: NextRequest) {
                     // Add the file to the pipeline if it has an ID
                     if (fileResult && fileResult.id) {
                         try {
-                            const addToPipelineResponse = await fetch(`https://api.cloud.llamaindex.ai/api/v1/pipelines/f159f09f-bb0c-4414-aaeb-084c8167cdf1/files`, {
+                            const addToPipelineResponse = await fetch(`https://api.cloud.llamaindex.ai/api/v1/pipelines/f60d5a9e-a5c9-4a23-98c4-379986f02020/files`, {
                                 method: "PUT",
                                 headers: {
                                     "Content-Type": "application/json",
@@ -439,7 +439,7 @@ export async function POST(request: NextRequest) {
                         // Wait for pipeline indexing to complete
                         let indexingCompleted = false;
                         if (llamaIndexResult) {
-                            const pipelineId = "f159f09f-bb0c-4414-aaeb-084c8167cdf1";
+                            const pipelineId = "f60d5a9e-a5c9-4a23-98c4-379986f02020";
                             indexingCompleted = await waitForPipelineIndexingCompletion(pipelineId, 120000); // 2 minute timeout
                         }
 
