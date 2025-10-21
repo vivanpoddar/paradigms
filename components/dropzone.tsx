@@ -3,7 +3,7 @@
 import { cn } from '@/lib/utils'
 import { type UseSupabaseUploadReturn } from '@/hooks/use-supabase-upload'
 import { Button } from '@/components/ui/button'
-import { CheckCircle, File, Loader2, Upload, X } from 'lucide-react'
+import { CheckCircle, File, Loader2, Upload, X, Plus, ChevronUp, ChevronDown } from 'lucide-react'
 import { createContext, type PropsWithChildren, useCallback, useContext } from 'react'
 
 export const formatBytes = (
@@ -73,6 +73,7 @@ const DropzoneContent = ({ className }: { className?: string }) => {
     maxFiles,
     isSuccess,
     parseResults,
+    inputRef,
   } = useDropzoneContext()
 
   const exceedMaxFiles = files.length > maxFiles
@@ -83,6 +84,36 @@ const DropzoneContent = ({ className }: { className?: string }) => {
     },
     [files, setFiles]
   )
+
+  const handleMoveUp = useCallback(
+    (index: number) => {
+      if (index > 0) {
+        const newFiles = [...files]
+        const temp = newFiles[index]
+        newFiles[index] = newFiles[index - 1]
+        newFiles[index - 1] = temp
+        setFiles(newFiles)
+      }
+    },
+    [files, setFiles]
+  )
+
+  const handleMoveDown = useCallback(
+    (index: number) => {
+      if (index < files.length - 1) {
+        const newFiles = [...files]
+        const temp = newFiles[index]
+        newFiles[index] = newFiles[index + 1]
+        newFiles[index + 1] = temp
+        setFiles(newFiles)
+      }
+    },
+    [files, setFiles]
+  )
+
+  const handleAddMore = () => {
+    inputRef.current?.click()
+  }
 
   if (isSuccess) {
     return (
@@ -120,12 +151,42 @@ const DropzoneContent = ({ className }: { className?: string }) => {
       {files.map((file, idx) => {
         const fileError = errors.find((e) => e.name === file.name)
         const isSuccessfullyUploaded = !!successes.find((e) => e === file.name)
+        const canMoveUp = idx > 0 && !loading && !isSuccessfullyUploaded
+        const canMoveDown = idx < files.length - 1 && !loading && !isSuccessfullyUploaded
 
         return (
           <div
             key={`${file.name}-${idx}`}
-            className="flex items-center gap-x-4 border-b py-2 first:mt-4 last:mb-4 "
+            className="flex items-center gap-x-2 border-b py-2 first:mt-4 last:mb-4"
           >
+            {!loading && !isSuccessfullyUploaded && files.length > 1 && (
+              <div className="flex flex-col gap-1 shrink-0">
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className={cn(
+                    "h-5 w-5 p-0",
+                    !canMoveUp && "opacity-30 cursor-not-allowed"
+                  )}
+                  onClick={() => canMoveUp && handleMoveUp(idx)}
+                  disabled={!canMoveUp}
+                >
+                  <ChevronUp size={16} />
+                </Button>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className={cn(
+                    "h-5 w-5 p-0",
+                    !canMoveDown && "opacity-30 cursor-not-allowed"
+                  )}
+                  onClick={() => canMoveDown && handleMoveDown(idx)}
+                  disabled={!canMoveDown}
+                >
+                  <ChevronDown size={16} />
+                </Button>
+              </div>
+            )}
             {file.type.startsWith('image/') ? (
               <div className="h-10 w-10 rounded border overflow-hidden shrink-0 bg-muted flex items-center justify-center">
                 <img src={file.preview} alt={file.name} className="object-cover" />
@@ -182,10 +243,21 @@ const DropzoneContent = ({ className }: { className?: string }) => {
       )}
       {files.length > 0 && !exceedMaxFiles && (
         <div className="mt-2 space-y-2">
+          {!loading && files.length < maxFiles && (
+            <Button
+              variant="outline"
+              onClick={handleAddMore}
+              className="w-full"
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Add More Files
+            </Button>
+          )}
           <Button
             variant="outline"
             onClick={onUpload}
             disabled={files.some((file) => file.errors.length !== 0) || loading}
+            className="w-full"
           >
             {loading ? (
               <>

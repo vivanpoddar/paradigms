@@ -41,8 +41,8 @@ export function FileUpload({ onUploadSuccess }: { onUploadSuccess?: () => void }
       'image/bmp',
       'image/tiff'
     ],
-    maxFileSize: 20 * 1024 * 1024, // 10MB (increased for images)
-    maxFiles: 1,
+    maxFileSize: 20 * 1024 * 1024, // 20MB (increased for images)
+    maxFiles: 10, // Allow multiple images
     parseMethod,
   });
 
@@ -72,6 +72,11 @@ export function FileUpload({ onUploadSuccess }: { onUploadSuccess?: () => void }
         >
           Upload with Math Recognition
         </Label>
+      </div>
+      <div className="text-sm text-muted-foreground">
+        Upload up to 10 files. Multiple images will be concatenated into a single PDF.
+        <br />
+        <span className="text-xs">Use arrow buttons to reorder • Click "Add More Files" to add additional files</span>
       </div>
       <Dropzone {...uploadProps}>
         <DropzoneEmptyState />

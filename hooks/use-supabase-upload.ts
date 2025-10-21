@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/client'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { type FileError, type FileRejection, useDropzone } from 'react-dropzone'
-import { convertImageToPDF, isImageFile } from '@/lib/image-to-pdf'
+import { convertImageToPDF, isImageFile, concatenateImagesToPDF } from '@/lib/image-to-pdf'
 
 const supabase = createClient()
 
@@ -154,6 +154,92 @@ const useSupabaseUpload = (options: UseSupabaseUploadOptions) => {
           ]
         : files
 
+    // Check if all files are images
+    const allImages = filesToUpload.every(file => isImageFile(file));
+    const multipleImages = allImages && filesToUpload.length > 1;
+
+    if (multipleImages) {
+      console.log(`📚 Concatenating ${filesToUpload.length} images into a single PDF...`);
+      try {
+        // Concatenate all images into a single PDF
+        const concatenatedPDF = await concatenateImagesToPDF(filesToUpload);
+        
+        // Upload the concatenated PDF
+        const uploadPath = `${userId}/${concatenatedPDF.name}`;
+        
+        console.log(`📤 Uploading concatenated PDF ${concatenatedPDF.name} to Supabase storage...`);
+        const { error } = await supabase.storage
+          .from(bucketName)
+          .upload(uploadPath, concatenatedPDF, {
+            cacheControl: cacheControl.toString(),
+            upsert: true,
+          });
+        
+        if (error) {
+          console.error(`❌ Supabase upload failed for ${concatenatedPDF.name}:`, error.message);
+          setErrors([{ name: 'concatenated PDF', message: error.message }]);
+          setLoading(false);
+          return;
+        }
+
+        console.log(`✅ Concatenated PDF uploaded successfully to Supabase`);
+        console.log(`🔄 Processing with ${parseMethod} endpoint for file: ${concatenatedPDF.name}`);
+        
+        const parseEndpoint = `/api/${parseMethod}`;
+        const parseResponse = await fetch(parseEndpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            fileName: concatenatedPDF.name,
+            bucketName,
+            uploadPath,
+            userId,
+          }),
+        });
+
+        if (!parseResponse.ok) {
+          let errorMessage = `Parse error: ${parseResponse.status} ${parseResponse.statusText}`;
+          try {
+            const errorData = await parseResponse.json();
+            errorMessage = `Parse error: ${errorData.error}`;
+          } catch (jsonError) {
+            // Ignore JSON parse errors
+          }
+          setErrors([{ name: 'concatenated PDF', message: errorMessage }]);
+          setLoading(false);
+          return;
+        }
+
+        const parseResult = await parseResponse.json();
+        console.log(`✅ Successfully parsed concatenated PDF with ${parseMethod}`);
+        
+        // Store parse result for all original files
+        const newParseResults: { [key: string]: any } = {};
+        filesToUpload.forEach(file => {
+          newParseResults[file.name] = parseResult;
+        });
+        setParseResults(prev => ({ ...prev, ...newParseResults }));
+
+        // Mark all files as successful
+        const newSuccesses = Array.from(new Set([...successes, ...filesToUpload.map(f => f.name)]));
+        setSuccesses(newSuccesses);
+        setErrors([]);
+        
+        console.log(`🏁 Upload process completed. All ${filesToUpload.length} images processed as one PDF.`);
+      } catch (error) {
+        console.error(`❌ Failed to concatenate images:`, error);
+        setErrors([{ 
+          name: 'concatenation', 
+          message: error instanceof Error ? error.message : 'Failed to concatenate images' 
+        }]);
+      }
+      setLoading(false);
+      return;
+    }
+
+    // Original single-file or mixed-file upload logic
     const responses = await Promise.all(
       filesToUpload.map(async (file) => {
         try {
