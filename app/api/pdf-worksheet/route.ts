@@ -200,10 +200,9 @@ Ensure the content is educationally sound, age-appropriate, and provides good pr
 
     console.log('Worksheet creation completed successfully');
     
-    // Automatically parse the PDF using the appropriate endpoint
-    console.log(`Parsing PDF using ${isMath ? '/api/mparse' : '/api/nparse'}...`);
-    const parseEndpoint = isMath ? '/api/mparse' : '/api/nparse';
-    console.log(`Parsing PDF using ${parseEndpoint}...`);
+    // Automatically parse the PDF using mparse
+    console.log('Parsing PDF using /api/mparse...');
+    const parseEndpoint = '/api/mparse';
     
     let parseResult = null;
     let parseError = null;

@@ -39,9 +39,9 @@ type UseSupabaseUploadOptions = {
   maxFiles?: number
   /**
    * Parsing method to use for document processing.
-   * 'mparse' uses Mathpix for mathematical content, 'nparse' uses standard LlamaIndex OCR
+   * 'mparse' uses Mathpix for mathematical content
    */
-  parseMethod?: 'mparse' | 'nparse'
+  parseMethod?: 'mparse'
   /**
    * The number of seconds the asset is cached in the browser and in the Supabase CDN.
    *
@@ -65,7 +65,7 @@ const useSupabaseUpload = (options: UseSupabaseUploadOptions) => {
     allowedMimeTypes = [],
     maxFileSize = Number.POSITIVE_INFINITY,
     maxFiles = 1,
-    parseMethod = 'nparse', 
+    parseMethod = 'mparse', 
     cacheControl = 3600,
     upsert = true,
   } = options
