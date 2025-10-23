@@ -6,10 +6,11 @@ import { createClient } from '@/lib/supabase/server'
 export async function POST(request: NextRequest) {
   console.log('=== PDF WORKSHEET API CALLED ===');
   try {
-    const { prompt, userId, containsMath = false } = await request.json();
+    const { prompt, userId, containsMath = false, enableQuestionDetection = true } = await request.json();
     console.log('Received prompt:', prompt);
     console.log('Received userId:', userId);
     console.log('Contains math:', containsMath);
+    console.log('Question detection enabled:', enableQuestionDetection);
 
     if (!prompt || typeof prompt !== 'string') {
       return NextResponse.json(
@@ -200,9 +201,9 @@ Ensure the content is educationally sound, age-appropriate, and provides good pr
 
     console.log('Worksheet creation completed successfully');
     
-    // Automatically parse the PDF using mparse
-    console.log('Parsing PDF using /api/mparse...');
-    const parseEndpoint = '/api/mparse';
+    // Automatically parse the PDF using the appropriate endpoint based on question detection setting
+    const parseEndpoint = enableQuestionDetection ? '/api/mparse' : '/api/mparse-simple';
+    console.log(`Parsing PDF using ${parseEndpoint}...`);
     
     let parseResult = null;
     let parseError = null;

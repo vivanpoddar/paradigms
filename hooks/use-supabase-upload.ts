@@ -39,9 +39,9 @@ type UseSupabaseUploadOptions = {
   maxFiles?: number
   /**
    * Parsing method to use for document processing.
-   * 'mparse' uses Mathpix for mathematical content
+   * 'mparse' uses Mathpix with question detection, 'mparse-simple' uses Mathpix without question detection
    */
-  parseMethod?: 'mparse'
+  parseMethod?: 'mparse' | 'mparse-simple'
   /**
    * The number of seconds the asset is cached in the browser and in the Supabase CDN.
    *
