@@ -26,10 +26,10 @@ export async function POST(request: NextRequest) {
     }
 
     Settings.llm = openai({
-      model: "gpt-4.1-mini",
-      reasoningEffort: "medium",
+      model: "gpt-4o",
       apiKey: process.env.OPENAI_API_KEY,
-      maxTokens: 1000,
+      maxTokens: 4000,
+      temperature: 0.7,
     });
 
     const index = new LlamaCloudIndex({
@@ -52,7 +52,16 @@ export async function POST(request: NextRequest) {
         conversationContext += '\n';
       }
 
-      const enhancedQuery = `${query}`
+      // Enhanced query with thinking instructions
+      const enhancedQuery = `You are an expert tutor and problem solver. Before providing your answer, take time to:
+
+1. Carefully analyze the question and relevant context
+2. Think through the problem step-by-step
+3. Consider multiple approaches if applicable
+4. Verify your reasoning before presenting the solution
+
+Only provide the answer to the query in your response.
+Question: ${query}`
 
       console.log('Creating query engine...');
       const fileNameTxt = fileName.replace(/\.[^.]+$/, '') + '.txt';
@@ -83,10 +92,10 @@ export async function POST(request: NextRequest) {
 
       const queryEngine = index.asQueryEngine(queryEngineConfig);
       
-      console.log('Executing streaming query...');
+      console.log('Executing streaming query with extended thinking...');
       const streamingResponse = await queryEngine.query({ 
         query: enhancedQuery,
-        stream: true 
+        stream: true
       });
       console.log('Query completed successfully');
       return streamingResponse;

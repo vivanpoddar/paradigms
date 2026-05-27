@@ -21,6 +21,7 @@ import {
 import { useCallback, useEffect, useMemo, useState, useImperativeHandle, forwardRef, useRef, memo } from 'react'
 import { useChatHistory } from '@/hooks/use-chat-history'
 import { createClient } from '@/lib/supabase/client'
+import { buildBoundedHistoryPayload } from '@/lib/chat-context'
 import { InlineMath, BlockMath } from 'react-katex'
 import 'katex/dist/katex.min.css'
 import { MathJaxContext } from 'better-react-mathjax'
@@ -104,6 +105,7 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
 
   // Create a ref to access queryDocuments without making it a dependency
   const queryDocumentsRef = useRef<((query: string, images?: File[]) => Promise<void>) | null>(null)
+  const conversationResponseIdsRef = useRef<Record<string, string>>({})
 
   // Microphone hook function
   const handleMicrophoneToggle = useCallback(() => {
@@ -390,6 +392,8 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
   // Expose methods to parent component via ref
   useImperativeHandle(ref, () => ({
     clearCurrentMessages: () => {
+      const fileContext = selectedFileName || 'global_chat'
+      delete conversationResponseIdsRef.current[fileContext]
       setAllLoadedMessages([])
       setDisplayedMessageCount(5)
       setStreamingMessage(null)
@@ -399,7 +403,7 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
       // Set the context data to be displayed above the input
       setContextData({ problemText, solution })
     }
-  }), [])
+  }), [selectedFileName])
 
   // Load chat history when component mounts or when file selection changes
   useEffect(() => {
@@ -452,6 +456,17 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
             await new Promise(resolve => setTimeout(resolve, 0))
           }
         }
+
+        // Restore latest OpenAI conversation pointer for this context when available.
+        const latestConversationWithResponseId = [...conversations]
+          .reverse()
+          .find((conv) => typeof conv.metadata?.openaiResponseId === 'string' && conv.metadata.openaiResponseId.trim())
+
+        if (latestConversationWithResponseId?.metadata?.openaiResponseId) {
+          conversationResponseIdsRef.current[fileContext] = latestConversationWithResponseId.metadata.openaiResponseId
+        } else {
+          delete conversationResponseIdsRef.current[fileContext]
+        }
         
         // Set all loaded messages at once
         setAllLoadedMessages(historyMessages)
@@ -503,31 +518,39 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
     }
   }, [realtimeMessages])
 
-  // Merge messages with initial messages and add streaming message if exists
-  const allMessages = useMemo(() => {
-    const baseMessages = [...initialMessages, ...allLoadedMessages]
-    
-    // Add streaming message at the end if it exists
-    if (streamingMessage) {
-      baseMessages.push(streamingMessage)
-    }
-    
-    // Remove duplicates based on message id while preserving order
+  // Merge and dedupe full history once so context and rendering both share the same source.
+  const mergedMessages = useMemo(() => {
     const seenIds = new Set<string>()
-    const uniqueMessages = baseMessages.filter(message => {
+    return [...initialMessages, ...allLoadedMessages].filter(message => {
       if (seenIds.has(message.id)) {
         return false
       }
       seenIds.add(message.id)
       return true
     })
+  }, [initialMessages, allLoadedMessages])
+
+  // Keep a ref to the latest full history for query callbacks without re-creating them.
+  const mergedMessagesRef = useRef<ChatMessage[]>([])
+  useEffect(() => {
+    mergedMessagesRef.current = mergedMessages
+  }, [mergedMessages])
+
+  // Merge messages with initial messages and add streaming message if exists
+  const allMessages = useMemo(() => {
+    const visibleMessages = [...mergedMessages]
+
+    // Add streaming message at the end if it exists
+    if (streamingMessage) {
+      visibleMessages.push(streamingMessage)
+    }
 
     // Return only the last displayedMessageCount messages for performance
-    return uniqueMessages.slice(-displayedMessageCount)
-  }, [initialMessages, allLoadedMessages, streamingMessage, displayedMessageCount])
+    return visibleMessages.slice(-displayedMessageCount)
+  }, [mergedMessages, streamingMessage, displayedMessageCount])
 
   // Memoize the message count to avoid recalculating
-  const messageCount = useMemo(() => allMessages.length, [allMessages])
+  const messageCount = useMemo(() => mergedMessages.length, [mergedMessages])
 
   // Debounced scroll to bottom to prevent excessive scrolling
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null)
@@ -546,7 +569,7 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
     
     const container = containerRef.current
     const scrollTop = container.scrollTop
-    const totalMessages = [...initialMessages, ...allLoadedMessages].length
+    const totalMessages = mergedMessages.length
     
     // If scrolled to top and there are more messages to load
     if (scrollTop <= 100 && displayedMessageCount < totalMessages) {
@@ -565,7 +588,7 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
         }, 50)
       }, 300) // Small delay to show loading state
     }
-  }, [containerRef, isLoadingMore, displayedMessageCount, initialMessages, allLoadedMessages])
+  }, [containerRef, isLoadingMore, displayedMessageCount, mergedMessages])
 
   // Add scroll listener
   useEffect(() => {
@@ -649,8 +672,9 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
     
     // Convert images to base64
     const imageData: string[] = []
-    if (images.length > 0) {
-      for (const image of images) {
+    const boundedImages = images.slice(0, 3)
+    if (boundedImages.length > 0) {
+      for (const image of boundedImages) {
         try {
           const base64 = await new Promise<string>((resolve, reject) => {
             const reader = new FileReader()
@@ -670,8 +694,25 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
       }
     }
     
-    // Get current message history at execution time instead of dependency
-    const currentMessages = allMessages
+    const latestMessages = mergedMessagesRef.current
+    const lastMessage = latestMessages[latestMessages.length - 1]
+    const queryAlreadyInHistory =
+      lastMessage?.user?.name === username && lastMessage?.content?.trim() === query.trim()
+    const contextMessages = queryAlreadyInHistory
+      ? latestMessages
+      : [
+          ...latestMessages,
+          {
+            content: query,
+            user: { name: username },
+          },
+        ]
+    const currentMessages = buildBoundedHistoryPayload(contextMessages, {
+      maxMessages: 30,
+      maxCharsPerMessage: 600,
+    })
+    const contextKey = selectedFileName || 'global_chat'
+    const previousResponseId = conversationResponseIdsRef.current[contextKey]
     
     const enhancedQuery = selectedFileName ? `You are a patient and knowledgeable homework tutor. You have access to two sources of information: 1. Your own general knowledge. 2. Retrieved excerpts from the provided document.
     Your primary role is to explain concepts and reasoning so the student can solve the problem themselves, keeping in mind the previous conversation history.
@@ -689,13 +730,15 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
             query: enhancedQuery, 
             fileName: selectedFileName,
             messageHistory: currentMessages,
-            multiModal: images.length > 0,
+            previousResponseId,
+            multiModal: boundedImages.length > 0,
             images: imageData
           }
         : {
             query: enhancedQuery,
             messageHistory: currentMessages,
-            multiModal: images.length > 0,
+            previousResponseId,
+            multiModal: boundedImages.length > 0,
             images: imageData
           }
       
@@ -703,7 +746,8 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
       console.log('- Query length:', enhancedQuery.length);
       console.log('- Context:', selectedFileName || 'global_chat');
       console.log('- Message history count:', currentMessages.length);
-      console.log('- Multi-modal:', images.length > 0);
+      console.log('- Has previousResponseId:', Boolean(previousResponseId));
+      console.log('- Multi-modal:', boundedImages.length > 0);
       console.log('- Images count:', imageData.length);
       
       const response = await fetch(apiEndpoint, {
@@ -716,7 +760,26 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
 
       console.log('📥 Response status:', response.status);
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
+        let serverMessage = ''
+        try {
+          const errorBody = await response.json()
+          serverMessage = errorBody?.error || errorBody?.details || ''
+        } catch {
+          serverMessage = ''
+        }
+
+        if (response.status === 429) {
+          throw new Error(
+            serverMessage ||
+              'Request blocked by quota limits. Context and output have been reduced, but your API quota is currently exhausted.'
+          )
+        }
+
+        throw new Error(
+          serverMessage
+            ? `HTTP error ${response.status}: ${serverMessage}`
+            : `HTTP error! status: ${response.status}`
+        )
       }
 
       // Create a temporary message to stream content into
@@ -735,6 +798,7 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
       setStreamingMessage(initialBotMessage)
       
       let fullResponse = ''
+      let latestResponseId: string | null = null
       
       // Handle streaming response
       const reader = response.body?.getReader()
@@ -763,6 +827,12 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
                   ...prev,
                   content: fullResponse
                 } : null)
+              }
+
+              if (typeof data.responseId === 'string' && data.responseId.trim()) {
+                const responseId = data.responseId.trim()
+                latestResponseId = responseId
+                conversationResponseIdsRef.current[contextKey] = responseId
               }
               
               if (data.done) {
@@ -793,6 +863,11 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
         // Fallback for non-streaming response
         const data = await response.json()
         fullResponse = data.response
+        if (typeof data.responseId === 'string' && data.responseId.trim()) {
+          const responseId = data.responseId.trim()
+          latestResponseId = responseId
+          conversationResponseIdsRef.current[contextKey] = responseId
+        }
         setStreamingMessage(prev => prev ? {
           ...prev,
           content: fullResponse
@@ -831,6 +906,8 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
       await saveConversationToHistory(query, fullResponse, {
         fileName: selectedFileName || 'global_chat',
         messageType: 'query-response',
+        openaiResponseId: latestResponseId || undefined,
+        usesConversationApi: Boolean(latestResponseId || previousResponseId),
         images: images.length > 0 ? images.map(image => ({
           name: image.name,
           size: image.size,
@@ -885,7 +962,7 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
       // Ensure isQuerying is false (backup in case it wasn't set in try/catch)
       setIsQuerying(false)
     }
-  }, [selectedFileName, saveConversationToHistory, contextData, userId])
+  }, [selectedFileName, saveConversationToHistory, userId, messageCount, username, scrollToBottom, streamingMessage])
 
   // Update the ref whenever queryDocuments changes
   useEffect(() => {
@@ -1041,7 +1118,7 @@ export const RealtimeChat = forwardRef<RealtimeChatRef, RealtimeChatProps>(({
         <div className="space-y-1">
           {/* Show load more indicator at the top */}
           {(() => {
-            const totalMessages = [...initialMessages, ...allLoadedMessages].length
+            const totalMessages = mergedMessages.length
             const hasMoreMessages = displayedMessageCount < totalMessages
             
             return hasMoreMessages && (
